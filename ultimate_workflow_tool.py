@@ -897,7 +897,21 @@ async def export_workflows(
         return JSONResponse(content=workflows)
 
 if __name__ == "__main__":
+    import sys
+    
+    # Parse command line arguments
+    port = 9090  # default port
+    if len(sys.argv) > 1:
+        for i, arg in enumerate(sys.argv):
+            if arg == "--port" and i + 1 < len(sys.argv):
+                try:
+                    port = int(sys.argv[i + 1])
+                except ValueError:
+                    print(f"Invalid port number: {sys.argv[i + 1]}")
+                    sys.exit(1)
+    
     print("🚀 Starting Ultimate n8n Workflow Tool...")
+    print(f"🌐 Server will start on port {port}")
     print("📊 Indexing workflows with AI scoring...")
     index_workflows()
     print("✅ Ultimate tool ready!")
@@ -905,7 +919,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "ultimate_workflow_tool:app",
         host="0.0.0.0",
-        port=9090,
+        port=port,
         reload=True,
         log_level="info"
     )

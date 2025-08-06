@@ -1,0 +1,150 @@
+{
+  "name": "AI Assistant Workflow",
+  "version": 1,
+  "workflow": {
+    "id": "ai-assistant-001",
+    "name": "AI Assistant Workflow",
+    "description": "A comprehensive AI assistant workflow that processes user queries and provides intelligent responses",
+    "active": true,
+    "tags": ["ai", "assistant", "automation", "nlp"],
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "triggerCount": 1,
+    "createdAt": "2025-08-06T04:00:00.000Z",
+    "updatedAt": "2025-08-06T04:00:00.000Z"
+  },
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-assistant",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "id": "input-processor",
+      "name": "Input Processor",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "parameters": {
+        "functionCode": "const userInput = $json.query || $json.message;\nconst sessionId = $json.session_id || 'default';\n\nreturn {\n  userInput,\n  sessionId,\n  timestamp: new Date().toISOString(),\n  context: $json.context || {}\n};"
+      }
+    },
+    {
+      "id": "ai-processor",
+      "name": "AI Response Generator",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "resource": "chat",
+        "prompt": "You are a helpful AI assistant. Respond to the user's query in a friendly and informative manner.",
+        "model": "gpt-3.5-turbo",
+        "maxTokens": 150,
+        "temperature": 0.7
+      }
+    },
+    {
+      "id": "response-formatter",
+      "name": "Response Formatter",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "parameters": {
+        "functionCode": "const response = $json.choices[0].message.content;\nconst inputData = $node['Input Processor'].json;\n\nreturn {\n  response,\n  sessionId: inputData.sessionId,\n  timestamp: new Date().toISOString(),\n  status: 'success',\n  metadata: {\n    model: 'gpt-3.5-turbo',\n    tokens_used: $json.usage.total_tokens\n  }\n};"
+      }
+    },
+    {
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      }
+    },
+    {
+      "id": "log-interaction",
+      "name": "Log Interaction",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [850, 480],
+      "parameters": {
+        "operation": "append",
+        "documentId": "your-sheet-id",
+        "sheetName": "AI_Interactions",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "values": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Session_ID": "={{ $json.sessionId }}",
+            "User_Input": "={{ $node['Input Processor'].json.userInput }}",
+            "AI_Response": "={{ $json.response }}",
+            "Tokens_Used": "={{ $json.metadata.tokens_used }}"
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Input Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Processor": {
+      "main": [
+        [
+          {
+            "node": "AI Response Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Response Generator": {
+      "main": [
+        [
+          {
+            "node": "Response Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response Formatter": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Interaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "staticData": null
+}

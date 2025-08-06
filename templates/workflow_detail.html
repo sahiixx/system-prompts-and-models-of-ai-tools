@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ workflow.name }} - Workflow Details</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .header h1 { color: #667eea; margin-bottom: 10px; }
+        .header .description { color: #666; font-size: 1.1rem; margin-bottom: 20px; }
+        .tags { display: flex; gap: 10px; flex-wrap: wrap; }
+        .tag { 
+            background: #667eea; 
+            color: white; 
+            padding: 5px 15px; 
+            border-radius: 20px; 
+            font-size: 0.9rem;
+        }
+        .content-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 30px; 
+            margin-bottom: 30px;
+        }
+        .card { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .card h2 { color: #667eea; margin-bottom: 20px; }
+        .nodes-section { grid-column: 1 / -1; }
+        .node { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 10px; 
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+        .node-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .node-name { font-weight: bold; color: #333; }
+        .node-type { 
+            background: #e9ecef; 
+            padding: 3px 8px; 
+            border-radius: 5px; 
+            font-size: 0.8rem;
+        }
+        .back-link { 
+            display: inline-block; 
+            background: #667eea; 
+            color: white; 
+            padding: 10px 20px; 
+            text-decoration: none; 
+            border-radius: 5px; 
+            margin-bottom: 20px;
+        }
+        .back-link:hover { background: #5a6fd8; }
+        .stats-row { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .stat-item { text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: #667eea; }
+        .stat-label { color: #666; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Dashboard</a>
+        
+        <div class="header">
+            <h1>{{ workflow.name }}</h1>
+            <p class="description">{{ workflow.description or "No description available" }}</p>
+            <div class="tags">
+                {% for tag in workflow.tags %}
+                <span class="tag">{{ tag }}</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="card">
+                <h2>Workflow Statistics</h2>
+                <div class="stats-row">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ workflow.node_count }}</div>
+                        <div class="stat-label">Nodes</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ workflow.complexity }}</div>
+                        <div class="stat-label">Complexity</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ workflow.triggers|length }}</div>
+                        <div class="stat-label">Triggers</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Integrations Used</h2>
+                {% for integration in workflow.integrations %}
+                <div style="margin-bottom: 8px;">
+                    <strong>{{ integration.name }}</strong>
+                    <span style="color: #666;">({{ integration.count }} nodes)</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card nodes-section">
+            <h2>Workflow Nodes ({{ workflow.node_count }})</h2>
+            {% for node in workflow.nodes %}
+            <div class="node">
+                <div class="node-header">
+                    <span class="node-name">{{ node.name }}</span>
+                    <span class="node-type">{{ node.type }}</span>
+                </div>
+                {% if node.description %}
+                <p style="color: #666;">{{ node.description }}</p>
+                {% endif %}
+                {% if node.parameters %}
+                <details style="margin-top: 10px;">
+                    <summary style="cursor: pointer; color: #667eea;">View Parameters</summary>
+                    <pre style="background: #f1f3f4; padding: 10px; border-radius: 5px; margin-top: 10px; overflow-x: auto;">{{ node.parameters | tojson(indent=2) }}</pre>
+                </details>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

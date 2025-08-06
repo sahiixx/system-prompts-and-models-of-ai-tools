@@ -8,6 +8,7 @@ import os
 import json
 import sqlite3
 import asyncio
+import logging
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 from pathlib import Path
@@ -22,6 +23,17 @@ import aiofiles.os
 from jinja2 import Environment, FileSystemLoader
 import re
 from collections import defaultdict, Counter
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('unified_app.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -245,22 +257,28 @@ def extract_integrations(workflow_data: Dict) -> List[str]:
 
 def index_workflows():
     """Index all workflow files into the database"""
-    conn = sqlite3.connect(DATABASE_PATH)
-    cursor = conn.cursor()
-    
-    # Clear existing data
-    cursor.execute("DELETE FROM workflows")
-    cursor.execute("DELETE FROM workflows_fts")
-    
-    workflow_files = list(WORKFLOWS_DIR.glob("*.json"))
-    total_workflows = len(workflow_files)
-    
-    print(f"Indexing {total_workflows} workflows...")
-    
-    for i, file_path in enumerate(workflow_files, 1):
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                workflow_data = json.load(f)
+    logger.info("Starting workflow indexing process")
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # Clear existing data
+        cursor.execute("DELETE FROM workflows")
+        cursor.execute("DELETE FROM workflows_fts")
+        logger.info("Cleared existing workflow data")
+        
+        workflow_files = list(WORKFLOWS_DIR.glob("*.json"))
+        total_workflows = len(workflow_files)
+        
+        logger.info(f"Found {total_workflows} workflow files to index")
+        print(f"Indexing {total_workflows} workflows...")
+        
+        indexed_count = 0
+        for i, file_path in enumerate(workflow_files, 1):
+            try:
+                logger.debug(f"Processing workflow file: {file_path}")
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    workflow_data = json.load(f)
             
             # Extract basic information
             name = workflow_data.get('name', file_path.stem)
@@ -317,41 +335,50 @@ def index_workflows():
                 workflow_id, name, description, ' '.join(integrations), "General", category
             ))
             
-            if i % 100 == 0:
-                print(f"Indexed {i}/{total_workflows} workflows...")
-                
-        except Exception as e:
-            print(f"Error indexing {file_path}: {e}")
-            continue
-    
-    # Update statistics
-    cursor.execute("SELECT COUNT(*) FROM workflows")
-    total = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT COUNT(*) FROM workflows WHERE active = 1")
-    active = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT SUM(node_count) FROM workflows")
-    total_nodes = cursor.fetchone()[0] or 0
-    
-    # Count unique integrations
-    cursor.execute("SELECT integrations FROM workflows")
-    all_integrations = []
-    for row in cursor.fetchall():
-        integrations = json.loads(row[0])
-        all_integrations.extend(integrations)
-    
-    unique_integrations = len(set(all_integrations))
-    
-    cursor.execute('''
-        INSERT INTO statistics (total_workflows, active_workflows, total_nodes, unique_integrations, last_indexed)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (total, active, total_nodes, unique_integrations, datetime.now().isoformat()))
-    
-    conn.commit()
-    conn.close()
-    
-    print(f"Indexing complete! {total} workflows indexed with {unique_integrations} unique integrations.")
+                indexed_count += 1
+                if i % 100 == 0:
+                    print(f"Indexed {i}/{total_workflows} workflows...")
+                    logger.info(f"Progress: {i}/{total_workflows} workflows processed")
+                    
+            except Exception as e:
+                logger.error(f"Error indexing {file_path}: {str(e)}")
+                print(f"Error indexing {file_path}: {e}")
+                continue
+        
+        # Update statistics
+        cursor.execute("SELECT COUNT(*) FROM workflows")
+        total = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM workflows WHERE active = 1")
+        active = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT SUM(node_count) FROM workflows")
+        total_nodes = cursor.fetchone()[0] or 0
+        
+        # Count unique integrations
+        cursor.execute("SELECT integrations FROM workflows")
+        all_integrations = []
+        for row in cursor.fetchall():
+            integrations = json.loads(row[0])
+            all_integrations.extend(integrations)
+        
+        unique_integrations = len(set(all_integrations))
+        
+        cursor.execute('''
+            INSERT INTO statistics (total_workflows, active_workflows, total_nodes, unique_integrations, last_indexed)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (total, active, total_nodes, unique_integrations, datetime.now().isoformat()))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Indexing complete! {total} workflows indexed, {indexed_count} successful, {unique_integrations} unique integrations")
+        print(f"Indexing complete! {total} workflows indexed with {unique_integrations} unique integrations.")
+        
+    except Exception as e:
+        logger.error(f"Fatal error during workflow indexing: {str(e)}")
+        print(f"Fatal error during indexing: {e}")
+        raise
 
 # API Routes
 @app.get("/", response_class=HTMLResponse)
@@ -810,6 +837,52 @@ async def reindex_workflows():
         return {"message": "Workflows reindexed successfully", "status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Reindexing failed: {str(e)}")
+
+@app.get("/api/health")
+async def health_check():
+    """Comprehensive health check endpoint"""
+    try:
+        # Check database connection
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM workflows")
+        workflow_count = cursor.fetchone()[0]
+        conn.close()
+        
+        # Check directories
+        directories_status = {
+            "static": STATIC_DIR.exists(),
+            "workflows": WORKFLOWS_DIR.exists(),
+            "templates": TEMPLATES_DIR.exists(),
+            "exports": Path("exports").exists()
+        }
+        
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "version": "2.0.0",
+            "database": {
+                "connected": True,
+                "workflow_count": workflow_count,
+                "database_file": DATABASE_PATH
+            },
+            "directories": directories_status,
+            "services": {
+                "web_server": "running",
+                "api": "operational",
+                "port": 8080
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e),
+            "services": {
+                "web_server": "running",
+                "api": "degraded"
+            }
+        }
 
 # Initialize workflows on startup
 if __name__ == "__main__":
