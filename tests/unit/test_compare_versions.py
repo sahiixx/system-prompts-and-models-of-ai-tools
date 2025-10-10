@@ -22,7 +22,12 @@ class TestVersionComparer:
     
     @pytest.fixture
     def temp_repo(self):
-        """Create temporary repository structure"""
+        """
+        Create a temporary repository directory containing a TestTool subdirectory and clean it up after use.
+        
+        Yields:
+            Path: Path to the temporary repository root. The directory and its contents are removed after the fixture is torn down.
+        """
         temp_dir = tempfile.mkdtemp()
         repo_path = Path(temp_dir)
         
@@ -36,7 +41,15 @@ class TestVersionComparer:
     
     @pytest.fixture
     def comparer(self, temp_repo):
-        """Create VersionComparer instance"""
+        """
+        Create a VersionComparer configured to use the provided temporary repository.
+        
+        Parameters:
+        	temp_repo (Path | str): Path to a temporary repository directory to be used by the comparer.
+        
+        Returns:
+        	VersionComparer: An instance configured to operate on the given repository path.
+        """
         return VersionComparer(str(temp_repo))
     
     def test_init(self, temp_repo):
@@ -142,7 +155,11 @@ class TestVersionComparer:
         assert len(diff_long) >= len(diff_short)
     
     def test_compare_identical_files(self, comparer, temp_repo):
-        """Test comparing identical files"""
+        """
+        Ensure compare_files produces only diff headers for identical files.
+        
+        Writes identical content to two files in the temporary repository and asserts that the produced diff contains no non-header changes (i.e., no added or removed lines).
+        """
         file1 = temp_repo / 'file1.txt'
         file2 = temp_repo / 'file2.txt'
         
@@ -402,7 +419,11 @@ class TestVersionComparer:
         assert 'Lines added' in captured.out
     
     def test_compare_tool_versions_html_output(self, comparer, temp_repo):
-        """Test HTML output generation for version comparison"""
+        """
+        Verify HTML output is produced when comparing two versions of a tool.
+        
+        Creates two version files for a tool, runs the comparison requesting HTML output, and asserts that at least one `.html` file is written to the repository.
+        """
         tool_dir = temp_repo / 'TestTool'
         
         (tool_dir / 'prompt-v1.txt').write_text('Version 1')
