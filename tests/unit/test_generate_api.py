@@ -25,7 +25,12 @@ class TestAPIGenerator:
     
     @pytest.fixture
     def temp_repo(self):
-        """Create a temporary repository structure"""
+        """
+        Create a temporary repository directory with 'metadata' and 'api' subdirectories for use in tests.
+        
+        Yields:
+            Path: Path to the temporary repository root. The directory and its subdirectories are removed after the test completes.
+        """
         temp_dir = tempfile.mkdtemp()
         repo_path = Path(temp_dir)
         
@@ -40,7 +45,16 @@ class TestAPIGenerator:
     
     @pytest.fixture
     def sample_metadata(self):
-        """Sample metadata for testing"""
+        """
+        Provide a list of sample tool metadata dictionaries used across tests.
+        
+        Each dictionary represents a tool and includes keys such as 'slug', 'name', 'type',
+        'description', 'status', 'pricing', 'features', and 'tags' to exercise generation
+        and grouping logic in the test suite.
+        
+        Returns:
+            list: A list of three tool metadata dictionaries suitable for testing.
+        """
         return [
             {
                 'slug': 'cursor',
@@ -89,7 +103,15 @@ class TestAPIGenerator:
     
     @pytest.fixture
     def generator(self, temp_repo):
-        """Create APIGenerator instance with temp repo"""
+        """
+        Create an APIGenerator configured to use the temporary repository.
+        
+        Parameters:
+            temp_repo (Path): Path to a temporary repository directory to be used by the generator.
+        
+        Returns:
+            api_generator (APIGenerator): An APIGenerator instance initialized to operate on `temp_repo`.
+        """
         return APIGenerator(str(temp_repo))
     
     def test_init(self, temp_repo):

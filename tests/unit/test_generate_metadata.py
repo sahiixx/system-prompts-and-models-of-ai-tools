@@ -22,7 +22,14 @@ class TestMetadataGenerator:
     
     @pytest.fixture
     def temp_repo(self):
-        """Create temporary repository structure"""
+        """
+        Create a temporary repository structure for tests.
+        
+        Creates a temporary directory containing 'TestTool', 'AnotherTool', and 'metadata' subdirectories, yields the repository Path to the caller, and removes the temporary directory on teardown.
+        
+        Returns:
+            repo_path (Path): Path to the temporary repository root.
+        """
         temp_dir = tempfile.mkdtemp()
         repo_path = Path(temp_dir)
         
@@ -37,7 +44,15 @@ class TestMetadataGenerator:
     
     @pytest.fixture
     def generator(self, temp_repo):
-        """Create MetadataGenerator instance"""
+        """
+        Provide a MetadataGenerator initialized for the given temporary repository.
+        
+        Parameters:
+            temp_repo (pathlike): Path to a temporary repository directory to use for testing.
+        
+        Returns:
+            MetadataGenerator: An instance configured to use the provided repository path.
+        """
         return MetadataGenerator(str(temp_repo))
     
     def test_init(self, temp_repo):
@@ -507,7 +522,11 @@ class TestMetadataGenerator:
         assert any('Invalid JSON' in error for error in errors)
     
     def test_validate_all(self, generator, temp_repo, capfd):
-        """Test validating all metadata files"""
+        """
+        Verifies that validate_all processes all metadata files and reports both valid and invalid files.
+        
+        Creates one valid and one invalid metadata JSON file in the generator's metadata directory, runs validate_all, and asserts the console output includes the validation start message and the filenames of both metadata files.
+        """
         # Create valid metadata
         valid = {
             'name': 'Test',
