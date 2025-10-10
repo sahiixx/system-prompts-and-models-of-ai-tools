@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository now includes a complete test suite covering all JavaScript and Python scripts with 91+ test cases across 4 test suites.
+This repository now includes a complete test suite covering all JavaScript and Python scripts with 127+ test cases across 5 test suites, including comprehensive GitHub Actions workflow validation.
 
 ## Test Files Created
 
@@ -10,8 +10,9 @@ This repository now includes a complete test suite covering all JavaScript and P
 2. **tests/analyze.test.js** - 23 test cases for the pattern analyzer
 3. **tests/check-duplicates.test.js** - 20 test cases for duplicate detector
 4. **tests/test_generate_api.py** - 20 test cases for API generator
-5. **tests/run_all_tests.sh** - Comprehensive test runner
-6. **tests/README.md** - Complete test documentation
+5. **tests/test_workflow_validation.py** - 36 test cases for GitHub Actions workflow validation
+6. **tests/run_all_tests.sh** - Comprehensive test runner
+7. **tests/README.md** - Complete test documentation
 
 ## Coverage Areas
 
@@ -52,6 +53,36 @@ This repository now includes a complete test suite covering all JavaScript and P
 - Edge cases (special characters, Unicode, nested structures)
 - Large dataset handling
 
+### GitHub Actions Workflow Validation Tests (test_workflow_validation.py)
+- **Workflow Structure Validation** (20 tests)
+  - YAML syntax validation
+  - Workflow name and metadata validation
+  - Trigger configuration (workflow_dispatch)
+  - Input parameter validation
+  - Job and step structure validation
+  - Permission field validation
+  - Content read-only permissions enforcement
+- **Security Best Practices** (4 tests)
+  - No hardcoded secrets detection
+  - Ubuntu runner validation
+  - Explicit permissions requirement
+  - Shell injection risk detection
+- **Workflow Comparison** (3 tests)
+  - All workflows valid YAML
+  - Descriptive workflow names
+  - Write permissions justification
+- **Input Validation** (4 tests)
+  - Input descriptions presence
+  - Explicit type declarations
+  - Required inputs with defaults
+  - Type-value consistency
+- **Edge Cases** (5 tests)
+  - Multiple YAML loader compatibility
+  - Unicode character handling
+  - Comment preservation
+  - Trailing whitespace detection
+  - Newline ending validation
+
 ## Running Tests
 
 ```bash
@@ -63,6 +94,10 @@ node tests/validate.test.js
 node tests/analyze.test.js  
 node tests/check-duplicates.test.js
 python3 tests/test_generate_api.py
+python3 -m pytest tests/test_workflow_validation.py -v
+
+# Run Python tests with pytest
+python3 -m pytest tests/ -v
 ```
 
 ## Test Results
@@ -75,12 +110,23 @@ All test suites generate:
 
 ## Key Features
 
-- ✅ **No external dependencies** - Uses built-in testing frameworks
+- ✅ **No external dependencies** - Uses built-in testing frameworks (except PyYAML which was already present)
 - ✅ **Comprehensive coverage** - Happy paths, edge cases, failures
 - ✅ **Isolated tests** - No shared state between tests
 - ✅ **Automatic cleanup** - Temporary resources properly managed
 - ✅ **Clear documentation** - Each test clearly describes intent
 - ✅ **CI/CD ready** - Exit codes and output suitable for automation
+- ✅ **Security focused** - Validates GitHub Actions security best practices
+- ✅ **YAML quirk handling** - Handles YAML parsing edge cases (e.g., 'on' keyword)
+
+## Security Testing Highlights
+
+The workflow validation tests specifically validate:
+- Minimal permission principle (read-only by default)
+- No hardcoded secrets
+- Proper input interpolation to prevent injection attacks
+- Explicit permission declarations
+- Justified write permissions in deployment workflows
 
 ## Future Enhancements
 
@@ -91,3 +137,4 @@ Potential additions:
 - Integration tests
 - Performance benchmarks
 - Code coverage reports
+- Additional workflow security validations
