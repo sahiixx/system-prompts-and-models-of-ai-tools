@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 # Comprehensive test runner for all test suites
 
 set -e
@@ -41,6 +42,7 @@ run_test "DuplicateChecker Tests" "node tests/check-duplicates.test.js"
 
 # Run Python tests
 run_test "API Generator Tests" "python3 tests/test_generate_api.py"
+run_test "GitHub Workflows Tests" "python3 -m pytest tests/unit/test_github_workflows.py -v"
 
 echo "============================================================"
 echo "Test Summary"
