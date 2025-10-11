@@ -865,3 +865,139 @@ class TestVersionComparerAdvanced:
 
 
 pytestmark = pytest.mark.unit
+
+class TestVersionComparerIntegration:
+    """Integration tests for version comparison workflow"""
+    
+    @pytest.fixture
+    def temp_repo(self):
+        temp_dir = tempfile.mkdtemp()
+        repo_path = Path(temp_dir)
+        yield repo_path
+        shutil.rmtree(temp_dir)
+    
+    @pytest.fixture
+    def comparer(self, temp_repo):
+        return VersionComparer(str(temp_repo))
+    
+    def test_complete_comparison_workflow(self, comparer, temp_repo):
+        """Test complete version comparison workflow"""
+        tool_dir = temp_repo / 'VersionedTool'
+        tool_dir.mkdir()
+        
+        # Create version history
+        versions = [
+            ('prompt-v1.0.txt', 'Version 1.0\nInitial release\nBasic features'),
+            ('prompt-v1.1.txt', 'Version 1.1\nInitial release\nBasic features\nBug fixes'),
+            ('prompt-v2.0.txt', 'Version 2.0\nMajor update\nNew features\nImproved performance'),
+        ]
+        
+        for filename, content in versions:
+            (tool_dir / filename).write_text(content)
+        
+        # Find versions
+        found_versions = comparer.find_versions('VersionedTool')
+        assert len(found_versions) == 3
+        
+        # Compare sequential versions
+        for i in range(len(found_versions) - 1):
+            v1 = found_versions[i]
+            v2 = found_versions[i + 1]
+            
+            diff = comparer.compare_files(v1['path'], v2['path'])
+            assert len(diff) > 0
+            
+            similarity = comparer.calculate_similarity(v1['path'], v2['path'])
+            assert 0.0 <= similarity <= 1.0
+    
+    def test_html_generation_workflow(self, comparer, temp_repo):
+        """Test HTML diff generation workflow"""
+        tool_dir = temp_repo / 'HTMLTool'
+        tool_dir.mkdir()
+        
+        file1 = tool_dir / 'prompt-v1.txt'
+        file2 = tool_dir / 'prompt-v2.txt'
+        
+        file1.write_text('Original content\nLine 2\nLine 3')
+        file2.write_text('Modified content\nLine 2\nLine 3\nLine 4')
+        
+        html = comparer.generate_html_diff(file1, file2, 'HTMLTool')
+        
+        # Verify HTML structure
+        assert '<!DOCTYPE html>' in html
+        assert 'HTMLTool' in html
+        assert 'Lines Added' in html
+        assert 'Lines Removed' in html
+        assert 'Similarity' in html
+        
+        # Verify diff content is present
+        assert 'Original content' in html or 'Modified content' in html
+
+
+class TestVersionComparerPerformance:
+    """Performance and stress tests for version comparison"""
+    
+    @pytest.fixture
+    def temp_repo(self):
+        temp_dir = tempfile.mkdtemp()
+        repo_path = Path(temp_dir)
+        yield repo_path
+        shutil.rmtree(temp_dir)
+    
+    @pytest.fixture
+    def comparer(self, temp_repo):
+        return VersionComparer(str(temp_repo))
+    
+    @pytest.mark.slow
+    def test_large_file_comparison(self, comparer, temp_repo):
+        """Test comparing large files"""
+        file1 = temp_repo / 'large1.txt'
+        file2 = temp_repo / 'large2.txt'
+        
+        # Create large files (1MB each)
+        content1 = '\n'.join([f'Line {i} in file 1' for i in range(50000)])
+        content2 = '\n'.join([f'Line {i} in file {"2" if i % 100 != 0 else "1"}' for i in range(50000)])
+        
+        file1.write_text(content1)
+        file2.write_text(content2)
+        
+        import time
+        start = time.time()
+        
+        diff = comparer.compare_files(file1, file2, context_lines=3)
+        similarity = comparer.calculate_similarity(file1, file2)
+        changes = comparer.count_changes(diff)
+        
+        duration = time.time() - start
+        
+        # Should complete in reasonable time (< 5 seconds)
+        assert duration < 5
+        assert 0.0 <= similarity <= 1.0
+        assert changes['total'] > 0
+    
+    def test_many_versions_comparison(self, comparer, temp_repo):
+        """Test comparing many sequential versions"""
+        tool_dir = temp_repo / 'ManyVersions'
+        tool_dir.mkdir()
+        
+        # Create 20 versions
+        for i in range(20):
+            content = '\n'.join([
+                f'Version {i}',
+                'Common line 1',
+                'Common line 2',
+                f'Version-specific content for v{i}',
+                'Common line 3'
+            ])
+            (tool_dir / f'prompt-v{i}.txt').write_text(content)
+        
+        versions = comparer.find_versions('ManyVersions')
+        assert len(versions) == 20
+        
+        # Compare all sequential pairs
+        for i in range(len(versions) - 1):
+            diff = comparer.compare_files(versions[i]['path'], versions[i+1]['path'])
+            assert len(diff) > 0
+
+
+pytestmark = pytest.mark.unit
