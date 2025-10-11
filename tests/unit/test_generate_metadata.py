@@ -1207,3 +1207,194 @@ class TestMetadataGeneratorAdvancedExtra:
 
 
 pytestmark = pytest.mark.unit
+
+class TestMetadataGeneratorIntegration:
+    """Integration tests for metadata generation workflow"""
+    
+    @pytest.fixture
+    def temp_repo(self):
+        temp_dir = tempfile.mkdtemp()
+        repo_path = Path(temp_dir)
+        (repo_path / 'metadata').mkdir()
+        yield repo_path
+        shutil.rmtree(temp_dir)
+    
+    @pytest.fixture
+    def generator(self, temp_repo):
+        return MetadataGenerator(str(temp_repo))
+    
+    def test_full_repository_scan(self, generator, temp_repo):
+        """Test scanning entire repository structure"""
+        # Create realistic tool directories
+        tools = ['Cursor', 'GitHub Copilot', 'Claude Code', 'Windsurf']
+        
+        for tool in tools:
+            tool_dir = temp_repo / tool
+            tool_dir.mkdir()
+            (tool_dir / 'prompt.txt').write_text(f'Prompt for {tool}')
+            (tool_dir / 'tools.json').write_text('[{"name": "tool1"}]')
+            (tool_dir / 'README.md').write_text(f'# {tool}')
+        
+        # Generate all metadata
+        generator.generate_all()
+        
+        # Verify all metadata files created
+        for tool in tools:
+            slug = generator.slugify(tool)
+            assert (generator.metadata_dir / f'{slug}.json').exists()
+    
+    def test_pattern_detection_accuracy(self, generator, temp_repo):
+        """Test accuracy of pattern detection across tools"""
+        # Create tool with known patterns
+        tool_dir = temp_repo / 'TestTool'
+        tool_dir.mkdir()
+        
+        prompt_content = '''
+        You are an autonomous agent that can delegate to sub-agents.
+        Execute tools in parallel for efficiency.
+        Always verify results before proceeding.
+        Track tasks in a TODO list.
+        Remember context in agents.md.
+        Be very concise and brief.
+        '''
+        (tool_dir / 'prompt.txt').write_text(prompt_content)
+        
+        metadata = generator.generate_metadata('TestTool')
+        patterns = metadata['patterns']
+        
+        # Verify all expected patterns detected
+        assert patterns['parallelTools']
+        assert patterns['subAgents']
+        assert patterns['verificationGates']
+        assert patterns['todoSystem']
+        assert patterns['memoryContext']
+        assert patterns['agentsFile']
+        assert patterns['conciseness'] in ['high', 'very-high']
+    
+    def test_feature_detection_comprehensive(self, generator, temp_repo):
+        """Test comprehensive feature detection"""
+        tool_dir = temp_repo / 'FeatureTool'
+        tool_dir.mkdir()
+        
+        prompt = '''
+        Generate code and provide completions.
+        Chat interface for conversations.
+        Agent mode for autonomous tasks.
+        Parallel execution of operations.
+        Memory system for context.
+        TODO tracking system.
+        Git integration for version control.
+        Multi-file editing capabilities.
+        Test generation features.
+        Refactoring support.
+        Debugging tools.
+        '''
+        (tool_dir / 'prompt.txt').write_text(prompt)
+        
+        metadata = generator.generate_metadata('FeatureTool')
+        features = metadata['features']
+        
+        # Verify feature detection
+        assert features['codeGeneration']
+        assert features['codeCompletion']
+        assert features['chatInterface']
+        assert features['agentMode']
+        assert features['parallelExecution']
+        assert features['memorySystem']
+        assert features['todoTracking']
+        assert features['gitIntegration']
+        assert features['multiFileEditing']
+        assert features['testGeneration']
+        assert features['refactoring']
+        assert features['debugging']
+
+
+class TestMetadataGeneratorEdgeCases:
+    """Edge case tests for metadata generation"""
+    
+    @pytest.fixture
+    def temp_repo(self):
+        temp_dir = tempfile.mkdtemp()
+        repo_path = Path(temp_dir)
+        (repo_path / 'metadata').mkdir()
+        yield repo_path
+        shutil.rmtree(temp_dir)
+    
+    @pytest.fixture
+    def generator(self, temp_repo):
+        return MetadataGenerator(str(temp_repo))
+    
+    def test_empty_prompt_file(self, generator, temp_repo):
+        """Test handling completely empty prompt file"""
+        tool_dir = temp_repo / 'EmptyTool'
+        tool_dir.mkdir()
+        (tool_dir / 'prompt.txt').write_text('')
+        
+        metadata = generator.generate_metadata('EmptyTool')
+        
+        # Should still generate valid metadata
+        assert metadata['name'] == 'EmptyTool'
+        assert 'features' in metadata
+        assert 'patterns' in metadata
+    
+    def test_binary_file_in_directory(self, generator, temp_repo):
+        """Test handling tool directory with binary files"""
+        tool_dir = temp_repo / 'BinaryTool'
+        tool_dir.mkdir()
+        (tool_dir / 'prompt.txt').write_text('Valid prompt')
+        (tool_dir / 'image.png').write_bytes(b'\x89PNG\r\n\x1a\n')
+        
+        # Should handle gracefully
+        metadata = generator.generate_metadata('BinaryTool')
+        
+        assert metadata['name'] == 'BinaryTool'
+    
+    def test_extremely_long_prompt(self, generator, temp_repo):
+        """Test handling very long prompt files"""
+        tool_dir = temp_repo / 'LongTool'
+        tool_dir.mkdir()
+        
+        # Create very long prompt (100KB)
+        long_prompt = 'This is a very long prompt. ' * 5000
+        (tool_dir / 'prompt.txt').write_text(long_prompt)
+        
+        metadata = generator.generate_metadata('LongTool')
+        
+        # Should process successfully
+        assert metadata['name'] == 'LongTool'
+        assert metadata['metrics']['promptTokens'] > 10000
+    
+    def test_special_characters_in_directory_name(self, generator, temp_repo):
+        """Test tool directory with special characters"""
+        # Create directory with special chars (URL-encoded style)
+        tool_dir = temp_repo / 'Tool_With-Special.Chars'
+        tool_dir.mkdir()
+        (tool_dir / 'prompt.txt').write_text('Prompt')
+        
+        metadata = generator.generate_metadata('Tool_With-Special.Chars')
+        
+        # Should handle and create valid slug
+        assert 'slug' in metadata
+        assert metadata['slug'].replace('_', '').replace('-', '').isalnum()
+    
+    def test_circular_symlinks(self, generator, temp_repo):
+        """Test handling circular symlinks in tool directory"""
+        import os
+        
+        tool_dir = temp_repo / 'CircularTool'
+        tool_dir.mkdir()
+        (tool_dir / 'prompt.txt').write_text('Prompt')
+        
+        try:
+            # Create circular symlink
+            os.symlink(tool_dir, tool_dir / 'circular')
+            
+            # Should handle without infinite loop
+            metadata = generator.generate_metadata('CircularTool')
+            
+            assert metadata['name'] == 'CircularTool'
+        except OSError:
+            pytest.skip("Symlinks not supported")
+
+
+pytestmark = pytest.mark.unit
