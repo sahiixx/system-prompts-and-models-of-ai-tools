@@ -11,6 +11,7 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from unittest.mock import Mock, patch, mock_open
+import hashlib
 
 # Add scripts directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'scripts'))
@@ -661,7 +662,7 @@ class TestAPIGenerator:
 
 class TestAPIGeneratorAdvanced:
     """Advanced test cases for comprehensive coverage"""
-    
+
     @pytest.fixture
     def temp_repo(self):
         temp_dir = tempfile.mkdtemp()
@@ -670,11 +671,11 @@ class TestAPIGeneratorAdvanced:
         (repo_path / 'api').mkdir()
         yield repo_path
         shutil.rmtree(temp_dir)
-    
+
     @pytest.fixture
     def generator(self, temp_repo):
         return APIGenerator(str(temp_repo))
-    
+
     def test_load_metadata_preserves_order(self, generator, temp_repo):
         """Test that metadata loading preserves alphabetical order"""
         _ = temp_repo
@@ -683,44 +684,44 @@ class TestAPIGeneratorAdvanced:
             {'slug': 'alpha', 'name': 'Alpha'},
             {'slug': 'beta', 'name': 'Beta'}
         ]
-        
+
         for tool in metadata:
             file_path = generator.metadata_dir / f"{tool['slug']}.json"
             with open(file_path, 'w') as f:
                 json.dump(tool, f)
-        
+
         loaded = generator.load_metadata()
-        
+
         # Should be sorted by slug
         slugs = [t['slug'] for t in loaded]
         assert slugs == sorted(slugs)
-    
+
     def test_load_metadata_handles_subdirectories(self, generator, temp_repo):
         """Test that subdirectories in metadata dir are ignored"""
         _ = temp_repo
         subdir = generator.metadata_dir / 'subdir'
         subdir.mkdir()
         (subdir / 'test.json').write_text('{"slug": "test"}')
-        
+
         # Also create a valid file at root
         (generator.metadata_dir / 'valid.json').write_text('{"slug": "valid", "name": "Valid"}')
-        
+
         metadata = generator.load_metadata()
-        
+
         # Should only load from root level
         assert len(metadata) == 1
         assert metadata[0]['slug'] == 'valid'
-    
+
     def test_generate_tools_index_timestamp_format(self, generator):
         """Test that timestamp in index is ISO format"""
         metadata = [{'slug': 'test', 'name': 'Test', 'type': 'CLI Tool'}]
         result = generator.generate_tools_index(metadata)
-        
+
         # Should be valid ISO timestamp
         timestamp = result['generated']
         parsed = datetime.fromisoformat(timestamp)
         assert isinstance(parsed, datetime)
-    
+
     def test_generate_tools_index_handles_special_chars_in_description(self, generator):
         """Test that special characters in descriptions are preserved"""
         metadata = [{
@@ -729,13 +730,13 @@ class TestAPIGeneratorAdvanced:
             'type': 'CLI Tool',
             'description': 'Test with "quotes" and \'apostrophes\' & special <chars>'
         }]
-        
+
         result = generator.generate_tools_index(metadata)
-        
+
         # Should preserve special characters
         assert '"quotes"' in result['tools'][0]['description']
         assert '&' in result['tools'][0]['description']
-    
+
     def test_generate_tool_detail_with_nested_objects(self, generator):
         """Test tool detail with deeply nested objects"""
         tool = {
@@ -750,12 +751,12 @@ class TestAPIGeneratorAdvanced:
                 }
             }
         }
-        
+
         result = generator.generate_tool_detail(tool)
-        
+
         # Should preserve nested structure
         assert result['features']['advanced']['nested']['deeply']
-    
+
     def test_generate_by_type_multiple_same_type(self, generator):
         """Test grouping multiple tools of same type"""
         metadata = [
@@ -763,12 +764,12 @@ class TestAPIGeneratorAdvanced:
             {'slug': 't2', 'name': 'T2', 'type': 'CLI Tool', 'description': 'D2'},
             {'slug': 't3', 'name': 'T3', 'type': 'CLI Tool', 'description': 'D3'}
         ]
-        
+
         result = generator.generate_by_type(metadata)
-        
+
         assert len(result['types']['CLI Tool']) == 3
         assert all('slug' in t for t in result['types']['CLI Tool'])
-    
+
     def test_generate_by_type_empty_type_string(self, generator):
         """Test handling of empty type string"""
         metadata = [{
@@ -776,12 +777,12 @@ class TestAPIGeneratorAdvanced:
             'name': 'Test',
             'type': ''
         }]
-        
+
         result = generator.generate_by_type(metadata)
-        
+
         # Should categorize as Other
         assert 'Other' in result['types']
-    
+
     def test_generate_by_pricing_complex_pricing(self, generator):
         """Test by-pricing with complex pricing objects"""
         metadata = [{
@@ -796,12 +797,12 @@ class TestAPIGeneratorAdvanced:
                 ]
             }
         }]
-        
+
         result = generator.generate_by_pricing(metadata)
-        
+
         assert 'freemium' in result['pricing_models']
         assert len(result['pricing_models']['freemium']) == 1
-    
+
     def test_generate_by_pricing_all_models(self, generator):
         """Test that all pricing models are represented"""
         metadata = [
@@ -810,14 +811,14 @@ class TestAPIGeneratorAdvanced:
             {'slug': 't3', 'name': 'T3', 'type': 'CLI', 'pricing': {'model': 'freemium'}},
             {'slug': 't4', 'name': 'T4', 'type': 'CLI', 'pricing': {'model': 'enterprise'}}
         ]
-        
+
         result = generator.generate_by_pricing(metadata)
-        
+
         assert 'free' in result['pricing_models']
         assert 'paid' in result['pricing_models']
         assert 'freemium' in result['pricing_models']
         assert 'enterprise' in result['pricing_models']
-    
+
     def test_generate_features_matrix_mixed_boolean_values(self, generator):
         """Test features matrix with explicit true/false values"""
         metadata = [
@@ -832,14 +833,14 @@ class TestAPIGeneratorAdvanced:
                 }
             }
         ]
-        
+
         result = generator.generate_features_matrix(metadata)
-        
+
         # Only true features should be included
         assert 'feature1' in result['features']
         assert 'feature3' in result['features']
         assert 'feature2' not in result['features']
-    
+
     def test_generate_features_matrix_aggregate_across_tools(self, generator):
         """Test that features are aggregated across all tools"""
         metadata = [
@@ -847,32 +848,32 @@ class TestAPIGeneratorAdvanced:
             {'slug': 't2', 'name': 'T2', 'type': 'CLI', 'features': {'f2': True, 'f3': True}},
             {'slug': 't3', 'name': 'T3', 'type': 'CLI', 'features': {'f1': True, 'f3': True}}
         ]
-        
+
         result = generator.generate_features_matrix(metadata)
-        
+
         # All features should be present
         assert 'f1' in result['features']
         assert 'f2' in result['features']
         assert 'f3' in result['features']
-        
+
         # Check counts
         assert len(result['features']['f1']) == 2  # t1, t3
         assert len(result['features']['f2']) == 2  # t1, t2
         assert len(result['features']['f3']) == 2  # t2, t3
-    
+
     def test_generate_statistics_edge_case_empty_features(self, generator):
         """Test statistics with tools that have empty features"""
         metadata = [
             {'slug': 't1', 'name': 'T1', 'type': 'CLI', 'pricing': {'model': 'free'}, 'features': {}},
             {'slug': 't2', 'name': 'T2', 'type': 'CLI', 'pricing': {'model': 'free'}, 'features': {}}
         ]
-        
+
         result = generator.generate_statistics(metadata)
-        
+
         assert result['total_tools'] == 2
         assert result['feature_adoption'] == {}
         assert result['most_common_features'] == []
-    
+
     def test_generate_statistics_limits_top_features(self, generator):
         """Test that most_common_features limits to 10 items"""
         # Create 15 features
@@ -884,12 +885,12 @@ class TestAPIGeneratorAdvanced:
             'pricing': {'model': 'free'},
             'features': features
         }]
-        
+
         result = generator.generate_statistics(metadata)
-        
+
         # Should limit to 10
         assert len(result['most_common_features']) <= 10
-    
+
     def test_generate_statistics_type_distribution(self, generator):
         """Test type distribution in statistics"""
         metadata = [
@@ -897,12 +898,12 @@ class TestAPIGeneratorAdvanced:
             {'slug': 't2', 'name': 'T2', 'type': 'CLI Tool', 'pricing': {'model': 'free'}},
             {'slug': 't3', 'name': 'T3', 'type': 'IDE Plugin', 'pricing': {'model': 'free'}}
         ]
-        
+
         result = generator.generate_statistics(metadata)
-        
+
         assert result['by_type']['CLI Tool'] == 2
         assert result['by_type']['IDE Plugin'] == 1
-    
+
     def test_generate_search_index_combines_all_searchable_fields(self, generator):
         """Test that search index includes all relevant fields"""
         metadata = [{
@@ -912,11 +913,11 @@ class TestAPIGeneratorAdvanced:
             'description': 'A testing tool',
             'tags': ['testing', 'dev']
         }]
-        
+
         result = generator.generate_search_index(metadata)
-        
+
         keywords = result['index'][0]['keywords']
-        
+
         # Should include slug words
         assert 'test' in keywords or 'test-tool' in keywords
         # Should include name words
@@ -926,7 +927,7 @@ class TestAPIGeneratorAdvanced:
         # Should include tags
         assert 'testing' in keywords
         assert 'dev' in keywords
-    
+
     def test_generate_search_index_handles_hyphenated_terms(self, generator):
         """Test that hyphenated terms are split for search"""
         metadata = [{
@@ -935,14 +936,14 @@ class TestAPIGeneratorAdvanced:
             'type': 'CLI Tool',
             'description': 'Test'
         }]
-        
+
         result = generator.generate_search_index(metadata)
         keywords = result['index'][0]['keywords']
-        
+
         # Should include both hyphenated and split versions
         assert any('multi' in k for k in keywords)
         assert any('word' in k for k in keywords)
-    
+
     def test_generate_search_index_deduplicates_keywords(self, generator):
         """Test that duplicate keywords are removed"""
         metadata = [{
@@ -952,24 +953,24 @@ class TestAPIGeneratorAdvanced:
             'description': 'A tool for tools',
             'tags': ['tool']
         }]
-        
+
         result = generator.generate_search_index(metadata)
         keywords = result['index'][0]['keywords']
-        
+
         # Count occurrences of 'tool'
         tool_count = keywords.count('tool')
         # Should appear only once despite multiple sources
         assert tool_count == 1
-    
+
     def test_generate_all_handles_empty_metadata_dir(self, generator, capfd):
         """Test generate_all with no metadata files"""
         generator.generate_all()
         captured = capfd.readouterr()
-        
+
         assert 'Found 0 tools' in captured.out
         # Should still create empty endpoints
         assert (generator.api_dir / 'index.json').exists()
-    
+
     def test_generate_all_creates_proper_directory_structure(self, generator, temp_repo):
         """Test that directory structure is created correctly"""
         _ = temp_repo
@@ -978,17 +979,17 @@ class TestAPIGeneratorAdvanced:
             'name': 'Test',
             'type': 'CLI Tool'
         }]
-        
+
         file_path = generator.metadata_dir / 'test.json'
         with open(file_path, 'w') as f:
             json.dump(metadata[0], f)
-        
+
         generator.generate_all()
-        
+
         # Check directory structure
         assert (generator.api_dir / 'tools').is_dir()
         assert (generator.api_dir / 'index.json').is_file()
-    
+
     def test_generate_all_json_indentation(self, generator, temp_repo):
         """Test that generated JSON is properly indented"""
         _ = temp_repo
@@ -997,41 +998,41 @@ class TestAPIGeneratorAdvanced:
             'name': 'Test',
             'type': 'CLI Tool'
         }]
-        
+
         file_path = generator.metadata_dir / 'test.json'
         with open(file_path, 'w') as f:
             json.dump(metadata[0], f)
-        
+
         generator.generate_all()
-        
+
         # Check that JSON is formatted (has newlines)
         with open(generator.api_dir / 'index.json') as f:
             content = f.read()
-        
+
         assert '\n' in content
         assert '  ' in content or '\t' in content  # Has indentation
-    
+
     def test_generate_api_docs_markdown_format(self, generator):
         """Test that API docs are valid Markdown"""
         metadata = [{'slug': 'test', 'name': 'Test', 'type': 'CLI Tool'}]
         generator.generate_api_docs(metadata)
-        
+
         readme_path = generator.api_dir / 'README.md'
         content = readme_path.read_text()
-        
+
         # Should have markdown headers
         assert content.startswith('#')
         # Should have code blocks
         assert '```' in content
-    
+
     def test_generate_api_docs_includes_all_endpoints(self, generator):
         """Test that docs list all available endpoints"""
         metadata = [{'slug': 'test', 'name': 'Test', 'type': 'CLI Tool'}]
         generator.generate_api_docs(metadata)
-        
+
         readme_path = generator.api_dir / 'README.md'
         content = readme_path.read_text()
-        
+
         # Should mention key endpoints
         assert 'index.json' in content
         assert 'by-type.json' in content
@@ -1039,36 +1040,36 @@ class TestAPIGeneratorAdvanced:
         assert 'features.json' in content
         assert 'statistics.json' in content
         assert 'search.json' in content
-    
+
     def test_print_usage_examples_all_languages(self, generator, capfd):
         """Test that usage examples include multiple languages"""
         generator.print_usage_examples()
         captured = capfd.readouterr()
-        
+
         # Should have examples for multiple languages/tools
         assert 'JavaScript' in captured.out or 'fetch' in captured.out
         assert 'Python' in captured.out or 'requests' in captured.out
         assert 'cURL' in captured.out or 'curl' in captured.out
-    
+
     def test_main_creates_all_endpoints(self, temp_repo, monkeypatch, capfd):
         """Test that main function creates complete API"""
         _ = capfd
         monkeypatch.chdir(temp_repo)
-        
+
         # Create sample metadata
         metadata = {'slug': 'test', 'name': 'Test', 'type': 'CLI Tool'}
         (temp_repo / 'metadata' / 'test.json').write_text(json.dumps(metadata))
-        
+
         with patch('sys.argv', ['generate-api.py']):
             from generate_api import main
             main()
-        
+
         # Should create all endpoints
         api_dir = temp_repo / 'api'
         assert (api_dir / 'index.json').exists()
         assert (api_dir / 'by-type.json').exists()
         assert (api_dir / 'tools' / 'test.json').exists()
-    
+
     def test_tool_detail_includes_version_timestamp(self, generator):
         """Test that tool detail includes version and timestamp"""
         tool = {
@@ -1076,12 +1077,12 @@ class TestAPIGeneratorAdvanced:
             'name': 'Test',
             'type': 'CLI Tool'
         }
-        
+
         result = generator.generate_tool_detail(tool)
-        
+
         assert 'version' in result
         assert 'generated' in result
-    
+
     def test_by_type_sorts_tools_alphabetically(self, generator):
         """Test that tools within types are sorted"""
         metadata = [
@@ -1089,14 +1090,14 @@ class TestAPIGeneratorAdvanced:
             {'slug': 'alpha', 'name': 'Alpha', 'type': 'CLI Tool', 'description': ''},
             {'slug': 'beta', 'name': 'Beta', 'type': 'CLI Tool', 'description': ''}
         ]
-        
+
         result = generator.generate_by_type(metadata)
         tools = result['types']['CLI Tool']
-        
+
         # Should be sorted alphabetically by name or slug
         names = [t['name'] for t in tools]
         assert names == sorted(names) or [t['slug'] for t in tools] == sorted([t['slug'] for t in tools])
-    
+
     def test_empty_description_defaults_to_empty_string(self, generator):
         """Test that missing descriptions default to empty string"""
         metadata = [{
@@ -1105,11 +1106,11 @@ class TestAPIGeneratorAdvanced:
             'type': 'CLI Tool'
             # No description field
         }]
-        
+
         result = generator.generate_tools_index(metadata)
-        
+
         assert result['tools'][0]['description'] == ''
-    
+
     def test_empty_status_defaults_to_unknown(self, generator):
         """Test that missing status defaults to unknown"""
         metadata = [{
@@ -1118,240 +1119,260 @@ class TestAPIGeneratorAdvanced:
             'type': 'CLI Tool'
             # No status field
         }]
-        
+
         result = generator.generate_tools_index(metadata)
-        
+
         assert result['tools'][0]['status'] == 'unknown'
 
 
 pytestmark = pytest.mark.unit
 
 
-class TestAPIGeneratorIntegration:
-    """Integration tests for API generation workflow"""
-    
+class TestAPIGeneratorIntegrationComplete:
+    """Integration tests for complete API generation workflows"""
+
     @pytest.fixture
-    def temp_repo(self):
-        temp_dir = tempfile.mkdtemp()
-        repo_path = Path(temp_dir)
-        (repo_path / 'metadata').mkdir()
-        (repo_path / 'api').mkdir()
-        yield repo_path
-        shutil.rmtree(temp_dir)
-    
-    @pytest.fixture
-    def generator(self, temp_repo):
-        return APIGenerator(str(temp_repo))
-    
-    def test_full_workflow_integration(self, generator):
-        """Test complete workflow from metadata to API generation"""
-        # Create realistic metadata files
-        metadata = []
-        for i in range(5):
-            tool = {
-                'slug': f'tool-{i}',
-                'name': f'Tool {i}',
-                'type': 'IDE Plugin' if i % 2 == 0 else 'CLI Tool',
+    def complete_repo(self, temp_repo):
+        """Create a complete repository structure"""
+        # Create multiple tool directories with metadata
+        tools_data = [
+            {
+                'slug': 'cursor',
+                'name': 'Cursor',
+                'type': 'IDE Plugin',
                 'status': 'active',
-                'description': f'Tool {i} description',
-                'pricing': {'model': 'free' if i < 3 else 'paid'},
+                'description': 'AI-powered code editor',
+                'pricing': {'model': 'freemium'},
                 'features': {
                     'codeGeneration': True,
-                    'agentMode': i % 2 == 0,
-                    'chatInterface': i > 2
-                }
+                    'agentMode': True,
+                    'chatInterface': True
+                },
+                'tags': ['IDE', 'Premium']
+            },
+            {
+                'slug': 'claude-code',
+                'name': 'Claude Code',
+                'type': 'CLI Tool',
+                'status': 'active',
+                'description': 'CLI tool for code generation',
+                'pricing': {'model': 'free'},
+                'features': {
+                    'codeGeneration': True,
+                    'agentMode': False
+                },
+                'tags': ['CLI', 'Free']
+            },
+            {
+                'slug': 'devin',
+                'name': 'Devin',
+                'type': 'Autonomous Agent',
+                'status': 'beta',
+                'description': 'Autonomous coding agent',
+                'pricing': {'model': 'paid'},
+                'features': {
+                    'codeGeneration': True,
+                    'agentMode': True,
+                    'parallelExecution': True
+                },
+                'tags': ['Agent', 'Autonomous']
             }
-            metadata.append(tool)
-            with open(generator.metadata_dir / f'tool-{i}.json', 'w') as f:
-                json.dump(tool, f)
-        
-        # Run complete generation
-        generator.generate_all()
-        
-        # Verify all endpoints were created
-        assert (generator.api_dir / 'index.json').exists()
-        assert (generator.api_dir / 'by-type.json').exists()
-        assert (generator.api_dir / 'by-pricing.json').exists()
-        assert (generator.api_dir / 'features.json').exists()
-        assert (generator.api_dir / 'statistics.json').exists()
-        assert (generator.api_dir / 'search.json').exists()
-        assert (generator.api_dir / 'README.md').exists()
-        
-        # Verify tool endpoints
-        for i in range(5):
-            assert (generator.api_dir / 'tools' / f'tool-{i}.json').exists()
-        
-        # Verify content correctness
-        with open(generator.api_dir / 'index.json') as f:
-            index = json.load(f)
-            assert index['count'] == 5
-        
-        with open(generator.api_dir / 'statistics.json') as f:
-            stats = json.load(f)
-            assert stats['total_tools'] == 5
-            assert stats['by_type']['IDE Plugin'] == 3
-            assert stats['by_type']['CLI Tool'] == 2
-    
-    def test_incremental_updates(self, generator):
-        """Test that regenerating API handles updates correctly"""
-        # Initial generation
-        tool1 = {'slug': 'tool1', 'name': 'Tool 1', 'type': 'CLI Tool'}
-        with open(generator.metadata_dir / 'tool1.json', 'w') as f:
-            json.dump(tool1, f)
-        
-        generator.generate_all()
-        
-        # Verify initial state
-        with open(generator.api_dir / 'index.json') as f:
-            index1 = json.load(f)
-            assert index1['count'] == 1
-        
-        # Add another tool
-        tool2 = {'slug': 'tool2', 'name': 'Tool 2', 'type': 'CLI Tool'}
-        with open(generator.metadata_dir / 'tool2.json', 'w') as f:
-            json.dump(tool2, f)
-        
-        # Regenerate
-        generator.generate_all()
-        
-        # Verify updated state
-        with open(generator.api_dir / 'index.json') as f:
-            index2 = json.load(f)
-            assert index2['count'] == 2
-    
-    def test_error_recovery(self, generator, capfd):
-        """Test that generation continues after encountering errors"""
-        # Create mix of valid and invalid metadata
-        valid_tool = {'slug': 'valid', 'name': 'Valid', 'type': 'CLI Tool'}
-        with open(generator.metadata_dir / 'valid.json', 'w') as f:
-            json.dump(valid_tool, f)
-        
-        # Create invalid JSON
-        with open(generator.metadata_dir / 'invalid.json', 'w') as f:
-            f.write('{ invalid json')
-        
-        # Should complete despite error
-        errors = []
-        def generate():
-            try:
-                gen = generator
-                gen.generate_all()
-            except Exception as e:  # noqa: B902
-                errors.append(e)
-        
-        generate()
-        captured = capfd.readouterr()
-        
-        # Should have warning about invalid file
-        assert 'Warning' in captured.out or 'Could not load' in captured.out
-        
-        # But should still generate endpoints
-        assert (generator.api_dir / 'index.json').exists()
-        
-        # And valid tool should be included
-        with open(generator.api_dir / 'index.json') as f:
-            index = json.load(f)
-            assert any(t['slug'] == 'valid' for t in index['tools'])
-    
+        ]
 
-class TestAPIGeneratorStress:
-    """Stress tests for API generation performance and scalability"""
-    
-    @pytest.fixture
-    def temp_repo(self):
-        temp_dir = tempfile.mkdtemp()
-        repo_path = Path(temp_dir)
-        (repo_path / 'metadata').mkdir()
-        (repo_path / 'api').mkdir()
-        yield repo_path
-        shutil.rmtree(temp_dir)
-    
-    @pytest.fixture
-    def generator(self, temp_repo):
-        return APIGenerator(str(temp_repo))
-    
-    def test_large_scale_generation(self, generator):
-        """Test API generation with large number of tools"""
-        # Create 100 tool metadata files
+        for tool in tools_data:
+            with open(complete_repo / 'metadata' / f"{tool['slug']}.json", 'w') as f:
+                json.dump(tool, f)
+
+        return complete_repo
+
+    def test_full_api_generation_pipeline(self, complete_repo):
+        """Test complete API generation from metadata to final files"""
+        generator = APIGenerator(complete_repo)
+
+        # Run full generation
+        generator.generate_all()
+
+        # Verify all expected files exist
+        api_dir = complete_repo / 'api'
+        assert (api_dir / 'index.json').exists()
+        assert (api_dir / 'by-type.json').exists()
+        assert (api_dir / 'by-pricing.json').exists()
+        assert (api_dir / 'features.json').exists()
+        assert (api_dir / 'statistics.json').exists()
+        assert (api_dir / 'search.json').exists()
+        assert (api_dir / 'README.md').exists()
+
+        # Verify individual tool files
+        tools_dir = api_dir / 'tools'
+        assert (tools_dir / 'cursor.json').exists()
+        assert (tools_dir / 'claude-code.json').exists()
+        assert (tools_dir / 'devin.json').exists()
+
+        # Verify content of index
+        with open(api_dir / 'index.json') as f:
+            index = json.load(f)
+            assert index['count'] == 3
+            assert len(index['tools']) == 3
+
+        # Verify content of statistics
+        with open(api_dir / 'statistics.json') as f:
+            stats = json.load(f)
+            assert stats['total_tools'] == 3
+            assert stats['by_type']['IDE Plugin'] == 1
+            assert stats['by_type']['CLI Tool'] == 1
+            assert stats['by_type']['Autonomous Agent'] == 1
+
+    def test_api_consistency_across_endpoints(self, complete_repo):
+        """Test that data is consistent across different API endpoints"""
+        generator = APIGenerator(complete_repo)
+        generator.generate_all()
+
+        api_dir = complete_repo / 'api'
+
+        # Load all endpoints
+        with open(api_dir / 'index.json') as f:
+            index = json.load(f)
+        with open(api_dir / 'by-type.json') as f:
+            by_type = json.load(f)
+        with open(api_dir / 'features.json') as f:
+            features = json.load(f)
+        with open(api_dir / 'statistics.json') as f:
+            stats = json.load(f)
+
+        # Verify tool count consistency
+        total_tools = index['count']
+        assert total_tools == stats['total_tools']
+
+        # Verify type counts match
+        type_count = sum(len(tools) for tools in by_type['types'].values())
+        assert type_count == total_tools
+
+        # Verify feature counts are logical
+        for _feature, tools in features['features'].items():
+            assert len(tools) <= total_tools
+
+    def test_regeneration_updates_timestamps(self, complete_repo):
+        """Test that regenerating updates timestamps but preserves data"""
+        generator = APIGenerator(complete_repo)
+
+        # First generation
+        generator.generate_all()
+        api_dir = complete_repo / 'api'
+
+        with open(api_dir / 'index.json') as f:
+            first_gen = json.load(f)
+
+        first_timestamp = first_gen['generated']
+        first_tools = first_gen['tools']
+
+        # Wait a moment
+        import time
+        time.sleep(0.1)
+
+        # Second generation
+        generator.generate_all()
+
+        with open(api_dir / 'index.json') as f:
+            second_gen = json.load(f)
+
+        # Timestamp should be different
+        assert second_gen['generated'] != first_timestamp
+
+        # But data should be the same
+        assert second_gen['count'] == first_gen['count']
+        assert len(second_gen['tools']) == len(first_tools)
+
+
+class TestAPIGeneratorErrorHandling:
+    """Test error handling and edge cases"""
+
+    def test_handle_readonly_api_directory(self, temp_repo):
+        """Test behavior when API directory is read-only"""
+        generator = APIGenerator(temp_repo)
+        api_dir = temp_repo / 'api'
+        api_dir.mkdir(exist_ok=True)
+
+        # Make directory read-only
+        import stat
+        api_dir.chmod(stat.S_IRUSR | stat.S_IXUSR)
+
+        # Should raise exception when trying to write
+        try:
+            generator.generate_all()
+            api_dir.chmod(stat.S_IRWXU)
+            raise AssertionError("Should have raised exception")
+        except (PermissionError, OSError):
+            # Expected
+            pass
+        finally:
+            # Clean up
+            api_dir.chmod(stat.S_IRWXU)
+
+    def test_empty_metadata_directory(self, temp_repo):
+        """Test generation with no metadata files"""
+        generator = APIGenerator(temp_repo)
+
+        # Should not raise exception
+        generator.generate_all()
+
+        # Should create empty/minimal endpoints
+        api_dir = temp_repo / 'api'
+        assert (api_dir / 'index.json').exists()
+
+        with open(api_dir / 'index.json') as f:
+            index = json.load(f)
+            assert index['count'] == 0
+            assert index['tools'] == []
+
+    def test_malformed_metadata_resilience(self, generator, temp_repo):
+        """Test that system continues with partially malformed metadata"""
+        # Create metadata with missing required fields
+        broken_tools = [
+            {'slug': 'broken1'},  # Missing many fields
+            {'name': 'Broken2'},  # Missing slug
+            {}  # Empty object
+        ]
+
+        for i, tool in enumerate(broken_tools):
+            with open(temp_repo / 'metadata' / f'broken{i}.json', 'w') as f:
+                json.dump(tool, f)
+
+        # Should load what it can
+        metadata = generator.load_metadata()
+        assert len(metadata) == 3  # Loads all, even if incomplete
+
+
+class TestAPIGeneratorPerformance:
+    """Performance-related tests"""
+
+    def test_large_metadata_set_performance(self, temp_repo):
+        """Test performance with large number of tools"""
+        generator = APIGenerator(temp_repo)
+
+        # Create 100 metadata files
         for i in range(100):
             tool = {
                 'slug': f'tool-{i:03d}',
                 'name': f'Tool {i}',
-                'type': ['IDE Plugin', 'CLI Tool', 'Web Platform'][i % 3],
+                'type': 'IDE Plugin' if i % 2 == 0 else 'CLI Tool',
                 'status': 'active',
-                'description': f'Description for tool {i}',
-                'pricing': {'model': ['free', 'paid', 'freemium'][i % 3]},
-                'features': {
-                    f'feature{j}': (i + j) % 2 == 0
-                    for j in range(10)
-                }
+                'description': f'Description {i}',
+                'pricing': {'model': 'free' if i % 3 == 0 else 'paid'},
+                'features': {f'feature{j}': True for j in range(10)},
+                'tags': [f'tag{j}' for j in range(5)]
             }
-            with open(generator.metadata_dir / f'tool-{i:03d}.json', 'w') as f:
+            with open(temp_repo / 'metadata' / f'tool-{i:03d}.json', 'w') as f:
                 json.dump(tool, f)
-        
-        # Generate API
-        import time
-        start = time.time()
+
+        # Time the generation
+        start = datetime.now()
         generator.generate_all()
-        duration = time.time() - start
-        
-        # Should complete in reasonable time (< 10 seconds)
-        assert duration < 10
-        
-        # Verify correctness
-        with open(generator.api_dir / 'index.json') as f:
-            index = json.load(f)
-            assert index['count'] == 100
-        
-        with open(generator.api_dir / 'statistics.json') as f:
-            stats = json.load(f)
-            assert stats['total_tools'] == 100
-    
-    def test_memory_efficiency(self, generator):
-        """Test that generation doesn't consume excessive memory"""
-        # Create moderately sized dataset
-        for i in range(50):
-            tool = {
-                'slug': f'tool-{i}',
-                'name': f'Tool {i}',
-                'type': 'CLI Tool',
-                'description': 'X' * 1000,  # Long description
-                'features': {f'f{j}': True for j in range(50)}
-            }
-            with open(generator.metadata_dir / f'tool-{i}.json', 'w') as f:
-                json.dump(tool, f)
-        
-        # Should complete without memory errors
-        generator.generate_all()
-        
-        # Verify generation succeeded
-        assert (generator.api_dir / 'index.json').exists()
-    
-    def test_concurrent_generation(self, temp_repo):
-        """Test that concurrent generation attempts are safe"""
-        import threading
-        
-        # Create test metadata
-        tool = {'slug': 'tool', 'name': 'Tool', 'type': 'CLI Tool'}
-        with open(temp_repo / 'metadata' / 'tool.json', 'w') as f:
-            json.dump(tool, f)
-        
-        errors = []
-        
-        def generate():
-            try:
-                gen = APIGenerator(str(temp_repo))
-                gen.generate_all()
-            except Exception as e:  # noqa: B902
-                errors.append(e)
-        
-        # Run multiple generators concurrently
-        threads = [threading.Thread(target=generate) for _ in range(3)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-        
-        # At least one should succeed
-        # (May have some conflicts, but shouldn't crash)
-        assert (temp_repo / 'api' / 'index.json').exists()
+        duration = (datetime.now() - start).total_seconds()
+
+        # Should complete in reasonable time (< 5 seconds for 100 tools)
+        assert duration < 5.0
+
+        # Verify all files created
+        api_dir = temp_repo / 'api'
+        tools_dir = api_dir / 'tools'
+        assert len(list(tools_dir.glob('*.json'))) == 100

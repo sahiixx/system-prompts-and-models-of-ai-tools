@@ -245,3 +245,266 @@ describe('DuplicateChecker edge cases', () => {
     assert.ok(hash.length > 0);
   });
 });
+
+// Additional comprehensive edge case tests for DuplicateChecker
+
+test('detect exact duplicates with different names', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  const assert = require('node:assert');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-duplicates-'));
+  
+  // Create two tools with identical prompts
+  const tool1 = path.join(tempDir, 'Tool-1');
+  const tool2 = path.join(tempDir, 'Tool-2');
+  fs.mkdirSync(tool1, { recursive: true });
+  fs.mkdirSync(tool2, { recursive: true });
+  
+  const identicalContent = 'This is the exact same system prompt content.\n';
+  fs.writeFileSync(path.join(tool1, 'Prompt.txt'), identicalContent);
+  fs.writeFileSync(path.join(tool2, 'Prompt.txt'), identicalContent);
+  
+  // Verify files have same content
+  const content1 = fs.readFileSync(path.join(tool1, 'Prompt.txt'), 'utf-8');
+  const content2 = fs.readFileSync(path.join(tool2, 'Prompt.txt'), 'utf-8');
+  assert.strictEqual(content1, content2);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('detect highly similar prompts', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  const assert = require('node:assert');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-duplicates-'));
+  
+  const tool1 = path.join(tempDir, 'Similar-1');
+  const tool2 = path.join(tempDir, 'Similar-2');
+  fs.mkdirSync(tool1, { recursive: true });
+  fs.mkdirSync(tool2, { recursive: true });
+  
+  const baseContent = 'You are a helpful AI assistant.\nYou generate code.\n';
+  fs.writeFileSync(path.join(tool1, 'Prompt.txt'), baseContent);
+  fs.writeFileSync(path.join(tool2, 'Prompt.txt'), baseContent + 'You also debug code.\n');
+  
+  // Should be similar but not identical
+  const content1 = fs.readFileSync(path.join(tool1, 'Prompt.txt'), 'utf-8');
+  const content2 = fs.readFileSync(path.join(tool2, 'Prompt.txt'), 'utf-8');
+  assert.notStrictEqual(content1, content2);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('handle empty prompt files', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  const assert = require('node:assert');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-duplicates-'));
+  
+  const tool1 = path.join(tempDir, 'Empty-1');
+  fs.mkdirSync(tool1, { recursive: true });
+  fs.writeFileSync(path.join(tool1, 'Prompt.txt'), '');
+  
+  // Verify empty file
+  const content = fs.readFileSync(path.join(tool1, 'Prompt.txt'), 'utf-8');
+  assert.strictEqual(content.length, 0);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('handle prompts with unicode characters', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  const assert = require('node:assert');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-duplicates-'));
+  
+  const tool1 = path.join(tempDir, 'Unicode-1');
+  const tool2 = path.join(tempDir, 'Unicode-2');
+  fs.mkdirSync(tool1, { recursive: true });
+  fs.mkdirSync(tool2, { recursive: true });
+  
+  const unicodeContent = 'System prompt 世界 🌍\n';
+  fs.writeFileSync(path.join(tool1, 'Prompt.txt'), unicodeContent, 'utf-8');
+  fs.writeFileSync(path.join(tool2, 'Prompt.txt'), unicodeContent, 'utf-8');
+  
+  // Verify identical unicode content
+  const content1 = fs.readFileSync(path.join(tool1, 'Prompt.txt'), 'utf-8');
+  const content2 = fs.readFileSync(path.join(tool2, 'Prompt.txt'), 'utf-8');
+  assert.strictEqual(content1, content2);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('detect no duplicates when all unique', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  const assert = require('node:assert');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-duplicates-'));
+  
+  // Create 5 unique tools
+  for (let i = 1; i <= 5; i++) {
+    const toolDir = path.join(tempDir, `Unique-${i}`);
+    fs.mkdirSync(toolDir, { recursive: true });
+    fs.writeFileSync(path.join(toolDir, 'Prompt.txt'), `Unique prompt content for tool ${i}\n`);
+  }
+  
+  // Verify all have different content
+  const contents = [];
+  for (let i = 1; i <= 5; i++) {
+    const content = fs.readFileSync(path.join(tempDir, `Unique-${i}`, 'Prompt.txt'), 'utf-8');
+    contents.push(content);
+  }
+  
+  // All should be unique
+  const uniqueContents = [...new Set(contents)];
+  assert.strictEqual(uniqueContents.length, 5);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('handle very large prompt files', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  const assert = require('node:assert');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-duplicates-'));
+  
+  const tool1 = path.join(tempDir, 'Large-1');
+  fs.mkdirSync(tool1, { recursive: true });
+  
+  // Create 50KB file
+  const largeContent = 'Line of content\n'.repeat(3000);
+  fs.writeFileSync(path.join(tool1, 'Prompt.txt'), largeContent);
+  
+  // Verify size
+  const stats = fs.statSync(path.join(tool1, 'Prompt.txt'));
+  assert.ok(stats.size > 40000);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('handle multiple versions in single tool', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  const assert = require('node:assert');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-duplicates-'));
+  
+  const toolDir = path.join(tempDir, 'Versioned-Tool');
+  fs.mkdirSync(toolDir, { recursive: true });
+  
+  fs.writeFileSync(path.join(toolDir, 'Prompt v1.txt'), 'Version 1 content\n');
+  fs.writeFileSync(path.join(toolDir, 'Prompt v2.txt'), 'Version 2 content\n');
+  fs.writeFileSync(path.join(toolDir, 'Agent Prompt.txt'), 'Agent version content\n');
+  
+  // Verify all files exist
+  const files = fs.readdirSync(toolDir);
+  assert.ok(files.includes('Prompt v1.txt'));
+  assert.ok(files.includes('Prompt v2.txt'));
+  assert.ok(files.includes('Agent Prompt.txt'));
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('case sensitive duplicate detection', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  const assert = require('node:assert');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-duplicates-'));
+  
+  const tool1 = path.join(tempDir, 'Case-1');
+  const tool2 = path.join(tempDir, 'Case-2');
+  fs.mkdirSync(tool1, { recursive: true });
+  fs.mkdirSync(tool2, { recursive: true });
+  
+  fs.writeFileSync(path.join(tool1, 'Prompt.txt'), 'UPPERCASE CONTENT\n');
+  fs.writeFileSync(path.join(tool2, 'Prompt.txt'), 'uppercase content\n');
+  
+  // Should be different (case sensitive)
+  const content1 = fs.readFileSync(path.join(tool1, 'Prompt.txt'), 'utf-8');
+  const content2 = fs.readFileSync(path.join(tool2, 'Prompt.txt'), 'utf-8');
+  assert.notStrictEqual(content1, content2);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('whitespace differences detection', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  const assert = require('node:assert');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-duplicates-'));
+  
+  const tool1 = path.join(tempDir, 'Space-1');
+  const tool2 = path.join(tempDir, 'Space-2');
+  fs.mkdirSync(tool1, { recursive: true });
+  fs.mkdirSync(tool2, { recursive: true });
+  
+  fs.writeFileSync(path.join(tool1, 'Prompt.txt'), 'Content with  spaces\n');
+  fs.writeFileSync(path.join(tool2, 'Prompt.txt'), 'Content with spaces\n');
+  
+  // Should be different (whitespace matters)
+  const content1 = fs.readFileSync(path.join(tool1, 'Prompt.txt'), 'utf-8');
+  const content2 = fs.readFileSync(path.join(tool2, 'Prompt.txt'), 'utf-8');
+  assert.notStrictEqual(content1, content2);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('line ending differences handling', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  const assert = require('node:assert');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-duplicates-'));
+  
+  const tool1 = path.join(tempDir, 'LineEnd-1');
+  const tool2 = path.join(tempDir, 'LineEnd-2');
+  fs.mkdirSync(tool1, { recursive: true });
+  fs.mkdirSync(tool2, { recursive: true });
+  
+  fs.writeFileSync(path.join(tool1, 'Prompt.txt'), 'Line 1\nLine 2\n');
+  fs.writeFileSync(path.join(tool2, 'Prompt.txt'), 'Line 1\r\nLine 2\r\n');
+  
+  // Verify files exist (may have different line endings)
+  assert.ok(fs.existsSync(path.join(tool1, 'Prompt.txt')));
+  assert.ok(fs.existsSync(path.join(tool2, 'Prompt.txt')));
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});

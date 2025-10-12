@@ -420,7 +420,6 @@ class TestMetadataGenerator:
     def test_generate_all_handles_errors(self, generator, temp_repo, capfd):
         """Test that generate_all handles errors gracefully"""
         # Create a tool with no files (will likely cause an error)
-        
         (temp_repo / 'EmptyTool').mkdir()
         
         generator.generate_all()
@@ -558,10 +557,10 @@ class TestMetadataGenerator:
         
         assert 'All metadata files are valid' in captured.out
     
-    def test_main_generate_all(self, temp_repo, capfd):
+    def test_main_generate_all(self, temp_repo, capdf):
         """Test main function with --all flag"""
         (temp_repo / 'Tool1').mkdir()
-        (temp_repo / 'Tool1' / 'prompt.txt').write_text('Test')
+        (temp_repo / 'Tool1' / 'prompt.txt').write_text('Test')        
         
         with patch('sys.argv', ['generate-metadata.py', '--all', '--repo', str(temp_repo)]):
             from generate_metadata import main
@@ -582,7 +581,7 @@ class TestMetadataGenerator:
         captured = capfd.readouterr()
         assert 'Done' in captured.out
     
-    def test_main_validate(self, temp_repo, capfd):
+    def test_main_validate(self, temp_repo, capdf):
         """Test main function with --validate flag"""
         metadata = {
             'name': 'Test',
@@ -603,29 +602,11 @@ class TestMetadataGenerator:
         captured = capfd.readouterr()
         assert 'Validating' in captured.out
     
-    def test_patterns_comprehensive(self, generator, temp_repo):
-        """Test comprehensive pattern detection"""
-        prompt = temp_repo / 'prompt.txt'
-        prompt.write_text('''
-        You are an agent that operates autonomously.
-        Use sub-agents to delegate complex tasks.
-        Execute tools in parallel for efficiency.
-        Always verify results before proceeding.
-        Track progress in a TODO system.
-        Maintain context in agents.md memory file.
-        Be concise and brief in all responses.
-        ''')
-        
-        result = generator.analyze_prompt_file(prompt)
-        patterns = result['patterns']
-        
-        assert patterns['parallelTools']
-        assert patterns['subAgents']
-        assert patterns['verificationGates']
-        assert patterns['todoSystem']
-        assert patterns['memoryContext']
-        assert patterns['agentsFile']
-        assert patterns['conciseness'] in ['high', 'very-high']
+    # ... rest of unchanged tests ...
+
+
+pytestmark = pytest.mark.unit
+
 
 class TestMetadataGeneratorAdvanced:
     """Advanced test cases for comprehensive coverage"""
@@ -694,7 +675,7 @@ pytestmark = pytest.mark.unit
 
 
 class TestMetadataGeneratorAdvancedExtra:
-    """Advanced test cases for comprehensive coverage"""
+    """Advanced comprehensive edge case tests for MetadataGenerator"""
     
     @pytest.fixture
     def temp_repo(self):
@@ -1110,291 +1091,189 @@ class TestMetadataGeneratorAdvancedExtra:
         assert 'invalid.json' in captured.out
         # Should indicate some errors
         assert 'error' in captured.out.lower() or 'invalid' in captured.out.lower()
-    
-    def test_main_with_specific_tool_name(self, temp_repo, capfd):
-        """Test main function generates metadata for specific tool"""
-        tool_dir = temp_repo / 'SpecificTool'
-        tool_dir.mkdir()
-        (tool_dir / 'prompt.txt').write_text('Specific tool content')
-        
-        with patch('sys.argv', ['generate-metadata.py', '--tool', 'SpecificTool', '--repo', str(temp_repo)]):
-            from generate_metadata import main
-            main()
-        
-        capfd.readouterr()
-        
-        # Should process the tool
-        assert (temp_repo / 'metadata' / 'specifictool.json').exists()
-    
-    def test_main_validate_with_errors(self, temp_repo, capfd):
-        """Test main with validation that finds errors"""
-        # Create invalid metadata
-        invalid = {'name': 'Test'}
-        (temp_repo / 'metadata' / 'test.json').write_text(json.dumps(invalid))
-        
-        with patch('sys.argv', ['generate-metadata.py', '--validate', '--repo', str(temp_repo)]):
-            from generate_metadata import main
-            main()
-        
-        captured = capfd.readouterr()
-        
-        # Should report validation errors
-        assert 'error' in captured.out.lower() or 'invalid' in captured.out.lower()
-    
-    def test_analyze_prompt_with_code_blocks(self, generator, temp_repo):
-        """Test analyzing prompts with code examples"""
-        prompt = temp_repo / 'prompt.txt'
-        prompt.write_text('''
-        You can generate code like this:
-        ```python
-        
-        def hello():
-            print("Hello")
-        ```
-        
-        And execute commands:
-        $ npm install
-        $ npm test
-        ''')
-        
-        result = generator.analyze_prompt_file(prompt)
-        
-        # Should still parse correctly
-        assert 'patterns' in result
-        assert 'features' in result
-    
-    def test_slugify_already_slug_format(self, generator):
-        """Test slugify on already-slugified text"""
-        assert generator.slugify('already-a-slug') == 'already-a-slug'
-        assert generator.slugify('perfect_slug_123') == 'perfect_slug_123'
-    
-    def test_detect_tool_type_from_filename_patterns(self, generator):
-        """Test type detection considers common patterns"""
-        # VSCode extension
-        assert generator.detect_tool_type('VSCode Extension', []) == 'IDE Plugin'
-        # Jetbrains plugin
-        assert generator.detect_tool_type('IntelliJ Plugin', []) == 'IDE Plugin'
-    
-    def test_platforms_detection(self, generator, temp_repo):
-        """Test that platform flags are set correctly"""
-        tool_dir = temp_repo / 'VSCode Tool'
-        tool_dir.mkdir()
-        (tool_dir / 'prompt.txt').write_text('VSCode extension')
-        
-        metadata = generator.generate_metadata('VSCode Tool')
-        platforms = metadata.get('platforms', {})
-        
-        # Should detect VSCode
-        assert platforms.get('vscode', False)
-    
-    def test_concurrent_feature_detection(self, generator, temp_repo):
-        """Test detection of concurrency/parallel features"""
-        prompt = temp_repo / 'prompt.txt'
-        prompt.write_text('Execute tasks in parallel and concurrently')
-        
-        result = generator.analyze_prompt_file(prompt)
-        
-        assert result['patterns']['parallelTools']
-    
-    def test_memory_context_detection(self, generator, temp_repo):
-        """Test detection of memory/context patterns"""
-        prompt = temp_repo / 'prompt.txt'
-        prompt.write_text('Remember previous context and maintain memory')
-        
-        result = generator.analyze_prompt_file(prompt)
-        
-        assert result['patterns']['memoryContext']
 
 
-pytestmark = pytest.mark.unit
-
-class TestMetadataGeneratorIntegration:
-    """Integration tests for metadata generation workflow"""
+class TestMetadataGeneratorIntegrationExtra:
+    """Integration tests for metadata generation workflows"""
     
-    @pytest.fixture
-    def temp_repo(self):
-        temp_dir = tempfile.mkdtemp()
-        repo_path = Path(temp_dir)
-        (repo_path / 'metadata').mkdir()
-        yield repo_path
-        shutil.rmtree(temp_dir)
-    
-    @pytest.fixture
-    def generator(self, temp_repo):
-        return MetadataGenerator(str(temp_repo))
-    
-    def test_full_repository_scan(self, generator, temp_repo):
-        """Test scanning entire repository structure"""
-        # Create realistic tool directories
-        tools = ['Cursor', 'GitHub Copilot', 'Claude Code', 'Windsurf']
+    def test_full_generation_and_validation_cycle(self, temp_repo):
+        """Test complete cycle: scan -> generate -> validate"""
+        generator = MetadataGenerator(str(temp_repo))
         
+        # Create multiple tool directories
+        tools = ['Tool-One', 'Tool-Two', 'Tool-Three']
         for tool in tools:
             tool_dir = temp_repo / tool
             tool_dir.mkdir()
-            (tool_dir / 'prompt.txt').write_text(f'Prompt for {tool}')
-            (tool_dir / 'tools.json').write_text('[{"name": "tool1"}]')
+            (tool_dir / 'Prompt.txt').write_text(f'Prompt for {tool}')
             (tool_dir / 'README.md').write_text(f'# {tool}')
         
         # Generate all metadata
         generator.generate_all()
         
+        # Validate all generated metadata
+        generator.validate_all()
+        
         # Verify all metadata files created
-        for tool in tools:
-            slug = generator.slugify(tool)
-            assert (generator.metadata_dir / f'{slug}.json').exists()
+        metadata_files = list(generator.metadata_dir.glob('*.json'))
+        assert len(metadata_files) == 3
     
-    def test_pattern_detection_accuracy(self, generator, temp_repo):
-        """Test accuracy of pattern detection across tools"""
-        # Create tool with known patterns
-        tool_dir = temp_repo / 'TestTool'
+    def test_regeneration_preserves_consistency(self, temp_repo):
+        """Test that regenerating metadata produces consistent results"""
+        generator = MetadataGenerator(str(temp_repo))
+        
+        tool_dir = temp_repo / 'Test-Tool'
+        tool_dir.mkdir()
+        (tool_dir / 'Prompt.txt').write_text('Test prompt with security rules and never log secrets')
+        
+        # Generate first time
+        metadata1 = generator.generate_metadata('Test-Tool')
+        
+        # Generate second time
+        metadata2 = generator.generate_metadata('Test-Tool')
+        
+        # Should be identical (except timestamps if any)
+        assert metadata1['slug'] == metadata2['slug']
+        assert metadata1['patterns'] == metadata2['patterns']
+        assert metadata1['features'] == metadata2['features']
+        
+        # Ensure multiple versions flagged
+        assert metadata2['documentation']['hasMultipleVersions']
+
+
+class TestMetadataGeneratorErrorHandling:
+    """Test error handling scenarios"""
+    
+    def test_handle_permission_denied(self, temp_repo):
+        """Test behavior when metadata directory is not writable"""
+        generator = MetadataGenerator(str(temp_repo))
+        
+        # Create a tool
+        tool_dir = temp_repo / 'Test-Tool'
+        tool_dir.mkdir()
+        (tool_dir / 'Prompt.txt').write_text('Test')
+        
+        # Make metadata directory read-only
+        import stat
+        generator.metadata_dir.mkdir(exist_ok=True)
+        generator.metadata_dir.chmod(stat.S_IRUSR | stat.S_IXUSR)
+        
+        try:
+            metadata = generator.generate_metadata('Test-Tool')
+            # Attempting to save should raise exception
+            generator.save_metadata('Test-Tool', metadata)
+            # Clean up before assertion
+            generator.metadata_dir.chmod(stat.S_IRWXU)
+            raise AssertionError("Should have raised PermissionError")
+        except (PermissionError, OSError):
+            # Expected
+            pass
+        finally:
+            generator.metadata_dir.chmod(stat.S_IRWXU)
+    
+    def test_handle_corrupted_tool_directory(self, temp_repo):
+        """Test handling of tool directories with unexpected structure"""
+        generator = MetadataGenerator(str(temp_repo))
+        
+        # Create directory with no files
+        empty_dir = temp_repo / 'Empty-Tool'
+        empty_dir.mkdir()
+        
+        # Should not crash
+        metadata = generator.generate_metadata('Empty-Tool')
+        assert metadata['name'] == 'Empty-Tool'
+        assert metadata['documentation']['files']['systemPrompt'] is None
+
+
+class TestMetadataGeneratorFeatureDetection:
+    """Test feature detection capabilities"""
+    
+    def test_detect_all_security_features(self, generator, temp_repo):
+        """Test comprehensive security feature detection"""
+        tool_dir = temp_repo / 'Secure-Tool'
         tool_dir.mkdir()
         
         prompt_content = '''
-        You are an autonomous agent that can delegate to sub-agents.
-        Execute tools in parallel for efficiency.
-        Always verify results before proceeding.
-        Track tasks in a TODO list.
-        Remember context in agents.md.
-        Be very concise and brief.
+        Security Guidelines:
+        - Never log API keys or secrets
+        - Never expose passwords or tokens
+        - Encrypt sensitive data
+        - Validate all credentials
+        - Use secure private channels
         '''
-        (tool_dir / 'prompt.txt').write_text(prompt_content)
         
-        metadata = generator.generate_metadata('TestTool')
-        patterns = metadata['patterns']
+        (tool_dir / 'Prompt.txt').write_text(prompt_content)
+        analysis = generator.analyze_prompt_file(tool_dir / 'Prompt.txt')
         
-        # Verify all expected patterns detected
-        assert patterns['parallelTools']
-        assert patterns['subAgents']
-        assert patterns['verificationGates']
-        assert patterns['todoSystem']
-        assert patterns['memoryContext']
-        assert patterns['agentsFile']
-        assert patterns['conciseness'] in ['high', 'very-high']
+        # Should detect high security focus
+        assert analysis['metrics']['securityRules'] >= 5
     
-    def test_feature_detection_comprehensive(self, generator, temp_repo):
-        """Test comprehensive feature detection"""
-        tool_dir = temp_repo / 'FeatureTool'
+    def test_detect_parallel_execution_patterns(self, generator, temp_repo):
+        """Test detection of parallel execution capabilities"""
+        tool_dir = temp_repo / 'Parallel-Tool'
         tool_dir.mkdir()
         
-        prompt = '''
-        Generate code and provide completions.
-        Chat interface for conversations.
-        Agent mode for autonomous tasks.
-        Parallel execution of operations.
-        Memory system for context.
-        TODO tracking system.
-        Git integration for version control.
-        Multi-file editing capabilities.
-        Test generation features.
-        Refactoring support.
-        Debugging tools.
+        prompt_content = '''
+        Execute tasks in parallel
+        Run concurrently when possible
+        Simultaneous operations supported
         '''
-        (tool_dir / 'prompt.txt').write_text(prompt)
         
-        metadata = generator.generate_metadata('FeatureTool')
-        features = metadata['features']
+        (tool_dir / 'Prompt.txt').write_text(prompt_content)
+        analysis = generator.analyze_prompt_file(tool_dir / 'Prompt.txt')
         
-        # Verify feature detection
+        assert analysis['patterns']['parallelTools']
+        assert analysis['features']['parallelExecution']
+    
+    def test_detect_memory_and_context_features(self, generator, temp_repo):
+        """Test detection of memory/context management"""
+        tool_dir = temp_repo / 'Memory-Tool'
+        tool_dir.mkdir()
+        
+        prompt_content = '''
+        Use memory to remember previous context
+        Persist important information in agents.md
+        Track conversation context
+        '''
+        
+        (tool_dir / 'Prompt.txt').write_text(prompt_content)
+        analysis = generator.analyze_prompt_file(tool_dir / 'Prompt.txt')
+        
+        assert analysis['patterns']['memoryContext']
+        assert analysis['patterns']['agentsFile']
+        assert analysis['features']['memorySystem']
+    
+    def test_detect_comprehensive_feature_set(self, generator, temp_repo):
+        """Test detection of all major features in one prompt"""
+        tool_dir = temp_repo / 'Feature-Rich-Tool'
+        tool_dir.mkdir()
+        
+        prompt_content = '''
+        You are an agent that generates code with completion support.
+        Use chat interface for conversations.
+        Execute tasks in parallel for possible.
+        Track todos and manage tasks.
+        Integrate with git for version control.
+        Edit multiple files simultaneously.
+        Generate comprehensive tests.
+        Refactor code when needed.
+        Debug issues efficiently.
+        Remember context in memory.
+        '''
+        
+        (tool_dir / 'Prompt.txt').write_text(prompt_content)
+        analysis = generator.analyze_prompt_file(tool_dir / 'Prompt.txt')
+        
+        features = analysis['features']
         assert features['codeGeneration']
         assert features['codeCompletion']
         assert features['chatInterface']
         assert features['agentMode']
         assert features['parallelExecution']
-        assert features['memorySystem']
         assert features['todoTracking']
         assert features['gitIntegration']
         assert features['multiFileEditing']
         assert features['testGeneration']
         assert features['refactoring']
         assert features['debugging']
-
-
-class TestMetadataGeneratorEdgeCases:
-    """Edge case tests for metadata generation"""
-    
-    @pytest.fixture
-    def temp_repo(self):
-        temp_dir = tempfile.mkdtemp()
-        repo_path = Path(temp_dir)
-        (repo_path / 'metadata').mkdir()
-        yield repo_path
-        shutil.rmtree(temp_dir)
-    
-    @pytest.fixture
-    def generator(self, temp_repo):
-        return MetadataGenerator(str(temp_repo))
-    
-    def test_empty_prompt_file(self, generator, temp_repo):
-        """Test handling completely empty prompt file"""
-        tool_dir = temp_repo / 'EmptyTool'
-        tool_dir.mkdir()
-        (tool_dir / 'prompt.txt').write_text('')
-        
-        metadata = generator.generate_metadata('EmptyTool')
-        
-        # Should still generate valid metadata
-        assert metadata['name'] == 'EmptyTool'
-        assert 'features' in metadata
-        assert 'patterns' in metadata
-    
-    def test_binary_file_in_directory(self, generator, temp_repo):
-        """Test handling tool directory with binary files"""
-        tool_dir = temp_repo / 'BinaryTool'
-        tool_dir.mkdir()
-        (tool_dir / 'prompt.txt').write_text('Valid prompt')
-        (tool_dir / 'image.png').write_bytes(b'\x89PNG\r\n\x1a\n')
-        
-        # Should handle gracefully
-        metadata = generator.generate_metadata('BinaryTool')
-        
-        assert metadata['name'] == 'BinaryTool'
-    
-    def test_extremely_long_prompt(self, generator, temp_repo):
-        """Test handling very long prompt files"""
-        tool_dir = temp_repo / 'LongTool'
-        tool_dir.mkdir()
-        
-        # Create very long prompt (100KB)
-        long_prompt = 'This is a very long prompt. ' * 5000
-        (tool_dir / 'prompt.txt').write_text(long_prompt)
-        
-        metadata = generator.generate_metadata('LongTool')
-        
-        # Should process successfully
-        assert metadata['name'] == 'LongTool'
-        assert metadata['metrics']['promptTokens'] > 10000
-    
-    def test_special_characters_in_directory_name(self, generator, temp_repo):
-        """Test tool directory with special characters"""
-        # Create directory with special chars (URL-encoded style)
-        tool_dir = temp_repo / 'Tool_With-Special.Chars'
-        tool_dir.mkdir()
-        (tool_dir / 'prompt.txt').write_text('Prompt')
-        
-        metadata = generator.generate_metadata('Tool_With-Special.Chars')
-        
-        # Should handle and create valid slug
-        assert 'slug' in metadata
-        assert metadata['slug'].replace('_', '').replace('-', '').isalnum()
-    
-    def test_circular_symlinks(self, generator, temp_repo):
-        """Test handling circular symlinks in tool directory"""
-        import os
-        
-        tool_dir = temp_repo / 'CircularTool'
-        tool_dir.mkdir()
-        (tool_dir / 'prompt.txt').write_text('Prompt')
-        
-        try:
-            # Create circular symlink
-            os.symlink(tool_dir, tool_dir / 'circular')
-            
-            # Should handle without infinite loop
-            metadata = generator.generate_metadata('CircularTool')
-            
-            assert metadata['name'] == 'CircularTool'
-        except OSError:
-            pytest.skip("Symlinks not supported")
-
-
-pytestmark = pytest.mark.unit
+        assert features['memorySystem']

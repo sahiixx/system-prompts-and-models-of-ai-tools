@@ -367,3 +367,245 @@ describe('Validator edge cases', () => {
     assert.strictEqual(result, true);
   });
 });
+
+// Additional comprehensive edge case tests for Validator
+
+test('validate tool directory with missing README but has prompt', () => {
+  const Validator = require('../../scripts/validate.js');
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-validator-'));
+  const toolDir = path.join(tempDir, 'Test-Tool');
+  fs.mkdirSync(toolDir, { recursive: true });
+  fs.writeFileSync(path.join(toolDir, 'Prompt.txt'), 'Test prompt');
+  
+  const validator = new Validator();
+  validator.validateToolDirectory('Test-Tool');
+  
+  // Should have warning about missing README
+  assert.ok(validator.warnings.length > 0);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('validate multiple tool directories in batch', () => {
+  const Validator = require('../../scripts/validate.js');
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-validator-'));
+  
+  // Create multiple valid tools
+  for (let i = 1; i <= 5; i++) {
+    const toolDir = path.join(tempDir, `Tool-${i}`);
+    fs.mkdirSync(toolDir, { recursive: true });
+    fs.writeFileSync(path.join(toolDir, 'README.md'), `# Tool ${i}`);
+    fs.writeFileSync(path.join(toolDir, 'Prompt.txt'), `Prompt ${i}`);
+  }
+  
+  const validator = new Validator();
+  
+  // Validate all tools
+  for (let i = 1; i <= 5; i++) {
+    validator.validateToolDirectory(`Tool-${i}`);
+  }
+  
+  // Should have 5 successful validations
+  assert.strictEqual(validator.passed, 5);
+  assert.strictEqual(validator.errors.length, 0);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('validate tool with multiple prompt versions', () => {
+  const Validator = require('../../scripts/validate.js');
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-validator-'));
+  const toolDir = path.join(tempDir, 'Versioned-Tool');
+  fs.mkdirSync(toolDir, { recursive: true });
+  fs.writeFileSync(path.join(toolDir, 'README.md'), '# Versioned Tool');
+  fs.writeFileSync(path.join(toolDir, 'Prompt v1.0.txt'), 'Version 1');
+  fs.writeFileSync(path.join(toolDir, 'Prompt v2.0.txt'), 'Version 2');
+  fs.writeFileSync(path.join(toolDir, 'Agent Prompt.txt'), 'Agent version');
+  
+  const validator = new Validator();
+  validator.validateToolDirectory('Versioned-Tool');
+  
+  // Should pass - has multiple prompts
+  assert.strictEqual(validator.errors.length, 0);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('validate tool with special characters in name', () => {
+  const Validator = require('../../scripts/validate.js');
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-validator-'));
+  const toolDir = path.join(tempDir, 'Tool-Name (Beta)');
+  fs.mkdirSync(toolDir, { recursive: true });
+  fs.writeFileSync(path.join(toolDir, 'README.md'), '# Tool');
+  fs.writeFileSync(path.join(toolDir, 'Prompt.txt'), 'Test');
+  
+  const validator = new Validator();
+  validator.validateToolDirectory('Tool-Name (Beta)');
+  
+  // Should handle special characters
+  assert.strictEqual(validator.errors.length, 0);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('validate tool with tools.json file', () => {
+  const Validator = require('../../scripts/validate.js');
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-validator-'));
+  const toolDir = path.join(tempDir, 'Tool-With-Tools');
+  fs.mkdirSync(toolDir, { recursive: true });
+  fs.writeFileSync(path.join(toolDir, 'README.md'), '# Tool');
+  fs.writeFileSync(path.join(toolDir, 'Prompt.txt'), 'Test');
+  fs.writeFileSync(path.join(toolDir, 'Tools.json'), '[]');
+  
+  const validator = new Validator();
+  validator.validateToolDirectory('Tool-With-Tools');
+  
+  // Should pass with tools file
+  assert.strictEqual(validator.errors.length, 0);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('error and warning counters work correctly', () => {
+  const Validator = require('../../scripts/validate.js');
+  const validator = new Validator();
+  
+  // Add various errors and warnings
+  validator.error('Error 1');
+  validator.error('Error 2');
+  validator.warn('Warning 1');
+  validator.warn('Warning 2');
+  validator.warn('Warning 3');
+  validator.success('Success 1');
+  
+  assert.strictEqual(validator.errors.length, 2);
+  assert.strictEqual(validator.warnings.length, 3);
+  assert.strictEqual(validator.passed, 1);
+});
+
+test('validate tool with markdown prompt file', () => {
+  const Validator = require('../../scripts/validate.js');
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-validator-'));
+  const toolDir = path.join(tempDir, 'Markdown-Tool');
+  fs.mkdirSync(toolDir, { recursive: true });
+  fs.writeFileSync(path.join(toolDir, 'README.md'), '# Tool');
+  fs.writeFileSync(path.join(toolDir, 'System Prompt.md'), '# System Prompt');
+  
+  const validator = new Validator();
+  validator.validateToolDirectory('Markdown-Tool');
+  
+  // Should accept .md prompt files
+  assert.strictEqual(validator.errors.length, 0);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('validate empty tool directory', () => {
+  const Validator = require('../../scripts/validate.js');
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-validator-'));
+  const toolDir = path.join(tempDir, 'Empty-Tool');
+  fs.mkdirSync(toolDir, { recursive: true });
+  
+  const validator = new Validator();
+  validator.validateToolDirectory('Empty-Tool');
+  
+  // Should have errors for missing files
+  assert.ok(validator.errors.length > 0 || validator.warnings.length > 0);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('case insensitive prompt file detection', () => {
+  const Validator = require('../../scripts/validate.js');
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-validator-'));
+  
+  // Test with uppercase PROMPT
+  const toolDir1 = path.join(tempDir, 'Tool-Upper');
+  fs.mkdirSync(toolDir1, { recursive: true });
+  fs.writeFileSync(path.join(toolDir1, 'README.md'), '# Tool');
+  fs.writeFileSync(path.join(toolDir1, 'PROMPT.TXT'), 'Test');
+  
+  const validator = new Validator();
+  validator.validateToolDirectory('Tool-Upper');
+  
+  // Should detect uppercase PROMPT
+  assert.strictEqual(validator.errors.length, 0);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('validate tool with subdirectories', () => {
+  const Validator = require('../../scripts/validate.js');
+  const fs = require('fs');
+  const path = require('path');
+  const os = require('os');
+  const { mkdtempSync, rmSync } = require('fs');
+  
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), 'test-validator-'));
+  const toolDir = path.join(tempDir, 'Tool-With-Subdirs');
+  fs.mkdirSync(toolDir, { recursive: true });
+  fs.writeFileSync(path.join(toolDir, 'README.md'), '# Tool');
+  fs.writeFileSync(path.join(toolDir, 'Prompt.txt'), 'Test');
+  
+  // Create subdirectory
+  const subDir = path.join(toolDir, 'examples');
+  fs.mkdirSync(subDir);
+  fs.writeFileSync(path.join(subDir, 'example.txt'), 'Example');
+  
+  const validator = new Validator();
+  validator.validateToolDirectory('Tool-With-Subdirs');
+  
+  // Should validate successfully
+  assert.strictEqual(validator.errors.length, 0);
+  
+  // Cleanup
+  rmSync(tempDir, { recursive: true, force: true });
+});

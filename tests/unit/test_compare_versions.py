@@ -1,4 +1,4 @@
-"""
+""" 
 Comprehensive unit tests for compare-versions.py
 Tests version comparison and diff generation
 """
@@ -152,7 +152,14 @@ class TestVersionComparer:
         diff = comparer.compare_files(file1, file2)
         
         # Should only have header lines
-        non_header_diff = [line for line in diff if not (line.startswith('---') or line.startswith('+++') or line.startswith('@@'))]
+        non_header_diff = [
+            line for line in diff
+            if not (
+                line.startswith('---') or
+                line.startswith('+++') or
+                line.startswith('@@')
+            )
+        ]
         assert len(non_header_diff) == 0
     
     def test_compare_files_completely_different(self, comparer, temp_repo):
@@ -402,12 +409,13 @@ class TestVersionComparer:
     
     def test_compare_tool_versions_html_output(self, comparer, temp_repo):
         """Test HTML output generation for version comparison"""
-        tool_dir = temp_repo / 'TestTool'
+        file1 = temp_repo / 'file1.txt'
+        file2 = temp_repo / 'file2.txt'
         
-        (tool_dir / 'prompt-v1.txt').write_text('Version 1')
-        (tool_dir / 'prompt-v2.txt').write_text('Version 2')
+        file1.write_text('Line 1\nLine 2\nLine 3\n')
+        file2.write_text('Line 1\nLine 2 modified\nLine 3\nLine 4\n')
         
-        comparer.compare_tool_versions('TestTool', output_format='html')
+        html = comparer.generate_html_diff(file1, file2, 'TestTool')
         
         # Check that HTML file was created
         html_files = list(temp_repo.glob('*.html'))
@@ -490,7 +498,10 @@ class TestVersionComparer:
         
         # Create large files
         content1 = '\n'.join([f'Line {i}' for i in range(1000)])
-        content2 = '\n'.join([f'Line {i}' if i % 10 != 0 else f'Modified {i}' for i in range(1000)])
+        content2 = '\n'.join([
+            f'Line {i}' if i % 10 != 0 else f'Modified {i}'
+            for i in range(1000)
+        ])
         
         file1.write_text(content1)
         file2.write_text(content2)
@@ -866,6 +877,7 @@ class TestVersionComparerAdvanced:
 
 pytestmark = pytest.mark.unit
 
+
 class TestVersionComparerIntegration:
     """Integration tests for version comparison workflow"""
     
@@ -934,6 +946,9 @@ class TestVersionComparerIntegration:
         assert 'Original content' in html or 'Modified content' in html
 
 
+pytestmark = pytest.mark.unit
+
+
 class TestVersionComparerPerformance:
     """Performance and stress tests for version comparison"""
     
@@ -956,7 +971,10 @@ class TestVersionComparerPerformance:
         
         # Create large files (1MB each)
         content1 = '\n'.join([f'Line {i} in file 1' for i in range(50000)])
-        content2 = '\n'.join([f'Line {i} in file {"2" if i % 100 != 0 else "1"}' for i in range(50000)])
+        content2 = '\n'.join([
+            f'Line {i} in file {"2" if i % 100 != 0 else "1"}'
+            for i in range(50000)
+        ])
         
         file1.write_text(content1)
         file2.write_text(content2)
@@ -998,6 +1016,3 @@ class TestVersionComparerPerformance:
         for i in range(len(versions) - 1):
             diff = comparer.compare_files(versions[i]['path'], versions[i+1]['path'])
             assert len(diff) > 0
-
-
-pytestmark = pytest.mark.unit
