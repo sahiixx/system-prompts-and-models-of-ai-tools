@@ -10,7 +10,7 @@
       }
     ]
   },
-  "generated": "2025-10-02T21:58:35.549370",
+  "generated": "2025-10-12T06:10:47.547495",
   "name": "Trae",
   "slug": "trae",
   "type": "IDE Plugin",
@@ -27,15 +27,15 @@
   },
   "features": {
     "codeGeneration": true,
-    "codeCompletion": false,
+    "codeCompletion": true,
     "chatInterface": true,
     "agentMode": true,
     "parallelExecution": false,
     "memorySystem": true,
-    "todoTracking": false,
-    "gitIntegration": false,
+    "todoTracking": true,
+    "gitIntegration": true,
     "multiFileEditing": false,
-    "testGeneration": false,
+    "testGeneration": true,
     "refactoring": false,
     "debugging": true
   },
@@ -47,18 +47,18 @@
     "standalone": false
   },
   "patterns": {
-    "conciseness": "medium",
+    "conciseness": "low",
     "parallelTools": false,
     "subAgents": false,
     "verificationGates": true,
-    "todoSystem": false,
+    "todoSystem": true,
     "memoryContext": true,
     "agentsFile": false
   },
   "documentation": {
     "folder": "Trae",
     "files": {
-      "systemPrompt": "Chat Prompt.txt",
+      "systemPrompt": "Builder Prompt.txt",
       "tools": "Builder Tools.json",
       "readme": null
     },
@@ -78,9 +78,9 @@
     "AI Coding"
   ],
   "metrics": {
-    "promptTokens": 1645.8,
-    "securityRules": 1,
-    "concisenessScore": 55,
+    "promptTokens": 3465.8,
+    "securityRules": 3,
+    "concisenessScore": 50,
     "toolsCount": 0
   }
 }

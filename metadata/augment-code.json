@@ -31,14 +31,14 @@
   },
   "features": {
     "codeGeneration": true,
-    "codeCompletion": true,
+    "codeCompletion": false,
     "chatInterface": true,
     "agentMode": true,
     "parallelExecution": false,
     "memorySystem": true,
     "todoTracking": true,
     "gitIntegration": true,
-    "multiFileEditing": true,
+    "multiFileEditing": false,
     "testGeneration": true,
     "refactoring": false,
     "debugging": false
@@ -51,7 +51,7 @@
     "standalone": false
   },
   "patterns": {
-    "conciseness": "very-high",
+    "conciseness": "medium",
     "parallelTools": false,
     "subAgents": false,
     "verificationGates": true,
@@ -62,8 +62,8 @@
   "documentation": {
     "folder": "Augment Code",
     "files": {
-      "systemPrompt": "gpt-5-agent-prompts.txt",
-      "tools": "gpt-5-tools.json",
+      "systemPrompt": "claude-4-sonnet-agent-prompts.txt",
+      "tools": "claude-4-sonnet-tools.json",
       "readme": null
     },
     "hasMultipleVersions": true,
@@ -83,9 +83,9 @@
     "AI Coding"
   ],
   "metrics": {
-    "promptTokens": 3042.0,
+    "promptTokens": 2206.1,
     "securityRules": 1,
-    "concisenessScore": 85,
+    "concisenessScore": 55,
     "toolsCount": 0
   }
 }

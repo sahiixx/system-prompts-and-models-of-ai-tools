@@ -29,7 +29,7 @@ Lists all available tools with basic information.
 {
   "version": "1.0",
   "generated": "2025-01-02T00:00:00",
-  "count": 32,
+  "count": 37,
   "tools": [
     {
       "slug": "cursor",
@@ -137,7 +137,7 @@ Aggregate statistics about all tools.
 **Response:**
 ```json
 {
-  "total_tools": 32,
+  "total_tools": 37,
   "by_type": {
     "IDE Plugin": 11,
     "CLI Tool": 6,
@@ -394,5 +394,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines on:
 
 ---
 
-*Last Updated: 2025-10-02*  
+*Last Updated: 2025-10-12*  
 *API Version: 1.0*

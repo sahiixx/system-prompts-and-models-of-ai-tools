@@ -1,55 +1,89 @@
 {
   "version": "1.0",
-  "generated": "2025-10-02T21:58:35.432164",
+  "generated": "2025-10-12T06:10:47.544430",
   "index": [
     {
-      "slug": "amp",
-      "name": "Amp",
+      "slug": "windsurf",
+      "name": "Windsurf",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - Amp",
+      "description": "AI coding assistant - Windsurf",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "amp",
-        "amp",
+        "windsurf",
+        "windsurf",
         "ide plugin",
         "ide plugin",
         "ai coding"
       ]
     },
     {
-      "slug": "anthropic",
-      "name": "Anthropic",
+      "slug": "samedev",
+      "name": "Same.dev",
+      "type": "Web Platform",
+      "description": "AI coding assistant - Same.dev",
+      "tags": [
+        "Web Platform",
+        "AI Coding"
+      ],
+      "keywords": [
+        "same.dev",
+        "samedev",
+        "web platform",
+        "web platform",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "devin-ai",
+      "name": "Devin AI",
+      "type": "Web Platform",
+      "description": "AI coding assistant - Devin AI",
+      "tags": [
+        "Web Platform",
+        "AI Coding"
+      ],
+      "keywords": [
+        "devin ai",
+        "devin-ai",
+        "web platform",
+        "web platform",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "tests",
+      "name": "tests",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - Anthropic",
+      "description": "AI coding assistant - tests",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "anthropic",
-        "anthropic",
+        "tests",
+        "tests",
         "ide plugin",
         "ide plugin",
         "ai coding"
       ]
     },
     {
-      "slug": "augment-code",
-      "name": "Augment Code",
-      "type": "IDE Plugin",
-      "description": "AI coding assistant - Augment Code",
+      "slug": "warpdev",
+      "name": "Warp.dev",
+      "type": "Web Platform",
+      "description": "AI coding assistant - Warp.dev",
       "tags": [
-        "IDE Plugin",
+        "Web Platform",
         "AI Coding"
       ],
       "keywords": [
-        "augment code",
-        "augment-code",
-        "ide plugin",
-        "ide plugin",
+        "warp.dev",
+        "warpdev",
+        "web platform",
+        "web platform",
         "ai coding"
       ]
     },
@@ -71,34 +105,51 @@
       ]
     },
     {
-      "slug": "cluely",
-      "name": "Cluely",
+      "slug": "dia",
+      "name": "dia",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - Cluely",
+      "description": "AI coding assistant - dia",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "cluely",
-        "cluely",
+        "dia",
+        "dia",
         "ide plugin",
         "ide plugin",
         "ai coding"
       ]
     },
     {
-      "slug": "codebuddy-prompts",
-      "name": "CodeBuddy Prompts",
+      "slug": "api",
+      "name": "api",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - CodeBuddy Prompts",
+      "description": "AI coding assistant - api",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "codebuddy prompts",
-        "codebuddy-prompts",
+        "api",
+        "api",
+        "ide plugin",
+        "ide plugin",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "traycer-ai",
+      "name": "Traycer AI",
+      "type": "IDE Plugin",
+      "description": "AI coding assistant - Traycer AI",
+      "tags": [
+        "IDE Plugin",
+        "AI Coding"
+      ],
+      "keywords": [
+        "traycer ai",
+        "traycer-ai",
         "ide plugin",
         "ide plugin",
         "ai coding"
@@ -122,17 +173,153 @@
       ]
     },
     {
-      "slug": "cursor-prompts",
-      "name": "Cursor Prompts",
+      "slug": "junie",
+      "name": "Junie",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - Cursor Prompts",
+      "description": "AI coding assistant - Junie",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "cursor prompts",
-        "cursor-prompts",
+        "junie",
+        "junie",
+        "ide plugin",
+        "ide plugin",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "trae",
+      "name": "Trae",
+      "type": "IDE Plugin",
+      "description": "AI coding assistant - Trae",
+      "tags": [
+        "IDE Plugin",
+        "AI Coding"
+      ],
+      "keywords": [
+        "trae",
+        "trae",
+        "ide plugin",
+        "ide plugin",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "examples",
+      "name": "examples",
+      "type": "IDE Plugin",
+      "description": "AI coding assistant - examples",
+      "tags": [
+        "IDE Plugin",
+        "AI Coding"
+      ],
+      "keywords": [
+        "examples",
+        "examples",
+        "ide plugin",
+        "ide plugin",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "poke",
+      "name": "Poke",
+      "type": "Autonomous Agent",
+      "description": "AI coding assistant - Poke",
+      "tags": [
+        "Autonomous Agent",
+        "AI Coding"
+      ],
+      "keywords": [
+        "poke",
+        "poke",
+        "autonomous agent",
+        "autonomous agent",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "kiro",
+      "name": "Kiro",
+      "type": "IDE Plugin",
+      "description": "AI coding assistant - Kiro",
+      "tags": [
+        "IDE Plugin",
+        "AI Coding"
+      ],
+      "keywords": [
+        "kiro",
+        "kiro",
+        "ide plugin",
+        "ide plugin",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "replit",
+      "name": "Replit",
+      "type": "IDE Plugin",
+      "description": "AI coding assistant - Replit",
+      "tags": [
+        "IDE Plugin",
+        "AI Coding"
+      ],
+      "keywords": [
+        "replit",
+        "replit",
+        "ide plugin",
+        "ide plugin",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "vscode-agent",
+      "name": "VSCode Agent",
+      "type": "Autonomous Agent",
+      "description": "AI coding assistant - VSCode Agent",
+      "tags": [
+        "Autonomous Agent",
+        "AI Coding"
+      ],
+      "keywords": [
+        "vscode agent",
+        "vscode-agent",
+        "autonomous agent",
+        "autonomous agent",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "augment-code",
+      "name": "Augment Code",
+      "type": "IDE Plugin",
+      "description": "AI coding assistant - Augment Code",
+      "tags": [
+        "IDE Plugin",
+        "AI Coding"
+      ],
+      "keywords": [
+        "augment code",
+        "augment-code",
+        "ide plugin",
+        "ide plugin",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "leapnew",
+      "name": "Leap.new",
+      "type": "IDE Plugin",
+      "description": "AI coding assistant - Leap.new",
+      "tags": [
+        "IDE Plugin",
+        "AI Coding"
+      ],
+      "keywords": [
+        "leap.new",
+        "leapnew",
         "ide plugin",
         "ide plugin",
         "ai coding"
@@ -170,114 +357,17 @@
       ]
     },
     {
-      "slug": "devin-ai",
-      "name": "Devin AI",
-      "type": "Web Platform",
-      "description": "AI coding assistant - Devin AI",
-      "tags": [
-        "Web Platform",
-        "AI Coding"
-      ],
-      "keywords": [
-        "devin ai",
-        "devin-ai",
-        "web platform",
-        "web platform",
-        "ai coding"
-      ]
-    },
-    {
-      "slug": "dia",
-      "name": "dia",
+      "slug": "zai-code",
+      "name": "Z.ai Code",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - dia",
+      "description": "AI coding assistant - Z.ai Code",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "dia",
-        "dia",
-        "ide plugin",
-        "ide plugin",
-        "ai coding"
-      ]
-    },
-    {
-      "slug": "github-copilot",
-      "name": "GitHub Copilot",
-      "type": "IDE Plugin",
-      "description": "AI pair programmer by GitHub/OpenAI with code completion, chat, and agent capabilities integrated into VS Code and other IDEs",
-      "tags": [
-        "IDE",
-        "VS Code",
-        "JetBrains",
-        "GitHub",
-        "Enterprise",
-        "Multi-platform",
-        "Market Leader",
-        "OpenAI"
-      ],
-      "keywords": [
-        "github copilot",
-        "github-copilot",
-        "ide plugin",
-        "ide",
-        "vs code",
-        "jetbrains",
-        "github",
-        "enterprise",
-        "multi-platform",
-        "market leader",
-        "openai"
-      ]
-    },
-    {
-      "slug": "junie",
-      "name": "Junie",
-      "type": "IDE Plugin",
-      "description": "AI coding assistant - Junie",
-      "tags": [
-        "IDE Plugin",
-        "AI Coding"
-      ],
-      "keywords": [
-        "junie",
-        "junie",
-        "ide plugin",
-        "ide plugin",
-        "ai coding"
-      ]
-    },
-    {
-      "slug": "kiro",
-      "name": "Kiro",
-      "type": "IDE Plugin",
-      "description": "AI coding assistant - Kiro",
-      "tags": [
-        "IDE Plugin",
-        "AI Coding"
-      ],
-      "keywords": [
-        "kiro",
-        "kiro",
-        "ide plugin",
-        "ide plugin",
-        "ai coding"
-      ]
-    },
-    {
-      "slug": "leapnew",
-      "name": "Leap.new",
-      "type": "IDE Plugin",
-      "description": "AI coding assistant - Leap.new",
-      "tags": [
-        "IDE Plugin",
-        "AI Coding"
-      ],
-      "keywords": [
-        "leap.new",
-        "leapnew",
+        "z.ai code",
+        "zai-code",
         "ide plugin",
         "ide plugin",
         "ai coding"
@@ -295,40 +385,6 @@
       "keywords": [
         "lovable",
         "lovable",
-        "ide plugin",
-        "ide plugin",
-        "ai coding"
-      ]
-    },
-    {
-      "slug": "manus-agent-tools-prompt",
-      "name": "Manus Agent Tools & Prompt",
-      "type": "Autonomous Agent",
-      "description": "AI coding assistant - Manus Agent Tools & Prompt",
-      "tags": [
-        "Autonomous Agent",
-        "AI Coding"
-      ],
-      "keywords": [
-        "manus agent tools & prompt",
-        "manus-agent-tools-prompt",
-        "autonomous agent",
-        "autonomous agent",
-        "ai coding"
-      ]
-    },
-    {
-      "slug": "notionai",
-      "name": "NotionAi",
-      "type": "IDE Plugin",
-      "description": "AI coding assistant - NotionAi",
-      "tags": [
-        "IDE Plugin",
-        "AI Coding"
-      ],
-      "keywords": [
-        "notionai",
-        "notionai",
         "ide plugin",
         "ide plugin",
         "ai coding"
@@ -369,170 +425,102 @@
       ]
     },
     {
-      "slug": "poke",
-      "name": "Poke",
-      "type": "Autonomous Agent",
-      "description": "AI coding assistant - Poke",
-      "tags": [
-        "Autonomous Agent",
-        "AI Coding"
-      ],
-      "keywords": [
-        "poke",
-        "poke",
-        "autonomous agent",
-        "autonomous agent",
-        "ai coding"
-      ]
-    },
-    {
-      "slug": "qoder",
-      "name": "Qoder",
+      "slug": "amp",
+      "name": "Amp",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - Qoder",
+      "description": "AI coding assistant - Amp",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "qoder",
-        "qoder",
+        "amp",
+        "amp",
         "ide plugin",
         "ide plugin",
         "ai coding"
       ]
     },
     {
-      "slug": "replit",
-      "name": "Replit",
+      "slug": "notionai",
+      "name": "NotionAi",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - Replit",
+      "description": "AI coding assistant - NotionAi",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "replit",
-        "replit",
+        "notionai",
+        "notionai",
         "ide plugin",
         "ide plugin",
         "ai coding"
       ]
     },
     {
-      "slug": "samedev",
-      "name": "Same.dev",
-      "type": "Web Platform",
-      "description": "AI coding assistant - Same.dev",
-      "tags": [
-        "Web Platform",
-        "AI Coding"
-      ],
-      "keywords": [
-        "same.dev",
-        "samedev",
-        "web platform",
-        "web platform",
-        "ai coding"
-      ]
-    },
-    {
-      "slug": "trae",
-      "name": "Trae",
+      "slug": "yaml",
+      "name": "yaml",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - Trae",
+      "description": "AI coding assistant - yaml",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "trae",
-        "trae",
+        "yaml",
+        "yaml",
         "ide plugin",
         "ide plugin",
         "ai coding"
       ]
     },
     {
-      "slug": "traycer-ai",
-      "name": "Traycer AI",
+      "slug": "codebuddy-prompts",
+      "name": "CodeBuddy Prompts",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - Traycer AI",
+      "description": "AI coding assistant - CodeBuddy Prompts",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "traycer ai",
-        "traycer-ai",
+        "codebuddy prompts",
+        "codebuddy-prompts",
         "ide plugin",
         "ide plugin",
         "ai coding"
       ]
     },
     {
-      "slug": "v0-prompts-and-tools",
-      "name": "v0 Prompts and Tools",
+      "slug": "cursor-prompts",
+      "name": "Cursor Prompts",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - v0 Prompts and Tools",
+      "description": "AI coding assistant - Cursor Prompts",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "v0 prompts and tools",
-        "v0-prompts-and-tools",
+        "cursor prompts",
+        "cursor-prompts",
         "ide plugin",
         "ide plugin",
         "ai coding"
       ]
     },
     {
-      "slug": "vscode-agent",
-      "name": "VSCode Agent",
-      "type": "Autonomous Agent",
-      "description": "AI coding assistant - VSCode Agent",
-      "tags": [
-        "Autonomous Agent",
-        "AI Coding"
-      ],
-      "keywords": [
-        "vscode agent",
-        "vscode-agent",
-        "autonomous agent",
-        "autonomous agent",
-        "ai coding"
-      ]
-    },
-    {
-      "slug": "warpdev",
-      "name": "Warp.dev",
-      "type": "Web Platform",
-      "description": "AI coding assistant - Warp.dev",
-      "tags": [
-        "Web Platform",
-        "AI Coding"
-      ],
-      "keywords": [
-        "warp.dev",
-        "warpdev",
-        "web platform",
-        "web platform",
-        "ai coding"
-      ]
-    },
-    {
-      "slug": "windsurf",
-      "name": "Windsurf",
+      "slug": "cluely",
+      "name": "Cluely",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - Windsurf",
+      "description": "AI coding assistant - Cluely",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "windsurf",
-        "windsurf",
+        "cluely",
+        "cluely",
         "ide plugin",
         "ide plugin",
         "ai coding"
@@ -556,17 +544,114 @@
       ]
     },
     {
-      "slug": "zai-code",
-      "name": "Z.ai Code",
+      "slug": "manus-agent-tools-prompt",
+      "name": "Manus Agent Tools & Prompt",
+      "type": "Autonomous Agent",
+      "description": "AI coding assistant - Manus Agent Tools & Prompt",
+      "tags": [
+        "Autonomous Agent",
+        "AI Coding"
+      ],
+      "keywords": [
+        "manus agent tools & prompt",
+        "manus-agent-tools-prompt",
+        "autonomous agent",
+        "autonomous agent",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "qoder",
+      "name": "Qoder",
       "type": "IDE Plugin",
-      "description": "AI coding assistant - Z.ai Code",
+      "description": "AI coding assistant - Qoder",
       "tags": [
         "IDE Plugin",
         "AI Coding"
       ],
       "keywords": [
-        "z.ai code",
-        "zai-code",
+        "qoder",
+        "qoder",
+        "ide plugin",
+        "ide plugin",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "anthropic",
+      "name": "Anthropic",
+      "type": "IDE Plugin",
+      "description": "AI coding assistant - Anthropic",
+      "tags": [
+        "IDE Plugin",
+        "AI Coding"
+      ],
+      "keywords": [
+        "anthropic",
+        "anthropic",
+        "ide plugin",
+        "ide plugin",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "github-copilot",
+      "name": "GitHub Copilot",
+      "type": "IDE Plugin",
+      "description": "AI pair programmer by GitHub/OpenAI with code completion, chat, and agent capabilities integrated into VS Code and other IDEs",
+      "tags": [
+        "IDE",
+        "VS Code",
+        "JetBrains",
+        "GitHub",
+        "Enterprise",
+        "Multi-platform",
+        "Market Leader",
+        "OpenAI"
+      ],
+      "keywords": [
+        "github copilot",
+        "github-copilot",
+        "ide plugin",
+        "ide",
+        "vs code",
+        "jetbrains",
+        "github",
+        "enterprise",
+        "multi-platform",
+        "market leader",
+        "openai"
+      ]
+    },
+    {
+      "slug": "platform",
+      "name": "platform",
+      "type": "IDE Plugin",
+      "description": "AI coding assistant - platform",
+      "tags": [
+        "IDE Plugin",
+        "AI Coding"
+      ],
+      "keywords": [
+        "platform",
+        "platform",
+        "ide plugin",
+        "ide plugin",
+        "ai coding"
+      ]
+    },
+    {
+      "slug": "v0-prompts-and-tools",
+      "name": "v0 Prompts and Tools",
+      "type": "IDE Plugin",
+      "description": "AI coding assistant - v0 Prompts and Tools",
+      "tags": [
+        "IDE Plugin",
+        "AI Coding"
+      ],
+      "keywords": [
+        "v0 prompts and tools",
+        "v0-prompts-and-tools",
         "ide plugin",
         "ide plugin",
         "ai coding"

@@ -10,7 +10,7 @@
       }
     ]
   },
-  "generated": "2025-10-02T21:58:35.535599",
+  "generated": "2025-10-12T06:10:47.548741",
   "name": "Orchids.app",
   "slug": "orchidsapp",
   "type": "Web Platform",
@@ -27,17 +27,17 @@
   },
   "features": {
     "codeGeneration": true,
-    "codeCompletion": true,
+    "codeCompletion": false,
     "chatInterface": true,
     "agentMode": true,
     "parallelExecution": true,
-    "memorySystem": true,
-    "todoTracking": true,
-    "gitIntegration": true,
-    "multiFileEditing": true,
-    "testGeneration": true,
-    "refactoring": true,
-    "debugging": true
+    "memorySystem": false,
+    "todoTracking": false,
+    "gitIntegration": false,
+    "multiFileEditing": false,
+    "testGeneration": false,
+    "refactoring": false,
+    "debugging": false
   },
   "platforms": {
     "vscode": false,
@@ -47,18 +47,18 @@
     "standalone": false
   },
   "patterns": {
-    "conciseness": "very-high",
+    "conciseness": "low",
     "parallelTools": true,
     "subAgents": false,
     "verificationGates": true,
-    "todoSystem": true,
-    "memoryContext": true,
+    "todoSystem": false,
+    "memoryContext": false,
     "agentsFile": false
   },
   "documentation": {
     "folder": "Orchids.app",
     "files": {
-      "systemPrompt": "System Prompt.txt",
+      "systemPrompt": "Decision-making prompt.txt",
       "tools": null,
       "readme": null
     },
@@ -78,8 +78,8 @@
     "AI Coding"
   ],
   "metrics": {
-    "promptTokens": 10884.9,
-    "securityRules": 5,
-    "concisenessScore": 80
+    "promptTokens": 1417.0,
+    "securityRules": 0,
+    "concisenessScore": 60
   }
 }

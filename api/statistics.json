@@ -1,29 +1,29 @@
 {
   "version": "1.0",
-  "generated": "2025-10-02T21:58:35.432164",
-  "total_tools": 32,
+  "generated": "2025-10-12T06:10:47.544391",
+  "total_tools": 37,
   "by_type": {
-    "IDE Plugin": 25,
+    "IDE Plugin": 30,
     "Web Platform": 4,
     "Autonomous Agent": 3
   },
   "by_pricing": {
-    "unknown": 30,
+    "unknown": 35,
     "freemium": 2
   },
   "feature_adoption": {
     "codeGeneration": 29,
-    "chatInterface": 21,
+    "chatInterface": 20,
     "agentMode": 16,
-    "memorySystem": 26,
-    "gitIntegration": 15,
-    "testGeneration": 23,
-    "debugging": 17,
-    "codeCompletion": 9,
-    "todoTracking": 12,
-    "multiFileEditing": 10,
-    "parallelExecution": 12,
-    "refactoring": 9,
+    "memorySystem": 23,
+    "testGeneration": 22,
+    "debugging": 16,
+    "parallelExecution": 13,
+    "todoTracking": 11,
+    "multiFileEditing": 7,
+    "refactoring": 8,
+    "codeCompletion": 7,
+    "gitIntegration": 13,
     "composerMode": 1,
     "prReviews": 1,
     "commitMessages": 1
@@ -35,39 +35,39 @@
     ],
     [
       "memorySystem",
-      26
-    ],
-    [
-      "testGeneration",
       23
     ],
     [
-      "chatInterface",
-      21
+      "testGeneration",
+      22
     ],
     [
-      "debugging",
-      17
+      "chatInterface",
+      20
     ],
     [
       "agentMode",
       16
     ],
     [
-      "gitIntegration",
-      15
-    ],
-    [
-      "todoTracking",
-      12
+      "debugging",
+      16
     ],
     [
       "parallelExecution",
-      12
+      13
     ],
     [
-      "multiFileEditing",
-      10
+      "gitIntegration",
+      13
+    ],
+    [
+      "todoTracking",
+      11
+    ],
+    [
+      "refactoring",
+      8
     ]
   ]
 }

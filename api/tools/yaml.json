@@ -10,12 +10,12 @@
       }
     ]
   },
-  "generated": "2025-10-12T06:10:47.549945",
-  "name": "Qoder",
-  "slug": "qoder",
+  "generated": "2025-10-12T06:10:47.549180",
+  "name": "yaml",
+  "slug": "yaml",
   "type": "IDE Plugin",
   "status": "active",
-  "description": "AI coding assistant - Qoder",
+  "description": "AI coding assistant - yaml",
   "pricing": {
     "model": "unknown",
     "tiers": []
@@ -25,20 +25,7 @@
     "supported": [],
     "customizable": false
   },
-  "features": {
-    "codeGeneration": true,
-    "codeCompletion": false,
-    "chatInterface": true,
-    "agentMode": true,
-    "parallelExecution": true,
-    "memorySystem": true,
-    "todoTracking": true,
-    "gitIntegration": true,
-    "multiFileEditing": false,
-    "testGeneration": true,
-    "refactoring": false,
-    "debugging": true
-  },
+  "features": {},
   "platforms": {
     "vscode": false,
     "jetbrains": false,
@@ -46,19 +33,11 @@
     "cli": false,
     "standalone": false
   },
-  "patterns": {
-    "conciseness": "medium",
-    "parallelTools": true,
-    "subAgents": false,
-    "verificationGates": true,
-    "todoSystem": true,
-    "memoryContext": true,
-    "agentsFile": false
-  },
+  "patterns": {},
   "documentation": {
-    "folder": "Qoder",
+    "folder": "yaml",
     "files": {
-      "systemPrompt": "prompt.txt",
+      "systemPrompt": null,
       "tools": null,
       "readme": null
     },
@@ -77,9 +56,5 @@
     "IDE Plugin",
     "AI Coding"
   ],
-  "metrics": {
-    "promptTokens": 3659.5,
-    "securityRules": 3,
-    "concisenessScore": 55
-  }
+  "metrics": {}
 }

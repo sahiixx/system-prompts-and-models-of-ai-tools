@@ -10,7 +10,7 @@
       }
     ]
   },
-  "generated": "2025-10-02T21:58:35.549370",
+  "generated": "2025-10-12T06:10:47.550446",
   "name": "v0 Prompts and Tools",
   "slug": "v0-prompts-and-tools",
   "type": "IDE Plugin",
@@ -30,7 +30,7 @@
     "codeCompletion": false,
     "chatInterface": true,
     "agentMode": true,
-    "parallelExecution": false,
+    "parallelExecution": true,
     "memorySystem": true,
     "todoTracking": true,
     "gitIntegration": true,
@@ -47,8 +47,8 @@
     "standalone": false
   },
   "patterns": {
-    "conciseness": "high",
-    "parallelTools": false,
+    "conciseness": "medium",
+    "parallelTools": true,
     "subAgents": false,
     "verificationGates": true,
     "todoSystem": true,
@@ -59,7 +59,7 @@
     "folder": "v0 Prompts and Tools",
     "files": {
       "systemPrompt": "Prompt.txt",
-      "tools": null,
+      "tools": "Tools.json",
       "readme": null
     },
     "hasMultipleVersions": false,
@@ -78,8 +78,9 @@
     "AI Coding"
   ],
   "metrics": {
-    "promptTokens": 11246.300000000001,
-    "securityRules": 3,
-    "concisenessScore": 80
+    "promptTokens": 7928.7,
+    "securityRules": 5,
+    "concisenessScore": 60,
+    "toolsCount": 0
   }
 }

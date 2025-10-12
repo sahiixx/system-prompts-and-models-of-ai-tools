@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2025-10-12T05:59:41.282Z",
-  "generatedHuman": "Oct 12, 2025, 05:59 AM",
+  "generatedAt": "2025-10-12T06:10:03.752Z",
+  "generatedHuman": "Oct 12, 2025, 06:10 AM",
   "runtime": {
     "node": "v22.20.0",
     "platform": "linux 6.1.147"
@@ -30,11 +30,11 @@
   "averageFileSizeBytes": 10495,
   "averageFileSizeHuman": "10.25 KB",
   "averageFilesPerDirectory": 4.235294117647059,
-  "durationMs": 72,
-  "durationHuman": "72 ms",
+  "durationMs": 60,
+  "durationHuman": "60 ms",
   "generatedPages": 216,
-  "filesPerSecond": 3000,
-  "bytesPerSecond": 31486236.111111112,
+  "filesPerSecond": 3600,
+  "bytesPerSecond": 37783483.333333336,
   "sizeMetrics": {
     "median": 5926,
     "p75": 13530,
