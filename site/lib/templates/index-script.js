@@ -4,6 +4,16 @@ const resultsBody = document.querySelector('[data-search-results]');
 const resultsMeta = document.querySelector('[data-search-count]');
 const themeToggle = document.querySelector('[data-theme-toggle]');
 
+// Escape meta-characters in text for safe insertion into HTML
+function escapeHTML(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const dataset = JSON.parse(searchDataElement.textContent);
 const files = dataset.files;
 
@@ -24,10 +34,10 @@ themeToggle?.addEventListener('click', () => {
 function renderRows(items) {
   resultsBody.innerHTML = items.map(item => `
     <tr>
-      <td><a href="files/${item.id}.html">${item.path}</a></td>
-      <td>${item.extension}</td>
-      <td>${item.sizeHuman}</td>
-      <td>${item.lines ?? '—'}</td>
+      <td><a href="files/${escapeHTML(item.id)}.html">${escapeHTML(item.path)}</a></td>
+      <td>${escapeHTML(item.extension)}</td>
+      <td>${escapeHTML(item.sizeHuman)}</td>
+      <td>${item.lines != null ? escapeHTML(item.lines) : '—'}</td>
     </tr>
   `).join('');
   resultsMeta.textContent = `${items.length.toLocaleString()} / ${files.length.toLocaleString()} files`;
