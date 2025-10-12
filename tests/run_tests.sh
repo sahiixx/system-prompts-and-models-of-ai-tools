@@ -1,7 +1,7 @@
 #!/bin/bash
 # shellcheck shell=bash
 
-# Test runner script for all tests
+set -euo pipefail
 
 echo "==================================="
 echo "Running Test Suite"
