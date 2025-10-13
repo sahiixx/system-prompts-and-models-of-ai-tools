@@ -1,21 +1,21 @@
 {
   "version": {
-    "current": "agent",
+    "current": "1.0",
     "lastUpdated": "2025-01-02",
     "history": [
       {
-        "version": "agent",
+        "version": "1.0",
         "date": "2025-01-02",
         "changes": "Version tracked"
       }
     ]
   },
-  "generated": "2025-10-12T06:10:47.547692",
-  "name": "Poke",
-  "slug": "poke",
-  "type": "Autonomous Agent",
+  "generated": "2025-10-12T06:10:47.550372",
+  "name": "platform",
+  "slug": "platform",
+  "type": "IDE Plugin",
   "status": "active",
-  "description": "AI coding assistant - Poke",
+  "description": "AI coding assistant - platform",
   "pricing": {
     "model": "unknown",
     "tiers": []
@@ -35,15 +35,15 @@
   },
   "patterns": {},
   "documentation": {
-    "folder": "Poke",
+    "folder": "platform",
     "files": {
       "systemPrompt": null,
       "tools": null,
-      "readme": null
+      "readme": "README.md"
     },
     "hasMultipleVersions": false,
     "versions": [
-      "agent"
+      "1.0"
     ]
   },
   "links": {
@@ -53,7 +53,7 @@
     "pricing": null
   },
   "tags": [
-    "Autonomous Agent",
+    "IDE Plugin",
     "AI Coding"
   ],
   "metrics": {}

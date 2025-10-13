@@ -26,15 +26,31 @@ jobs:
         with:
           node-version: 22
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         working-directory: site
         run: npm install
 
-      - name: Build site
-        working-directory: site
-        env:
-          BASE_PATH: /${{ github.event.repository.name }}/
-        run: npm run build
+      - name: Generate metadata
+        run: python scripts/generate-metadata.py --all
+
+      - name: Generate API endpoints
+        run: python scripts/generate-api.py
+
+      - name: Build enhanced site
+        run: node site/build-enhanced.js
+
+      - name: Include API in artifact
+        run: |
+          mkdir -p site/dist/api
+          cp -r api/* site/dist/api/ || true
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

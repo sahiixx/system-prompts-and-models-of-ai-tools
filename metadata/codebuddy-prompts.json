@@ -26,15 +26,15 @@
   },
   "features": {
     "codeGeneration": true,
-    "codeCompletion": true,
+    "codeCompletion": false,
     "chatInterface": true,
     "agentMode": false,
     "parallelExecution": false,
-    "memorySystem": true,
-    "todoTracking": true,
+    "memorySystem": false,
+    "todoTracking": false,
     "gitIntegration": false,
-    "multiFileEditing": true,
-    "testGeneration": true,
+    "multiFileEditing": false,
+    "testGeneration": false,
     "refactoring": false,
     "debugging": false
   },
@@ -46,18 +46,18 @@
     "standalone": false
   },
   "patterns": {
-    "conciseness": "very-high",
+    "conciseness": "low",
     "parallelTools": false,
     "subAgents": false,
-    "verificationGates": true,
-    "todoSystem": true,
-    "memoryContext": true,
+    "verificationGates": false,
+    "todoSystem": false,
+    "memoryContext": false,
     "agentsFile": false
   },
   "documentation": {
     "folder": "CodeBuddy Prompts",
     "files": {
-      "systemPrompt": "Craft Prompt.txt",
+      "systemPrompt": "Chat Prompt.txt",
       "tools": null,
       "readme": null
     },
@@ -77,8 +77,8 @@
     "AI Coding"
   ],
   "metrics": {
-    "promptTokens": 7793.5,
-    "securityRules": 1,
-    "concisenessScore": 65
+    "promptTokens": 306.8,
+    "securityRules": 0,
+    "concisenessScore": 50
   }
 }

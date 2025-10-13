@@ -27,12 +27,12 @@
   "features": {
     "codeGeneration": true,
     "codeCompletion": false,
-    "chatInterface": true,
+    "chatInterface": false,
     "agentMode": false,
     "parallelExecution": false,
-    "memorySystem": true,
+    "memorySystem": false,
     "todoTracking": false,
-    "gitIntegration": true,
+    "gitIntegration": false,
     "multiFileEditing": false,
     "testGeneration": false,
     "refactoring": false,
@@ -49,15 +49,15 @@
     "conciseness": "medium",
     "parallelTools": false,
     "subAgents": false,
-    "verificationGates": false,
+    "verificationGates": true,
     "todoSystem": false,
-    "memoryContext": true,
+    "memoryContext": false,
     "agentsFile": false
   },
   "documentation": {
     "folder": "Cluely",
     "files": {
-      "systemPrompt": "Enterprise Prompt.txt",
+      "systemPrompt": "Default Prompt.txt",
       "tools": null,
       "readme": null
     },
@@ -77,8 +77,8 @@
     "AI Coding"
   ],
   "metrics": {
-    "promptTokens": 3573.7000000000003,
+    "promptTokens": 891.8000000000001,
     "securityRules": 0,
-    "concisenessScore": 65
+    "concisenessScore": 45
   }
 }
