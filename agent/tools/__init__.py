@@ -1,1 +1,1 @@
-__all__ = ["builtin"]
+__all__ = ["builtin", "compat"]
