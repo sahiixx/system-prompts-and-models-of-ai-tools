@@ -15,6 +15,28 @@ from .tools.builtin import BuiltinTools
 from .tools.compat import CompatTools
 
 
+def _safe_session_path(path_str: Optional[str]) -> Optional[str]:
+    """Sanitize user-provided session path to avoid path traversal.
+
+    - Only allow filename component (basename)
+    - Store within a dedicated .agent_sessions directory in CWD
+    - Fallback to None if input is empty
+    """
+    if not path_str:
+        return None
+    base = os.path.basename(path_str)
+    # Restrict filename characters; fallback to default name if invalid
+    if not base or any(ch in base for ch in ("/", "\\")):
+        base = "session.json"
+    # Optionally enforce a simple whitelist
+    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
+    if not all(c in allowed for c in base):
+        base = "session.json"
+    safe_dir = os.path.abspath(os.path.join(os.getcwd(), ".agent_sessions"))
+    os.makedirs(safe_dir, exist_ok=True)
+    return os.path.join(safe_dir, base)
+
+
 def build_agent(provider: str = "echo", model_name: Optional[str] = None, session_path: Optional[str] = None, system_prompt: Optional[str] = None) -> Agent:
     # Model
     if provider == "openai":
@@ -32,11 +54,12 @@ def build_agent(provider: str = "echo", model_name: Optional[str] = None, sessio
     CompatTools(registry).register_all()
 
     # Memory and config
-    # Session persistence
+    # Session persistence (sanitized path)
     memory = Memory(max_messages=200)
-    if session_path and os.path.exists(session_path):
+    safe_session_path = _safe_session_path(session_path)
+    if safe_session_path and os.path.exists(safe_session_path):
         try:
-            with open(session_path, "r", encoding="utf-8") as f:
+            with open(safe_session_path, "r", encoding="utf-8") as f:
                 memory = Memory.from_json(f.read(), max_messages=200)
         except Exception:
             pass
@@ -81,10 +104,11 @@ def main() -> None:
         else:
             out = agent.ask(text)
             print(out)
-        # Persist session
-        if args.session:
+        # Persist session (sanitized path)
+        safe_session_path = _safe_session_path(args.session)
+        if safe_session_path:
             try:
-                with open(args.session, "w", encoding="utf-8") as f:
+                with open(safe_session_path, "w", encoding="utf-8") as f:
                     f.write(agent.memory.to_json())
             except Exception:
                 pass
@@ -113,11 +137,13 @@ def main() -> None:
             result = agent.ask(line)
             print(f"agent> {result}")
         if args.session:
-            try:
-                with open(args.session, "w", encoding="utf-8") as f:
-                    f.write(agent.memory.to_json())
-            except Exception:
-                pass
+            safe_session_path = _safe_session_path(args.session)
+            if safe_session_path:
+                try:
+                    with open(safe_session_path, "w", encoding="utf-8") as f:
+                        f.write(agent.memory.to_json())
+                except Exception:
+                    pass
 
 
 if __name__ == "__main__":
