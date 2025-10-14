@@ -64,6 +64,14 @@ class BuiltinTools:
         )
         self.registry.register(
             ToolSpec(
+                name="math.calc",
+                description="Evaluate a basic arithmetic expression safely (e.g., 2*(3+4)/5).",
+                parameters={"expression": "string"},
+                fn=self._tool_math_calc,
+            )
+        )
+        self.registry.register(
+            ToolSpec(
                 name="fs.read",
                 description="Read a text file.",
                 parameters={"path": "string", "offset": "int", "limit": "int"},
@@ -84,6 +92,22 @@ class BuiltinTools:
                 description="Fetch a URL and return status, headers, body.",
                 parameters={"url": "string", "method": "string", "headers": "object", "body": "string", "timeout_ms": "int"},
                 fn=self._tool_http_fetch,
+            )
+        )
+        self.registry.register(
+            ToolSpec(
+                name="web.get",
+                description="HTTP GET a URL and return status, headers, body.",
+                parameters={"url": "string", "headers": "object", "timeout_ms": "int"},
+                fn=self._tool_web_get,
+            )
+        )
+        self.registry.register(
+            ToolSpec(
+                name="web.search",
+                description="Stub web search; returns structured echo of query.",
+                parameters={"query": "string", "num_results": "int"},
+                fn=self._tool_web_search,
             )
         )
         self.registry.register(
@@ -130,6 +154,44 @@ class BuiltinTools:
             f.write(content)
         return {"ok": True, "bytes": len(content)}
 
+    def _tool_math_calc(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        import ast
+        import operator as op
+
+        expr = args.get("expression", "").strip()
+        if not expr:
+            return {"error": "expression is required"}
+
+        # Supported operators
+        allowed_ops = {
+            ast.Add: op.add,
+            ast.Sub: op.sub,
+            ast.Mult: op.mul,
+            ast.Div: op.truediv,
+            ast.Pow: op.pow,
+            ast.USub: op.neg,
+            ast.Mod: op.mod,
+            ast.FloorDiv: op.floordiv,
+        }
+
+        def _eval(node: ast.AST) -> float:
+            if isinstance(node, ast.Num):
+                return node.n  # type: ignore
+            if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+                return node.value  # type: ignore
+            if isinstance(node, ast.BinOp) and type(node.op) in allowed_ops:
+                return allowed_ops[type(node.op)](_eval(node.left), _eval(node.right))  # type: ignore
+            if isinstance(node, ast.UnaryOp) and type(node.op) in allowed_ops:
+                return allowed_ops[type(node.op)](_eval(node.operand))  # type: ignore
+            raise ValueError("unsupported expression")
+
+        try:
+            parsed = ast.parse(expr, mode="eval")
+            result = _eval(parsed.body)  # type: ignore
+            return {"result": result}
+        except Exception as e:  # pragma: no cover
+            return {"error": str(e)}
+
     def _tool_http_fetch(self, args: Dict[str, Any]) -> Dict[str, Any]:
         url = args.get("url")
         if not url:
@@ -143,6 +205,22 @@ class BuiltinTools:
             return resp
         except Exception as e:  # pragma: no cover
             return {"error": str(e)}
+
+    def _tool_web_get(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        url = args.get("url")
+        if not url:
+            return {"error": "url is required"}
+        headers = args.get("headers") or {}
+        timeout_ms = int(args.get("timeout_ms", 20000))
+        try:
+            return _http_fetch(url=url, method="GET", headers=headers, timeout=timeout_ms)
+        except Exception as e:  # pragma: no cover
+            return {"error": str(e)}
+
+    def _tool_web_search(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        query = args.get("query", "")
+        num = int(args.get("num_results", 5))
+        return {"results": [{"title": f"Result {i+1}", "url": "https://example.com", "snippet": query} for i in range(max(1, min(10, num)))]}
 
     def _tool_python_eval(self, args: Dict[str, Any]) -> Dict[str, Any]:
         expr: str = args.get("expr", "")
