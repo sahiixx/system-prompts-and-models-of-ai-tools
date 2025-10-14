@@ -14,3 +14,4 @@ web = ["fastapi>=0.115.0", "uvicorn>=0.30.0", "sse-starlette>=2.0.0"]
 
 [project.scripts]
 execute-agent = "agent.cli:main"
+execute-agent-web = "agent.runtime.web:app"

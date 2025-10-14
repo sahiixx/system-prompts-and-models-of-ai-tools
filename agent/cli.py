@@ -14,7 +14,7 @@ from .tools.builtin import BuiltinTools
 from .tools.compat import CompatTools
 
 
-def build_agent(provider: str = "echo", model_name: Optional[str] = None) -> Agent:
+def build_agent(provider: str = "echo", model_name: Optional[str] = None, session_path: Optional[str] = None) -> Agent:
     # Model
     if provider == "openai":
         model = OpenAIModel(model=model_name or "gpt-4o-mini")
@@ -29,7 +29,14 @@ def build_agent(provider: str = "echo", model_name: Optional[str] = None) -> Age
     CompatTools(registry).register_all()
 
     # Memory and config
+    # Session persistence
     memory = Memory(max_messages=200)
+    if session_path and os.path.exists(session_path):
+        try:
+            with open(session_path, "r", encoding="utf-8") as f:
+                memory = Memory.from_json(f.read(), max_messages=200)
+        except Exception:
+            pass
     config = AgentConfig(model_name=model.name)
 
     return Agent(model=model, tools=registry, memory=memory, config=config)
@@ -42,9 +49,10 @@ def main() -> None:
     parser.add_argument("--model", default=None, help="Model name for provider")
     parser.add_argument("--list-tools", action="store_true", help="List available tools and exit")
     parser.add_argument("--stream", action="store_true", help="Stream output (if provider supports)")
+    parser.add_argument("--session", default=None, help="Path to JSON file to persist conversation")
     args = parser.parse_args()
 
-    agent = build_agent(provider=args.provider, model_name=args.model)
+    agent = build_agent(provider=args.provider, model_name=args.model, session_path=args.session)
 
     if args.list_tools:
         # Build registry to list tools
@@ -67,6 +75,13 @@ def main() -> None:
         else:
             out = agent.ask(text)
             print(out)
+        # Persist session
+        if args.session:
+            try:
+                with open(args.session, "w", encoding="utf-8") as f:
+                    f.write(agent.memory.to_json())
+            except Exception:
+                pass
         return
 
     # REPL
@@ -91,6 +106,12 @@ def main() -> None:
         else:
             result = agent.ask(line)
             print(f"agent> {result}")
+        if args.session:
+            try:
+                with open(args.session, "w", encoding="utf-8") as f:
+                    f.write(agent.memory.to_json())
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
