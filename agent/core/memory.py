@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Deque, Dict, List, Optional, Tuple
+import json
 from collections import deque
 
 
@@ -29,6 +30,21 @@ class Memory:
                 entry["tool_name"] = m.tool_name
             result.append(entry)
         return result
+
+    # Persistence helpers
+    def to_json(self) -> str:
+        return json.dumps([m.__dict__ for m in self.messages])
+
+    @staticmethod
+    def from_json(data: str, max_messages: int = 200) -> "Memory":
+        mem = Memory(max_messages=max_messages)
+        try:
+            arr = json.loads(data)
+            for item in arr:
+                mem.add(item.get("role", "user"), item.get("content", ""), item.get("tool_name"))
+        except Exception:
+            pass
+        return mem
 
     def last_user_message(self) -> Optional[str]:
         for m in reversed(self.messages):
