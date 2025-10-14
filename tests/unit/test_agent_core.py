@@ -228,3 +228,170 @@ class TestAgentToolCalling(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestAgentParallelTools(unittest.TestCase):
+    """Tests for parallel tool execution"""
+
+    def test_parallel_tool_execution(self):
+        """Test that parallel tools are executed concurrently"""
+        import time
+
+        call_times = []
+
+        def slow_tool(_args):
+            call_times.append(time.time())
+            return {"result": "done"}
+
+        model = MockModel(responses=[
+            {"content": "", "tool_calls": [
+                {"name": "tool1", "arguments": {"x": 1}},
+                {"name": "tool2", "arguments": {"x": 2}}
+            ]},
+            {"content": "Done", "tool_calls": []}
+        ])
+
+        registry = ToolRegistry()
+        registry.register(ToolSpec(name="tool1", description="Test", parameters={}, fn=slow_tool))
+        registry.register(ToolSpec(name="tool2", description="Test", parameters={}, fn=slow_tool))
+
+        config = AgentConfig(allow_parallel_tools=True)
+        agent = Agent(model=model, tools=registry, config=config)
+
+        agent.ask("test")
+
+        # Both tools should have been called
+        self.assertEqual(len(call_times), 2)
+
+    def test_sequential_when_parallel_disabled(self):
+        """Test that tools run sequentially when parallel disabled"""
+        call_order = []
+
+        def tool1(_args):
+            call_order.append("tool1")
+            return {"result": "1"}
+
+        def tool2(_args):
+            call_order.append("tool2")
+            return {"result": "2"}
+
+        model = MockModel(responses=[
+            {"content": "", "tool_calls": [
+                {"name": "tool1", "arguments": {}},
+                {"name": "tool2", "arguments": {}}
+            ]},
+            {"content": "Done", "tool_calls": []}
+        ])
+
+        registry = ToolRegistry()
+        registry.register(ToolSpec(name="tool1", description="Test", parameters={}, fn=tool1))
+        registry.register(ToolSpec(name="tool2", description="Test", parameters={}, fn=tool2))
+
+        config = AgentConfig(allow_parallel_tools=False)
+        agent = Agent(model=model, tools=registry, config=config)
+
+        agent.ask("test")
+
+        self.assertEqual(call_order, ["tool1", "tool2"])
+
+
+class TestAgentToolCallParsing(unittest.TestCase):
+    """Tests for tool call argument parsing"""
+
+    def test_string_args_parsed_as_json(self):
+        """Test that string arguments are parsed as JSON"""
+        tool_called_with = []
+
+        def test_tool(args):
+            tool_called_with.append(args)
+            return {"ok": True}
+
+        model = MockModel(responses=[
+            {"content": "", "tool_calls": [
+                {"name": "test_tool", "arguments": '{"x": 42}'}
+            ]},
+            {"content": "Done", "tool_calls": []}
+        ])
+
+        registry = ToolRegistry()
+        registry.register(ToolSpec(name="test_tool", description="Test", parameters={}, fn=test_tool))
+
+        agent = Agent(model=model, tools=registry)
+        agent.ask("test")
+
+        self.assertEqual(len(tool_called_with), 1)
+        self.assertEqual(tool_called_with[0], {"x": 42})
+
+    def test_invalid_json_string_wrapped_in_input(self):
+        """Test that invalid JSON strings are wrapped"""
+        tool_called_with = []
+
+        def test_tool(args):
+            tool_called_with.append(args)
+            return {"ok": True}
+
+        model = MockModel(responses=[
+            {"content": "", "tool_calls": [
+                {"name": "test_tool", "arguments": 'not valid json'}
+            ]},
+            {"content": "Done", "tool_calls": []}
+        ])
+
+        registry = ToolRegistry()
+        registry.register(ToolSpec(name="test_tool", description="Test", parameters={}, fn=test_tool))
+
+        agent = Agent(model=model, tools=registry)
+        agent.ask("test")
+
+        self.assertEqual(len(tool_called_with), 1)
+        self.assertIn("input", tool_called_with[0])
+
+    def test_none_args_converted_to_empty_dict(self):
+        """Test that None arguments are converted to empty dict"""
+        tool_called_with = []
+
+        def test_tool(args):
+            tool_called_with.append(args)
+            return {"ok": True}
+
+        model = MockModel(responses=[
+            {"content": "", "tool_calls": [
+                {"name": "test_tool", "arguments": None}
+            ]},
+            {"content": "Done", "tool_calls": []}
+        ])
+
+        registry = ToolRegistry()
+        registry.register(ToolSpec(name="test_tool", description="Test", parameters={}, fn=test_tool))
+
+        agent = Agent(model=model, tools=registry)
+        agent.ask("test")
+
+        self.assertEqual(len(tool_called_with), 1)
+        self.assertIsInstance(tool_called_with[0], dict)
+
+    def test_non_dict_args_wrapped_in_input(self):
+        """Test that non-dict arguments are wrapped in input key"""
+        tool_called_with = []
+
+        def test_tool(args):
+            tool_called_with.append(args)
+            return {"ok": True}
+
+        model = MockModel(responses=[
+            {"content": "", "tool_calls": [
+                {"name": "test_tool", "arguments": [1, 2, 3]}
+            ]},
+            {"content": "Done", "tool_calls": []}
+        ])
+
+        registry = ToolRegistry()
+        registry.register(ToolSpec(name="test_tool", description="Test", parameters={}, fn=test_tool))
+
+        agent = Agent(model=model, tools=registry)
+        agent.ask("test")
+
+        self.assertEqual(len(tool_called_with), 1)
+        self.assertIn("input", tool_called_with[0])
+
+# Additional comprehensive tests added - see TEST_COVERAGE_SUMMARY.md for details

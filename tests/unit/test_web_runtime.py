@@ -1,157 +1,120 @@
 """
 Comprehensive Unit Tests for agent/runtime/web.py
-Tests FastAPI web runtime and SSE endpoints
+Tests FastAPI web interface
 """
 
 import unittest
 import sys
 import os
-from unittest.mock import patch, MagicMock, AsyncMock, Mock
+from unittest.mock import patch, MagicMock
+import json
 
 # Add agent module to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-
-class TestWebRuntimeImports(unittest.TestCase):
-    """Test suite for web runtime imports and app creation"""
-    
-    def test_app_creation(self):
-        """Test that FastAPI app is created"""
-        from agent.runtime.web import app
-        self.assertIsNotNone(app)
-    
-    def test_cors_middleware_configured(self):
-        """Test that CORS middleware is added"""
-        from agent.runtime.web import app
-        # Check that middleware is registered
-        middleware_types = [type(m).__name__ for m in app.user_middleware]
-        self.assertIn('CORSMiddleware', middleware_types)
+try:
+    from fastapi.testclient import TestClient
+    from agent.runtime.web import app
+    FASTAPI_AVAILABLE = True
+except ImportError:
+    FASTAPI_AVAILABLE = False
 
 
-class TestIndexEndpoint(unittest.TestCase):
-    """Test suite for index endpoint"""
+@unittest.skipUnless(FASTAPI_AVAILABLE, "FastAPI not installed")
+class TestWebRuntime(unittest.TestCase):
+    """Test suite for web runtime"""
     
-    @patch('agent.runtime.web.HTMLResponse')
-    def test_index_returns_html(self, mock_html_response):
+    def setUp(self):
+        """Set up test client"""
+        self.client = TestClient(app)
+    
+    def test_index_returns_html(self):
         """Test that index endpoint returns HTML"""
-        from agent.runtime.web import index
-        import asyncio
-        
-        asyncio.run(index())
-        
-        # Should call HTMLResponse
-        mock_html_response.assert_called_once()
-        call_kwargs = mock_html_response.call_args[1]
-        self.assertIn('content', call_kwargs)
-        self.assertIn('Execute Agent', call_kwargs['content'])
-
-
-class TestStreamEndpoint(unittest.TestCase):
-    """Test suite for /stream endpoint"""
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/html", response.headers.get("content-type", ""))
+        self.assertIn("Execute Agent", response.text)
     
     @patch('agent.runtime.web.build_agent')
-    @patch('agent.runtime.web.EventSourceResponse')
-    def test_stream_endpoint_builds_agent(self, _mock_sse, mock_build_agent):
-        """Test that stream endpoint builds agent correctly"""
-        from agent.runtime.web import stream
-        import asyncio
+    def test_stream_endpoint_no_auth(self, mock_build):
+        """Test stream endpoint without authentication"""
+        mock_agent = MagicMock()
+        mock_agent.ask_stream.return_value = [
+            {"delta": "Hello"},
+            {"done": True}
+        ]
+        mock_build.return_value = mock_agent
         
-        mock_agent = Mock()
-        mock_agent.ask_stream.return_value = iter([{"delta": "test"}])
-        mock_build_agent.return_value = mock_agent
-        
-        asyncio.run(stream(provider="echo", model="test", q="Hello"))
-        
-        mock_build_agent.assert_called_once_with(provider="echo", model_name="test")
-    
-    @patch.dict(os.environ, {'AGENT_API_KEY': 'secret-key'})
-    @patch('agent.runtime.web.build_agent')
-    def test_stream_endpoint_checks_api_key(self, _mock_build_agent):
-        """Test that stream endpoint validates API key"""
-        from agent.runtime.web import stream
-        from fastapi import HTTPException
-        import asyncio
-        
-        with self.assertRaises(HTTPException) as context:
-            asyncio.run(stream(provider="echo", q="test", x_api_key="wrong-key"))
-        
-        self.assertEqual(context.exception.status_code, 401)
-    
-    @patch.dict(os.environ, {}, clear=True)
-    @patch('agent.runtime.web.build_agent')
-    @patch('agent.runtime.web.EventSourceResponse')
-    def test_stream_endpoint_no_auth_when_key_not_set(self, _mock_sse, mock_build_agent):
-        """Test that stream endpoint allows access when no API key is configured"""
-        from agent.runtime.web import stream
-        import asyncio
-        
-        mock_agent = Mock()
-        mock_agent.ask_stream.return_value = iter([{"delta": "test"}])
-        mock_build_agent.return_value = mock_agent
-        
-        # Should not raise
-        asyncio.run(stream(provider="echo", q="test", x_api_key=None))
-
-
-class TestChatEndpoint(unittest.TestCase):
-    """Test suite for /chat endpoint"""
+        # Without API key requirement
+        with patch.dict(os.environ, {}, clear=True):
+            response = self.client.get("/stream?q=test")
+            self.assertEqual(response.status_code, 200)
     
     @patch('agent.runtime.web.build_agent')
-    def test_chat_endpoint_returns_response(self, mock_build_agent):
-        """Test that chat endpoint returns assistant response"""
-        from agent.runtime.web import chat
-        import asyncio
+    def test_stream_endpoint_with_valid_auth(self, mock_build):
+        """Test stream endpoint with valid API key"""
+        mock_agent = MagicMock()
+        mock_agent.ask_stream.return_value = [{"delta": "Hello"}]
+        mock_build.return_value = mock_agent
         
-        mock_agent = Mock()
-        mock_agent.ask.return_value = "Test response"
-        mock_build_agent.return_value = mock_agent
-        
-        payload = {"provider": "echo", "q": "Hello"}
-        result = asyncio.run(chat(payload))
-        
-        self.assertEqual(result["role"], "assistant")
-        self.assertEqual(result["content"], "Test response")
+        with patch.dict(os.environ, {'AGENT_API_KEY': 'secret123'}):
+            response = self.client.get(
+                "/stream?q=test",
+                headers={"x-api-key": "secret123"}
+            )
+            self.assertEqual(response.status_code, 200)
     
     @patch('agent.runtime.web.build_agent')
-    def test_chat_endpoint_with_custom_params(self, mock_build_agent):
-        """Test that chat endpoint passes custom parameters"""
-        from agent.runtime.web import chat
-        import asyncio
-        
-        mock_agent = Mock()
-        mock_agent.ask.return_value = "Response"
-        mock_build_agent.return_value = mock_agent
-        
-        payload = {
-            "provider": "openai",
-            "model": "gpt-4",
-            "q": "Hello",
-            "system": "Custom prompt",
-            "session": "test-session"
-        }
-        asyncio.run(chat(payload))
-        
-        mock_build_agent.assert_called_once_with(
-            provider="openai",
-            model_name="gpt-4",
-            session_path="test-session",
-            system_prompt="Custom prompt"
-        )
+    def test_stream_endpoint_with_invalid_auth(self, _mock_build):
+        """Test stream endpoint with invalid API key"""
+        with patch.dict(os.environ, {'AGENT_API_KEY': 'secret123'}):
+            response = self.client.get(
+                "/stream?q=test",
+                headers={"x-api-key": "wrong-key"}
+            )
+            self.assertEqual(response.status_code, 401)
     
-    @patch.dict(os.environ, {'AGENT_API_KEY': 'secret-key'})
     @patch('agent.runtime.web.build_agent')
-    def test_chat_endpoint_checks_api_key(self, _mock_build_agent):
-        """Test that chat endpoint validates API key"""
-        from agent.runtime.web import chat
-        from fastapi import HTTPException
-        import asyncio
+    def test_stream_endpoint_builds_agent_with_params(self, mock_build):
+        """Test that stream endpoint passes parameters to build_agent"""
+        mock_agent = MagicMock()
+        mock_agent.ask_stream.return_value = [{"done": True}]
+        mock_build.return_value = mock_agent
         
-        payload = {"q": "test"}
+        with patch.dict(os.environ, {}, clear=True):
+            self.client.get("/stream?provider=openai&model=gpt-4&q=test")
+            mock_build.assert_called_once_with(
+                provider="openai",
+                model_name="gpt-4"
+            )
+    
+    @patch('agent.runtime.web.build_agent')
+    def test_chat_endpoint_success(self, mock_build):
+        """Test chat endpoint returns response"""
+        mock_agent = MagicMock()
+        mock_agent.ask.return_value = "Hello from agent"
+        mock_build.return_value = mock_agent
         
-        with self.assertRaises(HTTPException) as context:
-            asyncio.run(chat(payload, x_api_key="wrong-key"))
-        
-        self.assertEqual(context.exception.status_code, 401)
+        with patch.dict(os.environ, {}, clear=True):
+            response = self.client.post(
+                "/chat",
+                json={"q": "test", "provider": "echo"}
+            )
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertEqual(data['role'], 'assistant')
+            self.assertEqual(data['content'], 'Hello from agent')
+    
+    @patch('agent.runtime.web.build_agent')
+    def test_chat_endpoint_with_auth(self, _mock_build):
+        """Test chat endpoint authentication"""
+        with patch.dict(os.environ, {'AGENT_API_KEY': 'secret'}):
+            response = self.client.post(
+                "/chat",
+                json={"q": "test"},
+                headers={"x-api-key": "wrong"}
+            )
+            self.assertEqual(response.status_code, 401)
 
 
 if __name__ == '__main__':

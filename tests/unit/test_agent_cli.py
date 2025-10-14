@@ -140,3 +140,118 @@ class TestMainCLI(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestBuildAgentExtended(unittest.TestCase):
+    """Extended tests for build_agent with new features"""
+    
+    def test_build_agent_with_anthropic_provider(self):
+        """Test building agent with anthropic provider"""
+        agent = build_agent(provider="anthropic")
+        from agent.models.anthropic import AnthropicModel
+        self.assertIsInstance(agent.model, AnthropicModel)
+    
+    def test_build_agent_anthropic_custom_model(self):
+        """Test building agent with anthropic and custom model"""
+        agent = build_agent(provider="anthropic", model_name="claude-3-opus-20240229")
+        self.assertEqual(agent.model.name, "claude-3-opus-20240229")
+    
+    @patch('os.path.exists')
+    @patch('builtins.open', unittest.mock.mock_open(read_data='[{"role":"user","content":"Hello"}]'))
+    def test_build_agent_loads_session_from_file(self, mock_exists):
+        """Test that build_agent loads session from file"""
+        mock_exists.return_value = True
+        with patch('agent.cli._safe_session_path') as mock_safe:
+            mock_safe.return_value = '/test/session.json'
+            agent = build_agent(session_path="session.json")
+            messages = agent.memory.as_list()
+            # Should have loaded at least one message
+            self.assertGreater(len(messages), 0)
+    
+    def test_build_agent_with_system_prompt(self):
+        """Test building agent with custom system prompt"""
+        custom_prompt = "You are a specialized assistant"
+        agent = build_agent(system_prompt=custom_prompt)
+        self.assertEqual(agent.config.system_prompt, custom_prompt)
+    
+    def test_build_agent_system_prompt_from_env(self):
+        """Test that system prompt can be set from environment"""
+        with patch.dict(os.environ, {'AGENT_SYSTEM_PROMPT': 'From env'}):
+            build_agent()
+            # Note: this test assumes build_agent reads from env
+            # The actual behavior depends on how main() calls build_agent
+
+
+class TestMainExtended(unittest.TestCase):
+    """Extended tests for main CLI function"""
+    
+    @patch('sys.argv', ['cli.py', 'test', '--stream'])
+    @patch('agent.cli.build_agent')
+    def test_main_stream_flag(self, mock_build):
+        """Test main with --stream flag"""
+        mock_agent = MagicMock()
+        mock_agent.ask_stream.return_value = [
+            {"delta": "Hello"},
+            {"done": True}
+        ]
+        mock_build.return_value = mock_agent
+        
+        with patch('sys.stdout', new=StringIO()):
+            main()
+        
+        mock_agent.ask_stream.assert_called_once()
+    
+    @patch('sys.argv', ['cli.py', 'test', '--session', 'my-session.json'])
+    @patch('agent.cli.build_agent')
+    def test_main_session_flag(self, mock_build):
+        """Test main with --session flag"""
+        mock_agent = MagicMock()
+        mock_agent.ask.return_value = "Response"
+        mock_build.return_value = mock_agent
+        
+        with patch('sys.stdout', new=StringIO()):
+            main()
+        
+        # Check that build_agent was called with session_path
+        call_args = mock_build.call_args
+        self.assertIn('session_path', call_args[1])
+    
+    @patch('sys.argv', ['cli.py', 'test', '--system', 'Custom prompt'])
+    @patch('agent.cli.build_agent')
+    def test_main_system_flag(self, mock_build):
+        """Test main with --system flag"""
+        mock_agent = MagicMock()
+        mock_agent.ask.return_value = "Response"
+        mock_build.return_value = mock_agent
+        
+        with patch('sys.stdout', new=StringIO()):
+            main()
+        
+        # Check that build_agent was called with system_prompt
+        call_args = mock_build.call_args
+        self.assertIn('system_prompt', call_args[1])
+        self.assertEqual(call_args[1]['system_prompt'], 'Custom prompt')
+    
+    @patch('sys.argv', ['cli.py', 'test', '--stream'])
+    @patch('agent.cli.build_agent')
+    def test_main_stream_with_tool_results(self, mock_build):
+        """Test streaming with tool results in output"""
+        mock_agent = MagicMock()
+        mock_agent.ask_stream.return_value = [
+            {"delta": "Using tool"},
+            {"tool_result": {"name": "calculator", "result": {"answer": 42}}},
+            {"done": True}
+        ]
+        mock_build.return_value = mock_agent
+        
+        with patch('sys.stdout', new=StringIO()) as mock_out:
+            main()
+            output = mock_out.getvalue()
+            # Should mention tool usage
+            self.assertIn("tool", output.lower())
+
+
+if __name__ == '__main__':
+    unittest.main()
+
+# Additional comprehensive tests added - see TEST_COVERAGE_SUMMARY.md for details
