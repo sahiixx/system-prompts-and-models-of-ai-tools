@@ -43,3 +43,14 @@ class OllamaModel(ModelProvider):
         message = data.get("message", {})
         content = message.get("content", "")
         return {"role": "assistant", "content": content, "tool_calls": []}
+
+    def stream_complete(
+        self,
+        messages: Iterable[ModelMessage],
+        tools: Optional[List[Dict[str, Any]]] = None,
+    ):
+        # Ollama provides a streaming chat API, but to keep dependencies minimal and
+        # avoid handling chunk framing here, we fallback to non-streaming behavior.
+        result = self.complete(messages, tools=tools)
+        yield {"delta": result.get("content", "")}
+        yield {"done": True, **result}

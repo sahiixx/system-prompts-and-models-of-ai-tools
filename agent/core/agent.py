@@ -2,6 +2,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .memory import Memory
 from .tool_registry import ToolRegistry
@@ -60,26 +61,40 @@ class Agent:
         step = 0
         while tool_calls and step < self.config.max_steps:
             step += 1
-            for call in tool_calls:
-                name = call.get("name")
-                try:
-                    args = call.get("arguments")
-                    # Normalize args into dict
-                    if isinstance(args, str):
+            # Optionally dispatch in parallel when safe
+            futures = []
+            with ThreadPoolExecutor(max_workers=len(tool_calls)) as executor:
+                for call in tool_calls:
+                    name = call.get("name")
+                    try:
+                        spec = self.tools.get_spec(name)
+                    except Exception:
+                        spec = None
+                    def run_call(name=name, call=call):
                         try:
-                            args = json.loads(args)
-                        except Exception:
-                            # Allow raw string arguments as {"input": "..."}
-                            args = {"input": args}
-                    elif args is None:
-                        args = {}
-                    if not isinstance(args, dict):
-                        # Last resort: wrap as generic
-                        args = {"input": args}
-                    result = self.tools.call(name, args)
-                except Exception as e:  # pragma: no cover
-                    result = {"error": str(e)}
-                self.memory.add("tool", json.dumps({"name": name, "result": result}), tool_name=name)
+                            args = call.get("arguments")
+                            if isinstance(args, str):
+                                try:
+                                    args = json.loads(args)
+                                except Exception:
+                                    args = {"input": args}
+                            elif args is None:
+                                args = {}
+                            if not isinstance(args, dict):
+                                args = {"input": args}
+                            return name, self.tools.call(name, args)
+                        except Exception as e:  # pragma: no cover
+                            return name, {"error": str(e)}
+                    if self.config.allow_parallel_tools and spec and getattr(spec, "parallel_safe", True):
+                        futures.append(executor.submit(run_call))
+                    else:
+                        # Run synchronously for non-parallel-safe tools
+                        name_sync, result_sync = run_call()
+                        self.memory.add("tool", json.dumps({"name": name_sync, "result": result_sync}), tool_name=name_sync)
+                # Collect parallel results
+                for fut in as_completed(futures):
+                    name_done, result_done = fut.result()
+                    self.memory.add("tool", json.dumps({"name": name_done, "result": result_done}), tool_name=name_done)
             # Ask model again with tool results
             messages = [
                 ModelMessage(role=m["role"], content=m["content"], name=m.get("tool_name"))
@@ -91,3 +106,94 @@ class Agent:
 
         self.memory.add("assistant", content)
         return content
+
+    def ask_stream(self, user_message: str):
+        # Ensure system prompt
+        if self.config.system_prompt:
+            existing = self.memory.as_list()
+            if not any(m.get("role") == "system" for m in existing):
+                self.memory.add("system", self.config.system_prompt)
+        self.memory.add("user", user_message)
+
+        tools_schema = [
+            {
+                "type": "function",
+                "function": {
+                    "name": spec["name"],
+                    "description": spec["description"],
+                    "parameters": {"type": "object", "additionalProperties": True},
+                },
+            }
+            for spec in self.tools.list_specs()
+        ]
+        messages = [
+            ModelMessage(role=m["role"], content=m["content"], name=m.get("tool_name"))
+            for m in self.memory.as_list()
+        ]
+
+        # Stream initial assistant response
+        content_accum = []
+        for chunk in self.model.stream_complete(messages, tools=tools_schema):
+            yield chunk
+            delta = chunk.get("delta")
+            if delta:
+                content_accum.append(delta)
+            if chunk.get("done"):
+                final = chunk
+                break
+        else:
+            final = {"content": ""}
+
+        content = final.get("content") or "" if isinstance(final, dict) else ""
+        tool_calls = final.get("tool_calls") if isinstance(final, dict) else None
+
+        step = 0
+        while tool_calls and step < self.config.max_steps:
+            step += 1
+            # Optionally dispatch in parallel when safe
+            futures = []
+            with ThreadPoolExecutor(max_workers=len(tool_calls)) as executor:
+                for call in tool_calls:
+                    name = call.get("name")
+                    try:
+                        spec = self.tools.get_spec(name)
+                    except Exception:
+                        spec = None
+                    def run_call(name=name, call=call):
+                        try:
+                            args = call.get("arguments")
+                            if isinstance(args, str):
+                                try:
+                                    args = json.loads(args)
+                                except Exception:
+                                    args = {"input": args}
+                            elif args is None:
+                                args = {}
+                            if not isinstance(args, dict):
+                                args = {"input": args}
+                            return name, self.tools.call(name, args)
+                        except Exception as e:  # pragma: no cover
+                            return name, {"error": str(e)}
+                    if self.config.allow_parallel_tools and spec and getattr(spec, "parallel_safe", True):
+                        futures.append(executor.submit(run_call))
+                    else:
+                        name_sync, result_sync = run_call()
+                        self.memory.add("tool", json.dumps({"name": name_sync, "result": result_sync}), tool_name=name_sync)
+                        yield {"tool_result": {"name": name_sync, "result": result_sync}}
+                for fut in as_completed(futures):
+                    name_done, result_done = fut.result()
+                    self.memory.add("tool", json.dumps({"name": name_done, "result": result_done}), tool_name=name_done)
+                    yield {"tool_result": {"name": name_done, "result": result_done}}
+
+            # Ask again and stream
+            messages = [
+                ModelMessage(role=m["role"], content=m["content"], name=m.get("tool_name"))
+                for m in self.memory.as_list()
+            ]
+            for chunk in self.model.stream_complete(messages, tools=tools_schema):
+                yield chunk
+                final = chunk if chunk.get("done") else final
+            content = final.get("content") or content
+            tool_calls = final.get("tool_calls") or []
+
+        self.memory.add("assistant", content)

@@ -41,6 +41,7 @@ def main() -> None:
     parser.add_argument("--provider", default="echo", choices=["echo", "openai", "ollama"], help="Model provider")
     parser.add_argument("--model", default=None, help="Model name for provider")
     parser.add_argument("--list-tools", action="store_true", help="List available tools and exit")
+    parser.add_argument("--stream", action="store_true", help="Stream output (if provider supports)")
     args = parser.parse_args()
 
     agent = build_agent(provider=args.provider, model_name=args.model)
@@ -56,8 +57,16 @@ def main() -> None:
 
     if args.prompt:
         text = " ".join(args.prompt)
-        out = agent.ask(text)
-        print(out)
+        if args.stream:
+            for chunk in agent.ask_stream(text):
+                if "delta" in chunk:
+                    print(chunk["delta"], end="", flush=True)
+                elif "tool_result" in chunk:
+                    print(f"\n[tool {chunk['tool_result']['name']}] => {chunk['tool_result']['result']}")
+            print()
+        else:
+            out = agent.ask(text)
+            print(out)
         return
 
     # REPL
@@ -71,8 +80,17 @@ def main() -> None:
             break
         if not line:
             continue
-        result = agent.ask(line)
-        print(f"agent> {result}")
+        if args.stream:
+            print("agent>", end=" ", flush=True)
+            for chunk in agent.ask_stream(line):
+                if "delta" in chunk:
+                    print(chunk["delta"], end="", flush=True)
+                elif "tool_result" in chunk:
+                    print(f"\n[tool {chunk['tool_result']['name']}] => {chunk['tool_result']['result']}")
+            print()
+        else:
+            result = agent.ask(line)
+            print(f"agent> {result}")
 
 
 if __name__ == "__main__":

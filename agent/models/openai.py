@@ -44,3 +44,37 @@ class OpenAIModel(ModelProvider):
                 for tc in choice.message.tool_calls
             ]
         return {"role": "assistant", "content": content, "tool_calls": tool_calls}
+
+    def stream_complete(self, messages: Iterable[ModelMessage], tools: Optional[List[Dict[str, Any]]] = None):
+        if openai is None:
+            raise RuntimeError("openai package not installed. `pip install openai`. ")
+        if not self.api_key:
+            raise RuntimeError("OPENAI_API_KEY not set in environment")
+
+        client = openai.OpenAI(api_key=self.api_key)
+        formatted = [
+            {"role": m.role, "content": m.content} if m.name is None else {"role": m.role, "content": m.content, "name": m.name}
+            for m in messages
+        ]
+        with client.chat.completions.stream(
+            model=self.model,
+            messages=formatted,
+            tools=tools or None,
+        ) as stream:
+            for event in stream:
+                t = getattr(event, "type", None)
+                if t == "content.delta":
+                    delta = getattr(event.delta, "content", None) or ""
+                    if delta:
+                        yield {"delta": delta}
+                elif t == "message.complete":
+                    msg = event.message
+                    content = getattr(msg, "content", None) or ""
+                    tool_calls = []
+                    if getattr(msg, "tool_calls", None):
+                        tool_calls = [
+                            {"name": tc.function.name, "arguments": tc.function.arguments}
+                            for tc in msg.tool_calls
+                        ]
+                    yield {"done": True, "role": "assistant", "content": content, "tool_calls": tool_calls}
+                    return

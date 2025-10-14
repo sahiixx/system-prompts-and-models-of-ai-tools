@@ -41,3 +41,8 @@ class ToolRegistry:
             }
             for spec in self._tools.values()
         ]
+
+    def get_spec(self, name: str) -> ToolSpec:
+        if name not in self._tools:
+            raise KeyError(f"Unknown tool: {name}")
+        return self._tools[name]
