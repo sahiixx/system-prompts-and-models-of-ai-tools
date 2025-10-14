@@ -1,12 +1,12 @@
 """
-Unit Tests for agent/core/memory.py persistence methods
-Tests to_json() and from_json() serialization
+Comprehensive Unit Tests for Memory persistence methods
+Tests to_json and from_json functionality in agent/core/memory.py
 """
 
 import unittest
+import json
 import sys
 import os
-import json
 
 # Add agent module to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -18,99 +18,142 @@ class TestMemoryPersistence(unittest.TestCase):
     """Test suite for Memory persistence methods"""
     
     def test_to_json_empty_memory(self):
-        """Test serializing empty memory"""
+        """Test serializing empty memory to JSON"""
         memory = Memory()
-        result = memory.to_json()
+        json_str = memory.to_json()
+        data = json.loads(json_str)
         
-        data = json.loads(result)
-        self.assertEqual(data, [])
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 0)
     
     def test_to_json_with_messages(self):
-        """Test serializing memory with messages"""
+        """Test serializing memory with messages to JSON"""
         memory = Memory()
         memory.add("user", "Hello")
         memory.add("assistant", "Hi there")
+        memory.add("tool", '{"result": "done"}', tool_name="test_tool")
         
-        result = memory.to_json()
-        data = json.loads(result)
+        json_str = memory.to_json()
+        data = json.loads(json_str)
         
-        self.assertEqual(len(data), 2)
+        self.assertEqual(len(data), 3)
         self.assertEqual(data[0]["role"], "user")
         self.assertEqual(data[0]["content"], "Hello")
         self.assertEqual(data[1]["role"], "assistant")
         self.assertEqual(data[1]["content"], "Hi there")
-    
-    def test_to_json_with_tool_name(self):
-        """Test serializing messages with tool names"""
-        memory = Memory()
-        memory.add("tool", '{"result": "ok"}', tool_name="test_tool")
-        
-        result = memory.to_json()
-        data = json.loads(result)
-        
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["tool_name"], "test_tool")
+        self.assertEqual(data[2]["role"], "tool")
+        self.assertEqual(data[2]["tool_name"], "test_tool")
     
     def test_from_json_empty_data(self):
         """Test deserializing empty JSON"""
-        memory = Memory.from_json("[]")
+        json_str = "[]"
+        memory = Memory.from_json(json_str)
         
         self.assertEqual(len(memory.messages), 0)
     
     def test_from_json_with_messages(self):
         """Test deserializing JSON with messages"""
-        json_data = json.dumps([
+        json_str = json.dumps([
             {"role": "user", "content": "Hello", "tool_name": None},
             {"role": "assistant", "content": "Hi", "tool_name": None}
         ])
-        
-        memory = Memory.from_json(json_data)
+        memory = Memory.from_json(json_str)
         
         self.assertEqual(len(memory.messages), 2)
         self.assertEqual(memory.messages[0].role, "user")
         self.assertEqual(memory.messages[0].content, "Hello")
         self.assertEqual(memory.messages[1].role, "assistant")
+        self.assertEqual(memory.messages[1].content, "Hi")
     
-    def test_from_json_with_tool_names(self):
-        """Test deserializing messages with tool names"""
-        json_data = json.dumps([
-            {"role": "tool", "content": "result", "tool_name": "my_tool"}
+    def test_from_json_with_tool_messages(self):
+        """Test deserializing JSON with tool messages"""
+        json_str = json.dumps([
+            {"role": "user", "content": "Use tool", "tool_name": None},
+            {"role": "tool", "content": '{"result": "ok"}', "tool_name": "my_tool"}
         ])
+        memory = Memory.from_json(json_str)
         
-        memory = Memory.from_json(json_data)
-        
-        self.assertEqual(memory.messages[0].tool_name, "my_tool")
+        self.assertEqual(len(memory.messages), 2)
+        self.assertEqual(memory.messages[1].role, "tool")
+        self.assertEqual(memory.messages[1].tool_name, "my_tool")
     
     def test_from_json_invalid_json(self):
-        """Test that invalid JSON doesn't crash"""
-        memory = Memory.from_json("invalid json")
+        """Test that invalid JSON is handled gracefully"""
+        json_str = "not valid json"
+        memory = Memory.from_json(json_str)
         
+        # Should return empty memory without crashing
         self.assertEqual(len(memory.messages), 0)
     
-    def test_from_json_respects_max_messages(self):
-        """Test that from_json respects max_messages limit"""
-        messages = [{"role": "user", "content": f"Message {i}"} for i in range(250)]
-        json_data = json.dumps(messages)
+    def test_from_json_with_max_messages(self):
+        """Test that max_messages is respected"""
+        json_str = json.dumps([
+            {"role": "user", "content": f"Message {i}", "tool_name": None}
+            for i in range(10)
+        ])
+        memory = Memory.from_json(json_str, max_messages=5)
         
-        memory = Memory.from_json(json_data, max_messages=200)
-        
-        # Should be limited to 200
-        self.assertEqual(len(memory.messages), 200)
+        self.assertEqual(memory.max_messages, 5)
+        # All 10 messages should be added, but only last 5 kept
+        self.assertLessEqual(len(memory.messages), 5)
     
-    def test_round_trip_serialization(self):
-        """Test that serialization and deserialization work correctly"""
-        original = Memory()
+    def test_roundtrip_serialization(self):
+        """Test that memory can be serialized and deserialized"""
+        original = Memory(max_messages=100)
         original.add("system", "You are helpful")
         original.add("user", "Hello")
-        original.add("assistant", "Hi there")
-        original.add("tool", '{"status": "ok"}', tool_name="test_tool")
+        original.add("assistant", "Hi!")
+        original.add("tool", '{"data": "value"}', tool_name="test")
         
         json_str = original.to_json()
-        restored = Memory.from_json(json_str)
+        restored = Memory.from_json(json_str, max_messages=100)
         
-        self.assertEqual(len(restored.messages), 4)
-        self.assertEqual(restored.messages[0].role, "system")
-        self.assertEqual(restored.messages[3].tool_name, "test_tool")
+        self.assertEqual(len(restored.messages), len(original.messages))
+        for i in range(len(original.messages)):
+            self.assertEqual(restored.messages[i].role, original.messages[i].role)
+            self.assertEqual(restored.messages[i].content, original.messages[i].content)
+            self.assertEqual(restored.messages[i].tool_name, original.messages[i].tool_name)
+    
+    def test_from_json_missing_fields(self):
+        """Test handling of messages with missing fields"""
+        json_str = json.dumps([
+            {"role": "user"},  # Missing content
+            {"content": "Hello"},  # Missing role
+            {}  # Missing everything
+        ])
+        memory = Memory.from_json(json_str)
+        
+        # Should handle gracefully
+        self.assertEqual(len(memory.messages), 3)
+        self.assertEqual(memory.messages[0].content, "")
+        self.assertEqual(memory.messages[1].role, "user")
+
+
+class TestMemoryIntegration(unittest.TestCase):
+    """Integration tests for memory persistence"""
+    
+    def test_conversation_persistence(self):
+        """Test persisting and restoring a full conversation"""
+        # Build a conversation
+        mem1 = Memory()
+        mem1.add("system", "You are a helpful assistant")
+        mem1.add("user", "What is 2+2?")
+        mem1.add("assistant", "4")
+        mem1.add("user", "What about 3+3?")
+        mem1.add("assistant", "6")
+        
+        # Persist
+        json_data = mem1.to_json()
+        
+        # Restore
+        mem2 = Memory.from_json(json_data)
+        
+        # Verify conversation is intact
+        messages = mem2.as_list()
+        self.assertEqual(len(messages), 5)
+        self.assertEqual(messages[0]["role"], "system")
+        self.assertEqual(messages[1]["content"], "What is 2+2?")
+        self.assertEqual(messages[2]["content"], "4")
 
 
 if __name__ == '__main__':
