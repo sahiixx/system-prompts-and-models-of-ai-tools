@@ -71,6 +71,7 @@ class TestMathCalcTool(unittest.TestCase):
         self.assertIn("error", result)
 
 
+
 class TestWebGetTool(unittest.TestCase):
     """Test suite for web.get tool"""
     
@@ -139,5 +140,148 @@ class TestWebSearchTool(unittest.TestCase):
         self.assertEqual(len(result["results"]), 10)
 
 
+
+class TestPythonEvalTool(unittest.TestCase):
+    """Test suite for python.eval tool"""
+    
+    def setUp(self):
+        """Set up test fixtures"""
+        self.registry = ToolRegistry()
+        self.tools = BuiltinTools(self.registry)
+        self.tools.register_all()
+    
+    def test_python_eval_simple_expression(self):
+        """Test evaluating simple Python expression"""
+        result = self.registry.call("python.eval", {"expr": "2 + 3"})
+        self.assertEqual(result["result"], 5)
+    
+    def test_python_eval_string_operations(self):
+        """Test evaluating string operations"""
+        result = self.registry.call("python.eval", {"expr": "'hello' + ' world'"})
+        self.assertEqual(result["result"], "hello world")
+    
+    def test_python_eval_list_operations(self):
+        """Test evaluating list operations"""
+        result = self.registry.call("python.eval", {"expr": "[1, 2, 3] + [4, 5]"})
+        self.assertEqual(result["result"], [1, 2, 3, 4, 5])
+    
+    def test_python_eval_uses_len_builtin(self):
+        """Test that len builtin is available"""
+        result = self.registry.call("python.eval", {"expr": "len([1, 2, 3])"})
+        self.assertEqual(result["result"], 3)
+    
+    def test_python_eval_uses_sum_builtin(self):
+        """Test that sum builtin is available"""
+        result = self.registry.call("python.eval", {"expr": "sum([1, 2, 3, 4])"})
+        self.assertEqual(result["result"], 10)
+    
+    def test_python_eval_uses_min_builtin(self):
+        """Test that min builtin is available"""
+        result = self.registry.call("python.eval", {"expr": "min([5, 2, 8, 1])"})
+        self.assertEqual(result["result"], 1)
+    
+    def test_python_eval_uses_max_builtin(self):
+        """Test that max builtin is available"""
+        result = self.registry.call("python.eval", {"expr": "max([5, 2, 8, 1])"})
+        self.assertEqual(result["result"], 8)
+    
+    def test_python_eval_empty_expression(self):
+        """Test error when expression is empty"""
+        result = self.registry.call("python.eval", {"expr": ""})
+        self.assertIn("error", result)
+        self.assertEqual(result["error"], "expr is required")
+    
+    def test_python_eval_invalid_syntax(self):
+        """Test error on invalid Python syntax"""
+        result = self.registry.call("python.eval", {"expr": "2 +"})
+        self.assertIn("error", result)
+    
+    def test_python_eval_restricted_builtins(self):
+        """Test that dangerous builtins are not available"""
+        result = self.registry.call("python.eval", {"expr": "open('/etc/passwd')"})
+        self.assertIn("error", result)
+    
+    def test_python_eval_no_import(self):
+        """Test that import is not available"""
+        result = self.registry.call("python.eval", {"expr": "import os"})
+        self.assertIn("error", result)
+    
+    def test_python_eval_no_exec(self):
+        """Test that exec is not available"""
+        result = self.registry.call("python.eval", {"expr": "exec('print(1)')"})
+        self.assertIn("error", result)
+    
+    def test_python_eval_no_eval(self):
+        """Test that nested eval is not available"""
+        result = self.registry.call("python.eval", {"expr": "eval('1+1')"})
+        self.assertIn("error", result)
+
+
+class TestHttpFetchTool(unittest.TestCase):
+    """Test suite for http.fetch tool"""
+    
+    def setUp(self):
+        """Set up test fixtures"""
+        self.registry = ToolRegistry()
+        self.tools = BuiltinTools(self.registry)
+        self.tools.register_all()
+    
+    @patch('agent.tools.builtin._http_fetch')
+    def test_http_fetch_get_request(self, mock_fetch):
+        """Test HTTP GET request"""
+        mock_fetch.return_value = {
+            "status": 200,
+            "body": "Success",
+            "headers": {"Content-Type": "text/html"}
+        }
+        
+        result = self.registry.call("http.fetch", {
+            "url": "https://example.com",
+            "method": "GET"
+        })
+        
+        self.assertEqual(result["status"], 200)
+        self.assertEqual(result["body"], "Success")
+        mock_fetch.assert_called_once()
+    
+    @patch('agent.tools.builtin._http_fetch')
+    def test_http_fetch_post_request(self, mock_fetch):
+        """Test HTTP POST request with body"""
+        mock_fetch.return_value = {
+            "status": 201,
+            "body": "Created",
+            "headers": {}
+        }
+        
+        result = self.registry.call("http.fetch", {
+            "url": "https://api.example.com/data",
+            "method": "POST",
+            "body": '{"key": "value"}',
+            "headers": {"Content-Type": "application/json"}
+        })
+        
+        self.assertEqual(result["status"], 201)
+        call_kwargs = mock_fetch.call_args[1]
+        self.assertEqual(call_kwargs['method'], "POST")
+        self.assertEqual(call_kwargs['body'], '{"key": "value"}')
+    
+    def test_http_fetch_missing_url(self):
+        """Test error when URL is missing"""
+        result = self.registry.call("http.fetch", {})
+        self.assertIn("error", result)
+        self.assertEqual(result["error"], "url is required")
+    
+    @patch('agent.tools.builtin._http_fetch')
+    def test_http_fetch_custom_timeout(self, mock_fetch):
+        """Test HTTP fetch with custom timeout"""
+        mock_fetch.return_value = {"status": 200, "body": "OK", "headers": {}}
+        
+        self.registry.call("http.fetch", {
+            "url": "https://example.com",
+            "timeout_ms": 5000
+        })
+        
+        call_kwargs = mock_fetch.call_args[1]
+        self.assertEqual(call_kwargs['timeout'], 5000)
 if __name__ == '__main__':
     unittest.main()

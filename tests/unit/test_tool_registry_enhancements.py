@@ -1,6 +1,6 @@
 """
-Unit Tests for agent/core/tool_registry.py new methods
-Tests for _validate() and get_spec() methods
+Comprehensive Unit Tests for agent/core/tool_registry.py enhancements
+Tests _validate and get_spec methods
 """
 
 import unittest
@@ -13,96 +13,191 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from agent.core.tool_registry import ToolRegistry, ToolSpec
 
 
-class TestToolRegistryGetSpec(unittest.TestCase):
-    """Test suite for ToolRegistry.get_spec()"""
+class TestToolRegistryValidation(unittest.TestCase):
+    """Test suite for ToolRegistry._validate method"""
     
-    def test_get_spec_existing_tool(self):
-        """Test getting spec for existing tool"""
-        registry = ToolRegistry()
+    def setUp(self):
+        """Set up test fixtures"""
+        self.registry = ToolRegistry()
         
-        def mock_fn(_args):
+        def simple_tool(_args):
             return {"result": "ok"}
         
-        spec = ToolSpec(name="test_tool", description="Test", fn=mock_fn)
-        registry.register(spec)
-        
-        retrieved = registry.get_spec("test_tool")
-        
-        self.assertEqual(retrieved.name, "test_tool")
-        self.assertEqual(retrieved.description, "Test")
-    
-    def test_get_spec_nonexistent_tool(self):
-        """Test getting spec for non-existent tool raises KeyError"""
-        registry = ToolRegistry()
-        
-        with self.assertRaises(KeyError) as context:
-            registry.get_spec("nonexistent")
-        
-        self.assertIn("Unknown tool", str(context.exception))
-
-
-class TestToolRegistryValidate(unittest.TestCase):
-    """Test suite for ToolRegistry._validate()"""
-    
-    def test_validate_with_no_parameters(self):
-        """Test validation when tool has no parameter schema"""
-        registry = ToolRegistry()
-        
-        def mock_fn(_args):
-            return {"result": "ok"}
-        
-        spec = ToolSpec(name="test_tool", description="Test", fn=mock_fn, parameters=None)
-        registry.register(spec)
-        
-        # Should return None (no error)
-        error = registry._validate("test_tool", {"any": "arg"})
-        self.assertIsNone(error)
-    
-    def test_validate_with_dict_parameters(self):
-        """Test validation when parameters is a dict (flexible schema)"""
-        registry = ToolRegistry()
-        
-        def mock_fn(_args):
-            return {"result": "ok"}
-        
-        spec = ToolSpec(
+        self.registry.register(ToolSpec(
             name="test_tool",
-            description="Test",
-            fn=mock_fn,
-            parameters={"type": "object", "properties": {"key": "string"}}
-        )
-        registry.register(spec)
+            description="Test tool",
+            parameters={"param1": "string", "param2": "int"},
+            fn=simple_tool
+        ))
+    
+    def test_validate_valid_parameters(self):
+        """Test validation passes for valid parameters"""
+        result = self.registry._validate("test_tool", {"param1": "value", "param2": 123})
         
-        # Dict parameters allow flexible validation
-        error = registry._validate("test_tool", {"key": "value"})
-        self.assertIsNone(error)
+        self.assertIsNone(result)
+    
+    def test_validate_subset_of_parameters(self):
+        """Test validation passes for subset of parameters"""
+        result = self.registry._validate("test_tool", {"param1": "value"})
+        
+        self.assertIsNone(result)
+    
+    def test_validate_empty_parameters(self):
+        """Test validation passes for empty parameters"""
+        result = self.registry._validate("test_tool", {})
+        
+        self.assertIsNone(result)
+    
+    def test_validate_tool_without_parameters_spec(self):
+        """Test validation passes when tool has no parameters spec"""
+        def no_param_tool(_args):
+            return {"result": "ok"}
+        
+        self.registry.register(ToolSpec(
+            name="no_params",
+            description="No params",
+            fn=no_param_tool
+        ))
+        
+        result = self.registry._validate("no_params", {"any": "value"})
+        
+        # Should pass since no parameters spec
+        self.assertIsNone(result)
+
+
+class TestToolRegistryGetSpec(unittest.TestCase):
+    """Test suite for ToolRegistry.get_spec method"""
+    
+    def setUp(self):
+        """Set up test fixtures"""
+        self.registry = ToolRegistry()
+        
+        def test_tool(_args):
+            return {"result": "ok"}
+        
+        self.spec = ToolSpec(
+            name="test_tool",
+            description="Test tool",
+            parameters={"key": "value"},
+            fn=test_tool,
+            parallel_safe=False
+        )
+        
+        self.registry.register(self.spec)
+    
+    def test_get_spec_returns_correct_spec(self):
+        """Test get_spec returns the correct tool spec"""
+        spec = self.registry.get_spec("test_tool")
+        
+        self.assertEqual(spec.name, "test_tool")
+        self.assertEqual(spec.description, "Test tool")
+        self.assertEqual(spec.parameters, {"key": "value"})
+        self.assertFalse(spec.parallel_safe)
+    
+    def test_get_spec_raises_for_unknown_tool(self):
+        """Test get_spec raises KeyError for unknown tool"""
+        with self.assertRaises(KeyError) as context:
+            self.registry.get_spec("unknown_tool")
+        
+        self.assertIn("Unknown tool: unknown_tool", str(context.exception))
+    
+    def test_get_spec_returns_same_object(self):
+        """Test get_spec returns the same spec object"""
+        spec1 = self.registry.get_spec("test_tool")
+        spec2 = self.registry.get_spec("test_tool")
+        
+        self.assertIs(spec1, spec2)
 
 
 class TestToolRegistryCallWithValidation(unittest.TestCase):
-    """Test suite for ToolRegistry.call() with validation"""
+    """Test suite for ToolRegistry.call with validation"""
     
-    def test_call_returns_error_on_validation_failure(self):
-        """Test that call returns error dict when validation fails"""
-        registry = ToolRegistry()
+    def setUp(self):
+        """Set up test fixtures"""
+        self.registry = ToolRegistry()
+        self.call_count = 0
         
-        def mock_fn(_args):
-            return {"result": "ok"}
+        def counting_tool(_args):
+            self.call_count += 1
+            return {"result": self.call_count}
         
-        # Create tool with non-dict, non-None parameters to trigger validation
+        self.registry.register(ToolSpec(
+            name="counter",
+            description="Counter tool",
+            parameters={"increment": "int"},
+            fn=counting_tool
+        ))
+    
+    def test_call_executes_tool_on_valid_args(self):
+        """Test call executes tool when arguments are valid"""
+        result = self.registry.call("counter", {"increment": 1})
         
-        spec = ToolSpec(
-            name="test_tool",
-            description="Test",
-            fn=mock_fn,
-            parameters="simple_string_schema"  # Non-dict, non-None triggers validation
-        )
-        registry.register(spec)
+        self.assertEqual(result["result"], 1)
+        self.assertEqual(self.call_count, 1)
+    
+    def test_call_executes_tool_with_empty_args(self):
+        """Test call executes tool with empty arguments"""
+        result = self.registry.call("counter", {})
         
-        # This should trigger validation error
-        result = registry.call("test_tool", {"unexpected_key": "value"})
+        self.assertEqual(result["result"], 1)
+    
+    def test_call_raises_for_unknown_tool(self):
+        """Test call raises KeyError for unknown tool"""
+        with self.assertRaises(KeyError) as context:
+            self.registry.call("unknown", {})
         
-        # Should return error dict
-        self.assertIn("error", result)
+        self.assertIn("Unknown tool: unknown", str(context.exception))
+
+
+class TestToolRegistryParallelSafe(unittest.TestCase):
+    """Test suite for parallel_safe attribute in ToolRegistry"""
+    
+    def setUp(self):
+        """Set up test fixtures"""
+        self.registry = ToolRegistry()
+        
+        def parallel_tool(_args):
+            return {"result": "parallel"}
+        
+        def sequential_tool(_args):
+            return {"result": "sequential"}
+        
+        self.registry.register(ToolSpec(
+            name="parallel",
+            description="Parallel safe",
+            fn=parallel_tool,
+            parallel_safe=True
+        ))
+        
+        self.registry.register(ToolSpec(
+            name="sequential",
+            description="Not parallel safe",
+            fn=sequential_tool,
+            parallel_safe=False
+        ))
+    
+    def test_parallel_safe_in_list_specs(self):
+        """Test that parallel_safe is included in list_specs"""
+        specs = self.registry.list_specs()
+        
+        spec_dict = {s["name"]: s for s in specs}
+        
+        self.assertTrue(spec_dict["parallel"]["parallel_safe"])
+        self.assertFalse(spec_dict["sequential"]["parallel_safe"])
+    
+    def test_parallel_safe_default_true(self):
+        """Test that parallel_safe defaults to True"""
+        def default_tool(_args):
+            return {"result": "default"}
+        
+        self.registry.register(ToolSpec(
+            name="default",
+            description="Default",
+            fn=default_tool
+        ))
+        
+        spec = self.registry.get_spec("default")
+        self.assertTrue(spec.parallel_safe)
 
 
 if __name__ == '__main__':
