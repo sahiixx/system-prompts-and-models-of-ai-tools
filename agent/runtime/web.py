@@ -4,7 +4,8 @@ from typing import AsyncGenerator
 import asyncio
 import json
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from sse_starlette.sse import EventSourceResponse
 
@@ -12,6 +13,13 @@ from ..cli import build_agent
 
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
@@ -71,7 +79,11 @@ async def index() -> HTMLResponse:
 
 
 @app.get("/stream")
-async def stream(provider: str = "echo", model: str | None = None, q: str = "") -> EventSourceResponse:
+async def stream(provider: str = "echo", model: str | None = None, q: str = "", x_api_key: str | None = Header(default=None)) -> EventSourceResponse:
+    # Simple API key check
+    expected = os.getenv("AGENT_API_KEY")
+    if expected and x_api_key != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized")
     agent = build_agent(provider=provider, model_name=(model or None))
 
     async def gen() -> AsyncGenerator[str, None]:
@@ -80,3 +92,22 @@ async def stream(provider: str = "echo", model: str | None = None, q: str = "") 
             await asyncio.sleep(0)
 
     return EventSourceResponse(gen())
+
+
+@app.post("/chat")
+async def chat(payload: dict, x_api_key: str | None = Header(default=None)) -> dict:
+    expected = os.getenv("AGENT_API_KEY")
+    if expected and x_api_key != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    provider = payload.get("provider", "echo")
+    model = payload.get("model")
+    q = payload.get("q", "")
+    system = payload.get("system")
+    session = payload.get("session")
+    agent = build_agent(provider=provider, model_name=model, session_path=session, system_prompt=system)
+    result = agent.ask(q)
+    return {"role": "assistant", "content": result}
+
+def main() -> None:
+    import uvicorn
+    uvicorn.run("agent.runtime.web:app", host="0.0.0.0", port=8000, reload=True)

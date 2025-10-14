@@ -11,7 +11,8 @@ dependencies = []
 openai = ["openai>=1.40.0"]
 ollama = ["requests>=2.31.0"]
 web = ["fastapi>=0.115.0", "uvicorn>=0.30.0", "sse-starlette>=2.0.0"]
+anthropic = ["anthropic>=0.34.2"]
 
 [project.scripts]
 execute-agent = "agent.cli:main"
-execute-agent-web = "agent.runtime.web:app"
+execute-agent-web = "agent.runtime.web:main"

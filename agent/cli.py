@@ -10,16 +10,19 @@ from .core.tool_registry import ToolRegistry
 from .models.echo import EchoModel
 from .models.openai import OpenAIModel
 from .models.ollama import OllamaModel
+from .models.anthropic import AnthropicModel
 from .tools.builtin import BuiltinTools
 from .tools.compat import CompatTools
 
 
-def build_agent(provider: str = "echo", model_name: Optional[str] = None, session_path: Optional[str] = None) -> Agent:
+def build_agent(provider: str = "echo", model_name: Optional[str] = None, session_path: Optional[str] = None, system_prompt: Optional[str] = None) -> Agent:
     # Model
     if provider == "openai":
         model = OpenAIModel(model=model_name or "gpt-4o-mini")
     elif provider == "ollama":
         model = OllamaModel(model=model_name or "llama3.1")
+    elif provider == "anthropic":
+        model = AnthropicModel(model=model_name or "claude-3-5-sonnet-latest")
     else:
         model = EchoModel()
 
@@ -38,6 +41,8 @@ def build_agent(provider: str = "echo", model_name: Optional[str] = None, sessio
         except Exception:
             pass
     config = AgentConfig(model_name=model.name)
+    if system_prompt:
+        config.system_prompt = system_prompt
 
     return Agent(model=model, tools=registry, memory=memory, config=config)
 
@@ -45,14 +50,15 @@ def build_agent(provider: str = "echo", model_name: Optional[str] = None, sessio
 def main() -> None:
     parser = argparse.ArgumentParser(description="Interactive Execute Agent")
     parser.add_argument("prompt", nargs="*", help="One-shot message to the agent. If omitted, enters REPL mode.")
-    parser.add_argument("--provider", default="echo", choices=["echo", "openai", "ollama"], help="Model provider")
+    parser.add_argument("--provider", default="echo", choices=["echo", "openai", "ollama", "anthropic"], help="Model provider")
     parser.add_argument("--model", default=None, help="Model name for provider")
     parser.add_argument("--list-tools", action="store_true", help="List available tools and exit")
     parser.add_argument("--stream", action="store_true", help="Stream output (if provider supports)")
     parser.add_argument("--session", default=None, help="Path to JSON file to persist conversation")
+    parser.add_argument("--system", default=None, help="Override system prompt for the assistant")
     args = parser.parse_args()
 
-    agent = build_agent(provider=args.provider, model_name=args.model, session_path=args.session)
+    agent = build_agent(provider=args.provider, model_name=args.model, session_path=args.session, system_prompt=args.system or os.getenv("AGENT_SYSTEM_PROMPT"))
 
     if args.list_tools:
         # Build registry to list tools
