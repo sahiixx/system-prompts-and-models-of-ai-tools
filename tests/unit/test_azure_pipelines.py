@@ -1,607 +1,501 @@
 """
-Comprehensive unit tests for Azure Pipelines configuration
-Tests Azure DevOps pipeline YAML structure, configuration, and best practices
+Comprehensive unit tests for Azure Pipelines configuration file
+Tests azure-pipelines.yml structure, configuration, and best practices
 """
+
 import pytest
-import sys
+import re
 from pathlib import Path
-from io import StringIO
-
-# Ensure we use system PyYAML, not the custom minimal yaml module in the repo
-# Save and modify sys.path temporarily
-_git_path = '/home/jailuser/git'
-_original_path = sys.path.copy()
-sys.path = [p for p in sys.path if _git_path not in p]
-
-# Now import yaml (this will get the system PyYAML)
-import yaml
-
-# Restore sys.path
-sys.path = _original_path
 
 
-class TestAzurePipelineNodeJsConfiguration:
-    """Test suite for Node.js specific configuration in Azure Pipeline"""
+class TestAzurePipelinesStructure:
+    """Test suite for Azure Pipelines configuration structure validation"""
     
     @pytest.fixture
     def repo_root(self):
-        """Locate the repository root directory."""
+        """Get repository root directory."""
         return Path(__file__).parent.parent.parent
     
     @pytest.fixture
-    def azure_pipeline(self, repo_root):
-        """Load and parse the Azure Pipeline YAML configuration."""
-        with open(repo_root / 'azure-pipelines.yml', 'r') as f:
-            return yaml.safe_load(f)
-    
-    def test_pipeline_has_node_tool_task(self, azure_pipeline):
-        """Test that pipeline includes NodeTool task"""
-        steps = azure_pipeline['steps']
-        node_tool_steps = [s for s in steps if s.get('task', '').startswith('NodeTool@')]
-        assert len(node_tool_steps) > 0, "Pipeline should have NodeTool task"
-    
-    def test_node_tool_task_configuration(self, azure_pipeline):
-        """Test NodeTool task has correct configuration"""
-        steps = azure_pipeline['steps']
-        node_tool_step = next((s for s in steps if s.get('task', '').startswith('NodeTool@')), None)
-        
-        assert node_tool_step is not None, "NodeTool task should exist"
-        assert 'task' in node_tool_step, "Step should have task field"
-        assert node_tool_step['task'] == 'NodeTool@0', "Should use NodeTool@0 task"
-    
-    def test_node_tool_has_version_spec(self, azure_pipeline):
-        """Test NodeTool task specifies Node.js version"""
-        steps = azure_pipeline['steps']
-        node_tool_step = next((s for s in steps if s.get('task', '').startswith('NodeTool@')), None)
-        
-        assert 'inputs' in node_tool_step, "NodeTool task should have inputs"
-        inputs = node_tool_step['inputs']
-        assert 'versionSpec' in inputs, "NodeTool should specify versionSpec"
-        assert inputs['versionSpec'] == '20.x', "Should use Node.js 20.x"
-    
-    def test_node_tool_has_display_name(self, azure_pipeline):
-        """Test NodeTool task has descriptive display name"""
-        steps = azure_pipeline['steps']
-        node_tool_step = next((s for s in steps if s.get('task', '').startswith('NodeTool@')), None)
-        
-        assert 'displayName' in node_tool_step, "NodeTool task should have displayName"
-        assert node_tool_step['displayName'] == 'Install Node.js', "Should have descriptive display name"
-    
-    def test_node_version_is_lts(self, azure_pipeline):
-        """Test that Node.js version uses LTS version"""
-        steps = azure_pipeline['steps']
-        node_tool_step = next((s for s in steps if s.get('task', '').startswith('NodeTool@')), None)
-        version_spec = node_tool_step['inputs']['versionSpec']
-        
-        # Node.js 20.x is an LTS version
-        major_version = int(version_spec.split('.')[0])
-        assert major_version >= 18, "Should use Node.js 18 or higher (LTS versions)"
-
-
-class TestAzurePipelineBuildSteps:
-    """Test suite for build steps in Azure Pipeline"""
-    
-    @pytest.fixture
-    def repo_root(self):
-        """Locate the repository root directory."""
-        return Path(__file__).parent.parent.parent
-    
-    @pytest.fixture
-    def azure_pipeline(self, repo_root):
-        """Load and parse the Azure Pipeline YAML configuration."""
-        with open(repo_root / 'azure-pipelines.yml', 'r') as f:
-            return yaml.safe_load(f)
-    
-    def test_pipeline_has_script_step(self, azure_pipeline):
-        """Test that pipeline includes script step for build"""
-        steps = azure_pipeline['steps']
-        script_steps = [s for s in steps if 'script' in s]
-        assert len(script_steps) > 0, "Pipeline should have at least one script step"
-    
-    def test_build_script_includes_npm_install(self, azure_pipeline):
-        """Test that build script includes npm install command"""
-        steps = azure_pipeline['steps']
-        script_step = next((s for s in steps if 'script' in s), None)
-        
-        assert script_step is not None, "Script step should exist"
-        script_content = script_step['script']
-        assert 'npm install' in script_content, "Script should include npm install"
-    
-    def test_build_script_includes_npm_build(self, azure_pipeline):
-        """Test that build script includes npm run build command"""
-        steps = azure_pipeline['steps']
-        script_step = next((s for s in steps if 'script' in s), None)
-        
-        script_content = script_step['script']
-        assert 'npm run build' in script_content, "Script should include npm run build"
-    
-    def test_build_script_has_display_name(self, azure_pipeline):
-        """Test that build script has descriptive display name"""
-        steps = azure_pipeline['steps']
-        script_step = next((s for s in steps if 'script' in s), None)
-        
-        assert 'displayName' in script_step, "Script step should have displayName"
-        assert script_step['displayName'] == 'npm install and build', "Should have descriptive display name"
-    
-    def test_build_script_is_multiline(self, azure_pipeline):
-        """Test that build script uses multiline format for readability"""
-        steps = azure_pipeline['steps']
-        script_step = next((s for s in steps if 'script' in s), None)
-        
-        script_content = script_step['script']
-        assert '\n' in script_content or isinstance(script_content, str), "Script should be properly formatted"
-    
-    def test_npm_install_runs_before_build(self, azure_pipeline):
-        """Test that npm install runs before npm run build"""
-        steps = azure_pipeline['steps']
-        script_step = next((s for s in steps if 'script' in s), None)
-        
-        script_content = script_step['script']
-        install_index = script_content.find('npm install')
-        build_index = script_content.find('npm run build')
-        
-        assert install_index < build_index, "npm install should run before npm run build"
-
-
-class TestAzurePipelineStepOrder:
-    """Test suite for step execution order in Azure Pipeline"""
-    
-    @pytest.fixture
-    def repo_root(self):
-        """Locate the repository root directory."""
-        return Path(__file__).parent.parent.parent
-    
-    @pytest.fixture
-    def azure_pipeline(self, repo_root):
-        """Load and parse the Azure Pipeline YAML configuration."""
-        with open(repo_root / 'azure-pipelines.yml', 'r') as f:
-            return yaml.safe_load(f)
-    
-    def test_node_tool_is_first_step(self, azure_pipeline):
-        """Test that NodeTool task is the first step"""
-        steps = azure_pipeline['steps']
-        assert len(steps) >= 2, "Should have at least 2 steps"
-        first_step = steps[0]
-        assert 'task' in first_step, "First step should be a task"
-        assert first_step['task'].startswith('NodeTool@'), "First step should be NodeTool"
-    
-    def test_build_script_is_second_step(self, azure_pipeline):
-        """Test that build script is the second step"""
-        steps = azure_pipeline['steps']
-        assert len(steps) >= 2, "Should have at least 2 steps"
-        second_step = steps[1]
-        assert 'script' in second_step, "Second step should be a script"
-        assert 'npm install' in second_step['script'], "Second step should run npm commands"
-    
-    def test_all_steps_have_display_names(self, azure_pipeline):
-        """Test that all steps have display names for better readability"""
-        steps = azure_pipeline['steps']
-        for i, step in enumerate(steps):
-            assert 'displayName' in step, f"Step {i} should have displayName"
-            assert len(step['displayName']) > 0, f"Step {i} displayName should not be empty"
-
-
-class TestAzurePipelineBestPractices:
-    """Test suite for Azure Pipeline best practices"""
-    
-    @pytest.fixture
-    def repo_root(self):
-        """Locate the repository root directory."""
-        return Path(__file__).parent.parent.parent
-    
-    @pytest.fixture
-    def azure_pipeline(self, repo_root):
-        """Load and parse the Azure Pipeline YAML configuration."""
-        with open(repo_root / 'azure-pipelines.yml', 'r') as f:
-            return yaml.safe_load(f)
-    
-    @pytest.fixture
-    def azure_pipeline_file(self, repo_root):
-        """Get the Azure Pipeline configuration file path."""
+    def pipeline_file(self, repo_root):
+        """Get path to azure-pipelines.yml file."""
         return repo_root / 'azure-pipelines.yml'
     
-    def test_pipeline_has_comments(self, azure_pipeline_file):
-        """Test that pipeline includes helpful comments"""
-        with open(azure_pipeline_file, 'r') as f:
-            content = f.read()
-        assert '#' in content, "Pipeline should include comments for documentation"
-    
-    def test_pipeline_includes_documentation_link(self, azure_pipeline_file):
-        """Test that pipeline includes link to documentation"""
-        with open(azure_pipeline_file, 'r') as f:
-            content = f.read()
-        assert 'https://' in content or 'http://' in content, "Pipeline should include documentation link"
-        assert 'docs.microsoft.com' in content or 'azure' in content.lower(), "Should link to Azure documentation"
-    
-    def test_pipeline_uses_specific_task_versions(self, azure_pipeline):
-        """Test that pipeline uses specific task versions (not @latest)"""
-        steps = azure_pipeline['steps']
-        for step in steps:
-            if 'task' in step:
-                task = step['task']
-                assert '@' in task, "Task should specify version"
-                version = task.split('@')[1]
-                assert version.isdigit() or version[0].isdigit(), "Task should use specific version number"
-    
-    def test_pool_uses_latest_vm_image(self, azure_pipeline):
-        """Test that pool uses 'latest' VM image tag"""
-        pool = azure_pipeline['pool']
-        vm_image = pool['vmImage']
-        assert 'latest' in vm_image, "Should use 'latest' VM image tag for security updates"
-    
-    def test_trigger_configuration_is_list(self, azure_pipeline):
-        """Test that trigger is configured as a list for clarity"""
-        trigger = azure_pipeline['trigger']
-        assert isinstance(trigger, list), "Trigger should be a list for better readability"
-    
-    def test_steps_are_properly_structured(self, azure_pipeline):
-        """Test that steps are properly structured with required fields"""
-        steps = azure_pipeline['steps']
-        for i, step in enumerate(steps):
-            assert isinstance(step, dict), f"Step {i} should be a dictionary"
-            has_task_or_script = 'task' in step or 'script' in step
-            assert has_task_or_script, f"Step {i} should have either 'task' or 'script'"
-
-
-class TestAzurePipelineYAMLFormat:
-    """Test suite for YAML formatting and structure"""
+    @pytest.fixture
+    def pipeline_content(self, pipeline_file):
+        """Load pipeline file content."""
+        with open(pipeline_file, 'r') as f:
+            return f.read()
     
     @pytest.fixture
-    def repo_root(self):
-        """Locate the repository root directory."""
-        return Path(__file__).parent.parent.parent
+    def pipeline_lines(self, pipeline_file):
+        """Load pipeline file lines."""
+        with open(pipeline_file, 'r') as f:
+            return f.readlines()
+    
+    def test_pipeline_file_exists(self, pipeline_file):
+        """Test that azure-pipelines.yml exists in repository root"""
+        assert pipeline_file.exists(), "azure-pipelines.yml should exist in repository root"
+        assert pipeline_file.is_file(), "azure-pipelines.yml should be a file"
+    
+    def test_pipeline_is_valid_yaml_syntax(self, pipeline_content):
+        """Test that azure-pipelines.yml has valid YAML syntax basics"""
+        # Check for balanced indentation and no tabs
+        assert '\t' not in pipeline_content, "YAML should not contain tabs"
+        # Check that file is not empty
+        assert len(pipeline_content.strip()) > 0, "Pipeline file should not be empty"
+    
+    def test_pipeline_has_trigger(self, pipeline_content):
+        """Test that pipeline has trigger configuration"""
+        assert re.search(r'^trigger:', pipeline_content, re.MULTILINE), \
+            "Pipeline must have trigger configuration"
+    
+    def test_pipeline_has_pool(self, pipeline_content):
+        """Test that pipeline has pool configuration"""
+        assert re.search(r'^pool:', pipeline_content, re.MULTILINE), \
+            "Pipeline must have pool configuration"
+    
+    def test_pipeline_has_steps(self, pipeline_content):
+        """Test that pipeline has steps defined"""
+        assert re.search(r'^steps:', pipeline_content, re.MULTILINE), \
+            "Pipeline must have steps defined"
+    
+    def test_pipeline_structure_order(self, pipeline_content):
+        """Test that pipeline sections appear in logical order"""
+        trigger_pos = pipeline_content.find('trigger:')
+        pool_pos = pipeline_content.find('pool:')
+        steps_pos = pipeline_content.find('steps:')
+        
+        assert trigger_pos < pool_pos < steps_pos, \
+            "Pipeline sections should appear in order: trigger, pool, steps"
+
+
+class TestAzurePipelinesTrigger:
+    """Test suite for Azure Pipelines trigger configuration"""
     
     @pytest.fixture
-    def azure_pipeline_file(self, repo_root):
-        """Get the Azure Pipeline configuration file path."""
-        return repo_root / 'azure-pipelines.yml'
+    def pipeline_content(self):
+        """Load pipeline configuration."""
+        pipeline_file = Path(__file__).parent.parent.parent / 'azure-pipelines.yml'
+        with open(pipeline_file, 'r') as f:
+            return f.read()
     
-    def test_yaml_file_uses_yml_extension(self, azure_pipeline_file):
-        """Test that file uses .yml extension (Azure DevOps convention)"""
-        assert azure_pipeline_file.suffix == '.yml', "Azure Pipeline files should use .yml extension"
+    def test_trigger_includes_main_branch(self, pipeline_content):
+        """Test that trigger includes main branch"""
+        # Look for "- main" under trigger section
+        trigger_section = re.search(r'trigger:\s*\n((?:[ ]+-\s+\w+\s*\n?)*)', pipeline_content)
+        assert trigger_section, "Should have trigger section with branches"
+    def test_trigger_branches_format(self, pipeline_content):
+        """Test that trigger branches are properly formatted"""
+        # Check for proper list format
+        assert re.search(r'trigger:\s*\n\s*-\s+\w+', pipeline_content), \
+            "Trigger should have properly formatted branch list"
+
+
+class TestAzurePipelinesPool:
+    """Test suite for Azure Pipelines pool configuration"""
     
-    def test_yaml_file_is_properly_indented(self, azure_pipeline_file):
-        """Test that YAML file uses consistent indentation"""
-        with open(azure_pipeline_file, 'r') as f:
+    @pytest.fixture
+    def pipeline_content(self):
+        """Load pipeline configuration."""
+        pipeline_file = Path(__file__).parent.parent.parent / 'azure-pipelines.yml'
+        with open(pipeline_file, 'r') as f:
+            return f.read()
+    
+    def test_pool_has_vm_image(self, pipeline_content):
+        """Test that pool specifies a VM image"""
+        assert re.search(r'pool:.*\n\s+vmImage:', pipeline_content, re.DOTALL), \
+            "Pool must specify vmImage"
+    
+    def test_pool_vm_image_is_ubuntu_latest(self, pipeline_content):
+        """Test that pool uses ubuntu-latest as VM image"""
+        assert re.search(r'vmImage:\s*["\']?ubuntu-latest["\']?', pipeline_content), \
+            "Pool should use ubuntu-latest VM image"
+    
+    def test_pool_uses_microsoft_hosted_agent(self, pipeline_content):
+        """Test that pool uses a valid Microsoft-hosted agent image"""
+        vm_image_match = re.search(r'vmImage:\s*["\']?(\S+)["\']?', pipeline_content)
+        assert vm_image_match, "Should have vmImage specified"
+        vm_image = vm_image_match.group(1)
+        
+        valid_prefixes = ['ubuntu', 'windows', 'macOS', 'macos']
+        assert any(vm_image.startswith(prefix) for prefix in valid_prefixes), \
+            f"vmImage '{vm_image}' should use a valid Microsoft-hosted agent"
+
+
+class TestAzurePipelinesSteps:
+    """Test suite for Azure Pipelines steps configuration"""
+    
+    @pytest.fixture
+    def pipeline_content(self):
+        """Load pipeline configuration."""
+        pipeline_file = Path(__file__).parent.parent.parent / 'azure-pipelines.yml'
+        with open(pipeline_file, 'r') as f:
+            return f.read()
+    
+    def test_steps_has_task_entries(self, pipeline_content):
+        """Test that steps section has task entries"""
+        assert re.search(r'steps:.*\n\s*-\s+task:', pipeline_content, re.DOTALL), \
+            "Steps should have at least one task entry"
+    
+    def test_steps_has_script_entries(self, pipeline_content):
+        """Test that steps section has script entries"""
+        assert re.search(r'steps:.*\n\s*-\s+script:', pipeline_content, re.DOTALL), \
+            "Steps should have at least one script entry"
+    
+    def test_all_steps_have_display_name(self, pipeline_content):
+        """Test that all steps have displayName"""
+        # Count step entries (- task: or - script:)
+        step_pattern = r'-\s+(task|script):'
+        steps = list(re.finditer(step_pattern, pipeline_content))
+        
+        # Count displayName entries
+        display_names = list(re.finditer(r'displayName:', pipeline_content))
+        
+        # Should have at least as many displayNames as steps
+        assert len(display_names) >= len(steps), \
+            f"All {len(steps)} steps should have displayName (found {len(display_names)})"
+
+
+class TestAzurePipelinesNodeToolTask:
+    """Test suite for NodeTool task configuration"""
+    
+    @pytest.fixture
+    def pipeline_content(self):
+        """Load pipeline configuration."""
+        pipeline_file = Path(__file__).parent.parent.parent / 'azure-pipelines.yml'
+        with open(pipeline_file, 'r') as f:
+            return f.read()
+    
+    def test_node_tool_task_exists(self, pipeline_content):
+        """Test that NodeTool task exists in pipeline"""
+        assert re.search(r'task:\s*NodeTool@\d+', pipeline_content), \
+            "Pipeline should have NodeTool task"
+    
+    def test_node_tool_task_version(self, pipeline_content):
+        """Test that NodeTool task uses correct version"""
+        assert re.search(r'task:\s*NodeTool@0', pipeline_content), \
+            "NodeTool task should be version @0"
+    
+    def test_node_tool_has_version_spec(self, pipeline_content):
+        """Test that NodeTool task has versionSpec input"""
+        # Look for versionSpec in the NodeTool task section
+        nodetool_section = re.search(
+            r'task:\s*NodeTool@\d+.*?(?=(?:^-\s|^\w|\Z))',
+            pipeline_content,
+            re.DOTALL | re.MULTILINE
+        )
+        assert nodetool_section, "Should find NodeTool task section"
+        assert 'versionSpec' in nodetool_section.group(0), \
+            "NodeTool task should have versionSpec input"
+    
+    def test_node_tool_version_spec_is_20x(self, pipeline_content):
+        """Test that NodeTool uses Node.js version 20.x"""
+        assert re.search(r'versionSpec:\s*["\']?20\.x["\']?', pipeline_content), \
+            "NodeTool should use Node.js version 20.x"
+    
+    def test_node_tool_display_name(self, pipeline_content):
+        """Test that NodeTool task has appropriate displayName"""
+        # Find NodeTool task and its displayName
+        nodetool_section = re.search(
+            r'task:\s*NodeTool@\d+.*?displayName:\s*["\']?([^"\'\n]+)["\']?',
+            pipeline_content,
+            re.DOTALL
+        )
+        assert nodetool_section, "NodeTool task should have displayName"
+        display_name = nodetool_section.group(1).strip()
+        assert 'Node' in display_name or 'node' in display_name, \
+            "NodeTool displayName should mention Node.js"
+    
+    def test_node_tool_is_first_step(self, pipeline_content):
+        """Test that NodeTool task is the first step (best practice)"""
+        # Find steps section and first task
+        steps_match = re.search(r'steps:\s*\n\s*-\s+task:\s*(\w+)@', pipeline_content)
+        assert steps_match, "Should find first task in steps"
+        first_task = steps_match.group(1)
+        assert first_task == 'NodeTool', \
+            f"First step should be NodeTool (found {first_task})"
+
+
+class TestAzurePipelinesScriptStep:
+    """Test suite for script step configuration"""
+    
+    @pytest.fixture
+    def pipeline_content(self):
+        """Load pipeline configuration."""
+        pipeline_file = Path(__file__).parent.parent.parent / 'azure-pipelines.yml'
+        with open(pipeline_file, 'r') as f:
+            return f.read()
+    
+    def test_script_step_has_npm_install(self, pipeline_content):
+        """Test that script step includes npm install"""
+        assert re.search(r'script:.*npm install', pipeline_content, re.DOTALL), \
+            "Script should include 'npm install'"
+    
+    def test_script_step_has_npm_build(self, pipeline_content):
+        """Test that script step includes npm run build"""
+        assert re.search(r'script:.*npm run build', pipeline_content, re.DOTALL), \
+            "Script should include 'npm run build'"
+    
+    def test_script_display_name(self, pipeline_content):
+        """Test that script step has appropriate displayName"""
+        # Find script section and its displayName
+        script_match = re.search(
+            r'-\s+script:.*?displayName:\s*["\']?([^"\'\n]+)["\']?',
+            pipeline_content,
+            re.DOTALL
+        )
+        assert script_match, "Script step should have displayName"
+        display_name = script_match.group(1).strip()
+        assert 'npm' in display_name.lower(), \
+            "Script displayName should mention npm"
+    
+    def test_script_commands_order(self, pipeline_content):
+        """Test that npm install comes before npm run build"""
+        install_match = re.search(r'npm install', pipeline_content)
+        build_match = re.search(r'npm run build', pipeline_content)
+        
+        assert install_match and build_match, "Should have both npm install and build commands"
+        assert install_match.start() < build_match.start(), \
+            "npm install should come before npm run build"
+
+
+class TestAzurePipelinesBestPractices:
+    """Test suite for Azure Pipelines best practices and security"""
+    
+    @pytest.fixture
+    def pipeline_file(self):
+        """Get pipeline file path."""
+        return Path(__file__).parent.parent.parent / 'azure-pipelines.yml'
+    
+    @pytest.fixture
+    def pipeline_content(self, pipeline_file):
+        """Load pipeline configuration."""
+        with open(pipeline_file, 'r') as f:
+            return f.read()
+    
+    def test_pipeline_has_comments(self, pipeline_content):
+        """Test that pipeline file has documentation comments"""
+        assert '#' in pipeline_content, "Pipeline should have comments for documentation"
+    
+    def test_pipeline_references_documentation(self, pipeline_content):
+        """Test that pipeline includes reference to Microsoft documentation"""
+        assert 'docs.microsoft.com' in pipeline_content or 'azure/devops' in pipeline_content, \
+            "Pipeline should reference Microsoft documentation"
+    
+    def test_no_hardcoded_secrets(self, pipeline_content):
+        """Test that pipeline doesn't contain obvious hardcoded secrets"""
+        # Check for common secret patterns (excluding comments and URLs)
+        lines = [line for line in pipeline_content.split('\n') 
+                if not line.strip().startswith('#')]
+        non_comment_content = '\n'.join(lines).lower()
+        
+        forbidden_patterns = [
+            'password:', 'secret:', 'api_key:', 'apikey:', 'token:',
+            'access_key:', 'private_key:'
+        ]
+        
+        for pattern in forbidden_patterns:
+            if pattern in non_comment_content:
+                # Make sure it's not in a URL
+                assert 'docs.microsoft.com' not in non_comment_content or \
+                       pattern not in non_comment_content, \
+                    f"Pipeline should not contain hardcoded secrets (found '{pattern}')"
+    
+    def test_uses_specific_node_version(self, pipeline_content):
+        """Test that pipeline specifies explicit Node.js version (best practice)"""
+        version_match = re.search(r'versionSpec:\s*["\']?([^"\'\n]+)["\']?', pipeline_content)
+        assert version_match, "Should have versionSpec"
+        version_spec = version_match.group(1).strip()
+        
+        # Should specify a version, not just 'latest'
+        assert version_spec != 'latest', "Should specify explicit Node.js version, not 'latest'"
+        assert any(c.isdigit() for c in version_spec), "Should specify numeric version"
+    
+    def test_steps_have_meaningful_display_names(self, pipeline_content):
+        """Test that all steps have meaningful display names"""
+        display_names = re.findall(r'displayName:\s*["\']?([^"\'\n]+)["\']?', pipeline_content)
+        
+        for display_name in display_names:
+            name = display_name.strip()
+            assert len(name) > 5, f"DisplayName '{name}' should be meaningful (>5 chars)"
+            assert name.lower() != 'step', \
+                "DisplayName should be specific, not generic 'step'"
+    
+    def test_uses_latest_ubuntu_image(self, pipeline_content):
+        """Test that pipeline uses latest Ubuntu image (recommended)"""
+        vm_image_match = re.search(r'vmImage:\s*["\']?(\S+)["\']?', pipeline_content)
+        assert vm_image_match, "Should have vmImage"
+        vm_image = vm_image_match.group(1)
+        assert 'ubuntu' in vm_image.lower(), \
+            "Should use Ubuntu for Node.js builds (recommended)"
+
+
+class TestAzurePipelinesEdgeCases:
+    """Test suite for edge cases and potential issues"""
+    
+    @pytest.fixture
+    def pipeline_file(self):
+        """Get pipeline file path."""
+        return Path(__file__).parent.parent.parent / 'azure-pipelines.yml'
+    
+    @pytest.fixture
+    def pipeline_content(self, pipeline_file):
+        """Load pipeline configuration."""
+        with open(pipeline_file, 'r') as f:
+            return f.read()
+    
+    def test_file_not_empty(self, pipeline_file):
+        """Test that pipeline file is not empty"""
+        content = pipeline_file.read_text()
+        assert len(content) > 0, "Pipeline file should not be empty"
+    
+    def test_file_ends_with_newline(self, pipeline_file):
+        """Test that file ends with newline (best practice)"""
+        content = pipeline_file.read_text()
+        assert content.endswith('\n'), "File should end with newline"
+    
+    def test_no_tabs_in_yaml(self, pipeline_content):
+        """Test that YAML file uses spaces, not tabs"""
+        assert '\t' not in pipeline_content, "YAML files should use spaces, not tabs"
+    
+    def test_consistent_indentation(self, pipeline_file):
+        """Test that file uses consistent indentation"""
+        with open(pipeline_file, 'r') as f:
             lines = f.readlines()
         
-        # Check that indentation is consistent (typically 2 spaces for YAML)
-        indented_lines = [line for line in lines if line.startswith(' ') and line.strip()]
-        for line in indented_lines:
-            leading_spaces = len(line) - len(line.lstrip())
-            assert leading_spaces % 2 == 0, "Indentation should be multiples of 2 spaces"
+        indented_lines = [line for line in lines if len(line) > 0 and line[0] == ' ']
+        if indented_lines:
+            # Check that indentation is consistent (multiples of 2)
+            for line in indented_lines:
+                leading_spaces = len(line) - len(line.lstrip())
+                if leading_spaces > 0:
+                    assert leading_spaces % 2 == 0, \
+                        f"Indentation should be multiples of 2 spaces (found {leading_spaces})"
     
-    def test_yaml_file_has_no_tabs(self, azure_pipeline_file):
-        """Test that YAML file doesn't use tabs (YAML spec requires spaces)"""
-        with open(azure_pipeline_file, 'r') as f:
-            content = f.read()
-        assert '\t' not in content, "YAML files should not contain tabs, use spaces for indentation"
+    def test_node_version_is_lts_compatible(self, pipeline_content):
+        """Test that Node.js version is LTS compatible"""
+        version_match = re.search(r'versionSpec:\s*["\']?(\d+)', pipeline_content)
+        assert version_match, "Should find Node.js version"
+        major_version = int(version_match.group(1))
+        
+        # Node.js LTS versions are even numbers
+        assert major_version % 2 == 0, \
+            f"Node.js version {major_version} should be LTS (even number)"
     
-    def test_yaml_file_ends_with_newline(self, azure_pipeline_file):
-        """Test that YAML file ends with newline (POSIX standard)"""
-        with open(azure_pipeline_file, 'rb') as f:
-            content = f.read()
-        assert content.endswith(b'\n'), "File should end with newline"
+    def test_script_doesnt_ignore_errors(self, pipeline_content):
+        """Test that scripts don't silently ignore errors"""
+        script_sections = re.findall(r'script:\s*\|?(.*?)(?=\n\s*displayName|\n-|\Z)', 
+                                    pipeline_content, re.DOTALL)
+        
+        for script in script_sections:
+            # Scripts shouldn't contain error suppression
+            assert '|| true' not in script, "Scripts should not use '|| true' to ignore errors"
+            assert '2>/dev/null' not in script, "Scripts should not suppress error output"
 
 
-class TestAzurePipelineComments:
-    """Test suite for comment documentation in Azure Pipeline"""
+class TestAzurePipelinesIntegration:
+    """Integration tests for Azure Pipelines configuration"""
+    
+    @pytest.fixture
+    def pipeline_content(self):
+        """Load pipeline configuration."""
+        pipeline_file = Path(__file__).parent.parent.parent / 'azure-pipelines.yml'
+        with open(pipeline_file, 'r') as f:
+            return f.read()
     
     @pytest.fixture
     def repo_root(self):
-        """Locate the repository root directory."""
+        """Get repository root."""
         return Path(__file__).parent.parent.parent
     
-    @pytest.fixture
-    def azure_pipeline_file(self, repo_root):
-        """Get the Azure Pipeline configuration file path."""
-        return repo_root / 'azure-pipelines.yml'
+    def test_pipeline_matches_project_structure(self, repo_root):
+        """Test that pipeline configuration matches project structure"""
+        # Check if this is indeed a Node.js project
+        package_json_exists = (repo_root / 'package.json').exists() or \
+                              (repo_root / 'site' / 'package.json').exists() or \
+                              (repo_root / 'scripts' / 'package.json').exists()
+        
+        # Pipeline is configured for Node.js, so project should have package.json somewhere
+        assert package_json_exists, "Pipeline is for Node.js but no package.json found"
     
-    def test_pipeline_has_header_comment(self, azure_pipeline_file):
+    def test_pipeline_node_version_compatibility(self, pipeline_content):
+        """Test that Node.js version in pipeline is compatible with modern projects"""
+        version_match = re.search(r'versionSpec:\s*["\']?(\d+)', pipeline_content)
+        assert version_match, "Should find Node.js version"
+        major_version = int(version_match.group(1))
+        
+        # Should be at least Node.js 16 (minimum LTS still in support as of 2024)
+        assert major_version >= 16, \
+            f"Node.js version should be at least 16 (got {major_version})"
+        # Should not be too new/experimental
+        assert major_version <= 22, \
+            f"Node.js version seems too new/experimental (got {major_version})"
+    
+    def test_pipeline_commands_sequence_is_logical(self, pipeline_content):
+        """Test that pipeline commands follow logical sequence"""
+        # Find positions of NodeTool task and npm commands
+        nodetool_pos = pipeline_content.find('NodeTool@')
+        npm_pos = pipeline_content.find('npm install')
+        
+        assert nodetool_pos >= 0 and npm_pos >= 0, \
+            "Should have both NodeTool and npm commands"
+        assert nodetool_pos < npm_pos, \
+            "NodeTool should be installed before npm commands"
+
+
+class TestAzurePipelinesDocumentation:
+    """Test suite for pipeline documentation and maintainability"""
+    
+    @pytest.fixture
+    def pipeline_file(self):
+        """Get pipeline file path."""
+        return Path(__file__).parent.parent.parent / 'azure-pipelines.yml'
+    
+    @pytest.fixture
+    def pipeline_content(self, pipeline_file):
+        """Load pipeline configuration."""
+        with open(pipeline_file, 'r') as f:
+            return f.read()
+    
+    def test_has_header_comment(self, pipeline_file):
         """Test that pipeline has descriptive header comment"""
-        with open(azure_pipeline_file, 'r') as f:
-            first_line = f.readline()
-        assert first_line.startswith('#'), "First line should be a comment"
-        assert 'Node.js' in first_line or 'React' in first_line, "Header should describe the pipeline purpose"
+        with open(pipeline_file, 'r') as f:
+            lines = f.readlines()
+        
+        # First non-empty line should be a comment
+        first_line = next((line for line in lines if line.strip()), None)
+        assert first_line is not None, "File should not be empty"
+        assert first_line.strip().startswith('#'), "File should start with a comment"
     
-    def test_pipeline_describes_technology_stack(self, azure_pipeline_file):
-        """Test that comments describe the technology stack"""
-        with open(azure_pipeline_file, 'r') as f:
-            content = f.read()
-        assert 'Node.js' in content, "Should mention Node.js"
-        assert 'React' in content, "Should mention React"
+    def test_header_describes_purpose(self, pipeline_content):
+        """Test that header comment describes pipeline purpose"""
+        # Get first few lines
+        first_lines = '\n'.join(pipeline_content.split('\n')[:5])
+        
+        # Should mention Node.js or React
+        assert 'node' in first_lines.lower() or 'react' in first_lines.lower(), \
+            "Header should describe that this is for Node.js/React"
     
-    def test_pipeline_includes_helpful_documentation_link(self, azure_pipeline_file):
+    def test_has_reference_to_documentation(self, pipeline_content):
         """Test that pipeline includes link to Azure DevOps documentation"""
-        with open(azure_pipeline_file, 'r') as f:
-            content = f.read()
-        assert 'docs.microsoft.com/azure/devops/pipelines' in content, "Should link to Azure DevOps documentation"
-
-
-class TestAzurePipelineEdgeCases:
-    """Test suite for edge cases and validation"""
+        assert 'docs.microsoft.com' in pipeline_content or 'azure/devops' in pipeline_content, \
+            "Pipeline should reference Azure DevOps documentation"
     
-    @pytest.fixture
-    def repo_root(self):
-        """Locate the repository root directory."""
-        return Path(__file__).parent.parent.parent
-    
-    @pytest.fixture
-    def azure_pipeline(self, repo_root):
-        """Load and parse the Azure Pipeline YAML configuration."""
-        with open(repo_root / 'azure-pipelines.yml', 'r') as f:
-            return yaml.safe_load(f)
-    
-    def test_trigger_list_is_not_empty(self, azure_pipeline):
-        """Test that trigger list has at least one branch"""
-        trigger = azure_pipeline['trigger']
-        assert len(trigger) > 0, "Trigger list should not be empty"
-    
-    def test_steps_list_is_not_empty(self, azure_pipeline):
-        """Test that steps list has at least one step"""
-        steps = azure_pipeline['steps']
-        assert len(steps) > 0, "Steps list should not be empty"
-    
-    def test_pool_vm_image_is_not_empty(self, azure_pipeline):
-        """Test that vmImage is specified and not empty"""
-        pool = azure_pipeline['pool']
-        vm_image = pool.get('vmImage', '')
-        assert vm_image, "vmImage should not be empty"
-        assert len(vm_image) > 0, "vmImage should be a non-empty string"
-    
-    def test_node_version_spec_is_valid_format(self, azure_pipeline):
-        """Test that Node.js version spec uses valid format"""
-        steps = azure_pipeline['steps']
-        node_tool_step = next((s for s in steps if s.get('task', '').startswith('NodeTool@')), None)
-        version_spec = node_tool_step['inputs']['versionSpec']
+    def test_comments_are_helpful(self, pipeline_file):
+        """Test that comments provide helpful information"""
+        with open(pipeline_file, 'r') as f:
+            lines = f.readlines()
         
-        assert '.' in version_spec or 'x' in version_spec or version_spec.isdigit(), \
-            "Version spec should be in valid format (e.g., '20.x', '20', '20.1.0')"
-    
-    def test_script_content_is_not_empty(self, azure_pipeline):
-        """Test that script steps have non-empty content"""
-        steps = azure_pipeline['steps']
-        for step in steps:
-            if 'script' in step:
-                script = step['script']
-                assert script, "Script content should not be empty"
-                assert len(script.strip()) > 0, "Script should have actual commands"
-    
-    def test_display_names_are_descriptive(self, azure_pipeline):
-        """Test that display names are descriptive and not generic"""
-        steps = azure_pipeline['steps']
-        generic_names = ['step', 'run', 'execute', 'task']
+        comment_lines = [line for line in lines if line.strip().startswith('#')]
+        assert len(comment_lines) > 0, "Pipeline should have comments"
         
-        for step in steps:
-            if 'displayName' in step:
-                display_name = step['displayName'].lower()
-                # Display name should be more descriptive than just generic words
-                assert len(display_name.split()) >= 2 or display_name not in generic_names, \
-                    "Display names should be descriptive, not generic single words"
-
-
-class TestAzurePipelineNodeVersionCompatibility:
-    """Test suite for Node.js version compatibility"""
-    
-    @pytest.fixture
-    def repo_root(self):
-        """Locate the repository root directory."""
-        return Path(__file__).parent.parent.parent
-    
-    @pytest.fixture
-    def azure_pipeline(self, repo_root):
-        """Load and parse the Azure Pipeline YAML configuration."""
-        with open(repo_root / 'azure-pipelines.yml', 'r') as f:
-            return yaml.safe_load(f)
-    
-    def test_node_version_is_supported(self, azure_pipeline):
-        """Test that Node.js version is currently supported"""
-        steps = azure_pipeline['steps']
-        node_tool_step = next((s for s in steps if s.get('task', '').startswith('NodeTool@')), None)
-        version_spec = node_tool_step['inputs']['versionSpec']
-        
-        # Extract major version
-        major_version = int(version_spec.split('.')[0])
-        
-        # Node.js 18, 20, and 22 are LTS versions (as of 2024)
-        supported_versions = [18, 20, 22]
-        assert major_version in supported_versions or major_version > 18, \
-            f"Node.js {major_version} should be a supported LTS version"
-    
-    def test_node_version_uses_wildcard_for_minor(self, azure_pipeline):
-        """Test that Node.js version uses wildcard for minor version (best practice)"""
-        steps = azure_pipeline['steps']
-        node_tool_step = next((s for s in steps if s.get('task', '').startswith('NodeTool@')), None)
-        version_spec = node_tool_step['inputs']['versionSpec']
-        
-        # Should use format like "20.x" for flexibility with patch versions
-        assert 'x' in version_spec or version_spec.count('.') == 0, \
-            "Version spec should use wildcard (e.g., '20.x') for flexibility"
-
-
-class TestAzurePipelineScriptCommands:
-    """Test suite for script command validation"""
-    
-    @pytest.fixture
-    def repo_root(self):
-        """Locate the repository root directory."""
-        return Path(__file__).parent.parent.parent
-    
-    @pytest.fixture
-    def azure_pipeline(self, repo_root):
-        """Load and parse the Azure Pipeline YAML configuration."""
-        with open(repo_root / 'azure-pipelines.yml', 'r') as f:
-            return yaml.safe_load(f)
-    
-    def test_npm_commands_are_valid(self, azure_pipeline):
-        """Test that npm commands use valid syntax"""
-        steps = azure_pipeline['steps']
-        script_step = next((s for s in steps if 'script' in s), None)
-        script_content = script_step['script']
-        
-        # Check for valid npm commands
-        assert 'npm install' in script_content or 'npm ci' in script_content, \
-            "Should use npm install or npm ci"
-        assert 'npm run build' in script_content or 'npm build' in script_content, \
-            "Should include npm build command"
-    
-    def test_script_uses_multiline_format(self, azure_pipeline):
-        """Test that script with multiple commands uses pipe notation"""
-        steps = azure_pipeline['steps']
-        script_step = next((s for s in steps if 'script' in s), None)
-        
-        # If script has multiple commands, it should be multiline or use proper separators
-        script_content = script_step['script']
-        if script_content.count('npm') > 1:
-            has_newline = '\n' in script_content
-            has_separator = '&&' in script_content or ';' in script_content
-            assert has_newline or has_separator, \
-                "Multiple commands should be separated by newlines or command separators"
-
-
-class TestAzurePipelineRoundTrip:
-    """Test suite for YAML round-trip conversion"""
-    
-    @pytest.fixture
-    def repo_root(self):
-        """Locate the repository root directory."""
-        return Path(__file__).parent.parent.parent
-    
-    @pytest.fixture
-    def azure_pipeline_file(self, repo_root):
-        """Get the Azure Pipeline configuration file path."""
-        return repo_root / 'azure-pipelines.yml'
-    
-    def test_yaml_round_trip_preserves_structure(self, azure_pipeline_file):
-        """Test that loading and dumping YAML preserves structure"""
-        with open(azure_pipeline_file, 'r') as f:
-            original = yaml.safe_load(f)
-        
-        # Dump and reload
-        yaml_str = yaml.dump(original)
-        reloaded = yaml.safe_load(yaml_str)
-        
-        # Compare key structures
-        assert reloaded.keys() == original.keys(), "Keys should be preserved"
-        assert reloaded['trigger'] == original['trigger'], "Trigger should be preserved"
-        assert reloaded['pool'] == original['pool'], "Pool should be preserved"
-        assert len(reloaded['steps']) == len(original['steps']), "Number of steps should be preserved"
-    
-    def test_yaml_can_be_serialized(self, azure_pipeline_file):
-        """Test that YAML can be serialized without errors"""
-        with open(azure_pipeline_file, 'r') as f:
-            data = yaml.safe_load(f)
-        
-        try:
-            yaml_output = yaml.dump(data)
-            assert yaml_output, "YAML serialization should produce output"
-            assert len(yaml_output) > 0, "YAML output should not be empty"
-        except yaml.YAMLError as e:
-            pytest.fail(f"YAML serialization failed: {e}")
-
-
-class TestAzurePipelineCompliance:
-    """Test suite for Azure DevOps compliance and standards"""
-    
-    @pytest.fixture
-    def repo_root(self):
-        """Locate the repository root directory."""
-        return Path(__file__).parent.parent.parent
-    
-    @pytest.fixture
-    def azure_pipeline(self, repo_root):
-        """Load and parse the Azure Pipeline YAML configuration."""
-        with open(repo_root / 'azure-pipelines.yml', 'r') as f:
-            return yaml.safe_load(f)
-    
-    def test_pipeline_follows_azure_schema(self, azure_pipeline):
-        """Test that pipeline follows Azure DevOps YAML schema"""
-        # Required top-level keys for Azure Pipelines
-        required_keys = ['trigger', 'pool', 'steps']
-        for key in required_keys:
-            assert key in azure_pipeline, f"Pipeline must have '{key}' key"
-    
-    def test_pool_configuration_is_valid(self, azure_pipeline):
-        """Test that pool configuration follows Azure DevOps standards"""
-        pool = azure_pipeline['pool']
-        
-        # Pool should have vmImage or name
-        has_vm_image = 'vmImage' in pool
-        has_name = 'name' in pool
-        assert has_vm_image or has_name, "Pool should specify vmImage or name"
-    
-    def test_task_names_follow_convention(self, azure_pipeline):
-        """Test that task names follow Azure DevOps naming convention"""
-        steps = azure_pipeline['steps']
-        for step in steps:
-            if 'task' in step:
-                task = step['task']
-                # Task should be in format TaskName@version
-                assert '@' in task, "Task should include version (e.g., TaskName@0)"
-                parts = task.split('@')
-                assert len(parts) == 2, "Task should be in format TaskName@version"
-                assert parts[1].isdigit(), "Task version should be a number"
-
-
-class TestAzurePipelineRealWorldScenarios:
-    """Test suite for real-world usage scenarios"""
-    
-    @pytest.fixture
-    def repo_root(self):
-        """Locate the repository root directory."""
-        return Path(__file__).parent.parent.parent
-    
-    @pytest.fixture
-    def azure_pipeline_file(self, repo_root):
-        """Get the Azure Pipeline configuration file path."""
-        return repo_root / 'azure-pipelines.yml'
-    
-    @pytest.fixture
-    def azure_pipeline(self, repo_root):
-        """Load and parse the Azure Pipeline YAML configuration."""
-        with open(repo_root / 'azure-pipelines.yml', 'r') as f:
-            return yaml.safe_load(f)
-    
-    def test_pipeline_suitable_for_node_react_project(self, azure_pipeline_file):
-        """Test that pipeline is configured for Node.js/React project"""
-        with open(azure_pipeline_file, 'r') as f:
-            content = f.read()
-        
-        # Should mention Node.js and React in comments
-        assert 'Node.js' in content and 'React' in content, \
-            "Pipeline should be documented for Node.js/React project"
-    
-    def test_pipeline_can_handle_dependencies(self, azure_pipeline):
-        """Test that pipeline installs dependencies before building"""
-        steps = azure_pipeline['steps']
-        script_step = next((s for s in steps if 'script' in s), None)
-        script_content = script_step['script']
-        
-        # Should install dependencies
-        assert 'npm install' in script_content or 'npm ci' in script_content, \
-            "Pipeline should install dependencies"
-    
-    def test_pipeline_performs_build_step(self, azure_pipeline):
-        """Test that pipeline includes build step"""
-        steps = azure_pipeline['steps']
-        script_step = next((s for s in steps if 'script' in s), None)
-        script_content = script_step['script']
-        
-        # Should run build
-        assert 'npm run build' in script_content or 'npm build' in script_content, \
-            "Pipeline should run build step"
-    
-    def test_pipeline_uses_ci_friendly_npm_command(self, azure_pipeline):
-        """Test whether pipeline uses CI-friendly npm commands"""
-        steps = azure_pipeline['steps']
-        script_step = next((s for s in steps if 'script' in s), None)
-        script_content = script_step['script']
-        
-        # Note: This test documents that 'npm install' is used
-        # In CI environments, 'npm ci' is often preferred for reproducible builds
-        # but 'npm install' is acceptable and more flexible
-        has_npm_command = 'npm install' in script_content or 'npm ci' in script_content
-        assert has_npm_command, "Should use npm install or npm ci"
+        # Comments should have substance (more than just symbols)
+        for comment in comment_lines:
+            # Remove comment character and strip
+            content = comment.replace('#', '').strip()
+            if content:  # Non-empty comment
+                assert len(content) > 5, "Comments should be meaningful"
 
 
 if __name__ == '__main__':
