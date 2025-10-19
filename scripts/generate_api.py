@@ -6,6 +6,7 @@ Creates JSON API endpoints for programmatic access to tool data
 
 import os
 import json
+import re
 from pathlib import Path
 from datetime import datetime
 
@@ -22,15 +23,15 @@ class APIGenerator:
         if not self.metadata_dir.exists():
             return metadata
         
-        for file in self.metadata_dir.glob('*.json'):
+        for file in sorted(self.metadata_dir.glob('*.json')):
             try:
                 with open(file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     metadata.append(data)
             except Exception as e:
                 print(f"Warning: Could not load {file}: {e}")
-        
-        return metadata
+
+        return sorted(metadata, key=lambda item: (item.get('slug') or '').lower())
     
     def generate_tools_index(self, metadata):
         """Generate API endpoint for all tools"""
@@ -63,7 +64,8 @@ class APIGenerator:
         by_type = {}
         
         for tool in metadata:
-            tool_type = tool.get('type', 'Other')
+            raw_type = tool.get('type', '')
+            tool_type = raw_type.strip() or 'Other'
             if tool_type not in by_type:
                 by_type[tool_type] = []
             by_type[tool_type].append({
@@ -71,7 +73,10 @@ class APIGenerator:
                 'name': tool['name'],
                 'description': tool.get('description', '')
             })
-        
+
+        for tools in by_type.values():
+            tools.sort(key=lambda item: (item.get('name') or item.get('slug', '')).lower())
+
         return {
             'version': '1.0',
             'generated': datetime.now().isoformat(),
@@ -105,13 +110,12 @@ class APIGenerator:
         for tool in metadata:
             tool_features = tool.get('features', {})
             for feature, enabled in tool_features.items():
-                if feature not in features:
-                    features[feature] = []
-                if enabled:
-                    features[feature].append({
-                        'slug': tool['slug'],
-                        'name': tool['name']
-                    })
+                if not enabled:
+                    continue
+                features.setdefault(feature, []).append({
+                    'slug': tool['slug'],
+                    'name': tool['name']
+                })
         
         return {
             'version': '1.0',
@@ -158,18 +162,39 @@ class APIGenerator:
         index = []
         
         for tool in metadata:
+            keywords = []
+            seen = set()
+
+            def add_keyword(value: str) -> None:
+                normalized = value.strip().lower()
+                if not normalized or normalized in seen:
+                    return
+                keywords.append(normalized)
+                seen.add(normalized)
+
+            def add_term_with_variants(term: str) -> None:
+                if not term:
+                    return
+                lower = term.lower()
+                add_keyword(lower)
+                for part in filter(None, re.split(r'[\s\-_/]+', lower)):
+                    add_keyword(part)
+
+            add_term_with_variants(tool.get('name', ''))
+            add_term_with_variants(tool.get('slug', ''))
+            add_term_with_variants(tool.get('type', ''))
+            add_term_with_variants(tool.get('description', ''))
+
+            for tag in tool.get('tags', []):
+                add_term_with_variants(tag)
+
             index.append({
                 'slug': tool['slug'],
                 'name': tool['name'],
                 'type': tool['type'],
                 'description': tool.get('description', ''),
                 'tags': tool.get('tags', []),
-                'keywords': [
-                    tool['name'].lower(),
-                    tool['slug'],
-                    tool['type'].lower(),
-                    *[tag.lower() for tag in tool.get('tags', [])]
-                ]
+                'keywords': keywords
             })
         
         return {
