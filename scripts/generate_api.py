@@ -19,10 +19,10 @@ class APIGenerator:
     def load_metadata(self):
         """Load all metadata files"""
         metadata = []
-
+        
         if not self.metadata_dir.exists():
             return metadata
-
+        
         for file in sorted(self.metadata_dir.glob('*.json')):
             try:
                 with open(file, 'r', encoding='utf-8') as f:
@@ -31,7 +31,7 @@ class APIGenerator:
             except Exception as e:
                 print(f"Warning: Could not load {file}: {e}")
 
-        return sorted(metadata, key=lambda item: item.get('slug', ''))
+        return sorted(metadata, key=lambda item: (item.get('slug') or '').lower())
     
     def generate_tools_index(self, metadata):
         """Generate API endpoint for all tools"""
@@ -62,7 +62,7 @@ class APIGenerator:
     def generate_by_type(self, metadata):
         """Generate API endpoints grouped by tool type"""
         by_type = {}
-
+        
         for tool in metadata:
             raw_type = tool.get('type', '')
             tool_type = raw_type.strip() or 'Other'
@@ -106,19 +106,17 @@ class APIGenerator:
     def generate_features_matrix(self, metadata):
         """Generate feature comparison matrix"""
         features = {}
-
+        
         for tool in metadata:
             tool_features = tool.get('features', {})
             for feature, enabled in tool_features.items():
                 if not enabled:
                     continue
-                if feature not in features:
-                    features[feature] = []
-                features[feature].append({
+                features.setdefault(feature, []).append({
                     'slug': tool['slug'],
                     'name': tool['name']
                 })
-
+        
         return {
             'version': '1.0',
             'generated': datetime.now().isoformat(),
@@ -162,19 +160,19 @@ class APIGenerator:
     def generate_search_index(self, metadata):
         """Generate search index for quick lookups"""
         index = []
-
+        
         for tool in metadata:
             keywords = []
             seen = set()
 
-            def add_keyword(value):
-                if not value:
+            def add_keyword(value: str) -> None:
+                normalized = value.strip().lower()
+                if not normalized or normalized in seen:
                     return
-                if value not in seen:
-                    keywords.append(value)
-                    seen.add(value)
+                keywords.append(normalized)
+                seen.add(normalized)
 
-            def add_term_with_variants(term):
+            def add_term_with_variants(term: str) -> None:
                 if not term:
                     return
                 lower = term.lower()
@@ -198,7 +196,7 @@ class APIGenerator:
                 'tags': tool.get('tags', []),
                 'keywords': keywords
             })
-
+        
         return {
             'version': '1.0',
             'generated': datetime.now().isoformat(),
