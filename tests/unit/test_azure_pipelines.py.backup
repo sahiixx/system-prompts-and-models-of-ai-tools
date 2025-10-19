@@ -1,23 +1,89 @@
-"""
-Comprehensive unit tests for Azure Pipelines configuration
-Tests Azure DevOps pipeline YAML structure, configuration, and best practices
-"""
-import pytest
-import sys
-from pathlib import Path
-from io import StringIO
 
-# Ensure we use system PyYAML, not the custom minimal yaml module in the repo
-# Save and modify sys.path temporarily
-_git_path = '/home/jailuser/git'
-_original_path = sys.path.copy()
-sys.path = [p for p in sys.path if _git_path not in p]
 
-# Now import yaml (this will get the system PyYAML)
-import yaml
-
-# Restore sys.path
-sys.path = _original_path
+class TestAzurePipelineStructure:
+    """Test suite for Azure Pipeline structure validation"""
+    
+    @pytest.fixture
+    def repo_root(self):
+        """
+        Locate the repository root directory.
+        
+        Returns:
+            Path: Path to the repository root.
+        """
+        return Path(__file__).parent.parent.parent
+    
+    @pytest.fixture
+    def azure_pipeline_file(self, repo_root):
+        """
+        Get the Azure Pipeline configuration file path.
+        
+        Parameters:
+            repo_root (pathlib.Path): Path to the repository root.
+        
+        Returns:
+            Path: Path to azure-pipelines.yml file.
+        """
+        return repo_root / 'azure-pipelines.yml'
+    
+    @pytest.fixture
+    def azure_pipeline(self, azure_pipeline_file):
+        """
+        Load and parse the Azure Pipeline YAML configuration.
+        
+        Parameters:
+            azure_pipeline_file (pathlib.Path): Path to azure-pipelines.yml.
+        
+        Returns:
+            dict: Parsed YAML content of azure-pipelines.yml.
+        """
+        with open(azure_pipeline_file, 'r') as f:
+            return yaml.safe_load(f)
+    
+    def test_azure_pipeline_file_exists(self, azure_pipeline_file):
+        """Test that azure-pipelines.yml file exists"""
+        assert azure_pipeline_file.exists(), "azure-pipelines.yml should exist"
+        assert azure_pipeline_file.is_file(), "azure-pipelines.yml should be a file"
+    
+    def test_azure_pipeline_is_valid_yaml(self, azure_pipeline_file):
+        """Test that azure-pipelines.yml is valid YAML"""
+        try:
+            with open(azure_pipeline_file, 'r') as f:
+                content = yaml.safe_load(f)
+                assert content is not None, "YAML content should not be None"
+        except yaml.YAMLError as e:
+            pytest.fail(f"azure-pipelines.yml is not valid YAML: {e}")
+    
+    def test_pipeline_has_trigger_configuration(self, azure_pipeline):
+        """Test that pipeline has trigger configuration defined"""
+        assert 'trigger' in azure_pipeline, "Pipeline must have trigger configuration"
+        trigger = azure_pipeline['trigger']
+        assert trigger is not None, "Trigger configuration should not be None"
+    
+    def test_pipeline_trigger_includes_main_branch(self, azure_pipeline):
+        """Test that pipeline triggers on main branch"""
+        trigger = azure_pipeline['trigger']
+        assert isinstance(trigger, list), "Trigger should be a list of branches"
+        assert 'main' in trigger, "Pipeline should trigger on main branch"
+    
+    def test_pipeline_has_pool_configuration(self, azure_pipeline):
+        """Test that pipeline has pool configuration"""
+        assert 'pool' in azure_pipeline, "Pipeline must have pool configuration"
+        pool = azure_pipeline['pool']
+        assert isinstance(pool, dict), "Pool should be a dictionary"
+    
+    def test_pipeline_uses_ubuntu_vm_image(self, azure_pipeline):
+        """Test that pipeline uses ubuntu-latest VM image"""
+        pool = azure_pipeline['pool']
+        assert 'vmImage' in pool, "Pool must specify vmImage"
+        assert pool['vmImage'] == 'ubuntu-latest', "Should use ubuntu-latest VM image"
+    
+    def test_pipeline_has_steps(self, azure_pipeline):
+        """Test that pipeline has steps defined"""
+        assert 'steps' in azure_pipeline, "Pipeline must have steps"
+        steps = azure_pipeline['steps']
+        assert isinstance(steps, list), "Steps should be a list"
+        assert len(steps) > 0, "Pipeline must have at least one step"
 
 
 class TestAzurePipelineNodeJsConfiguration:
@@ -496,7 +562,7 @@ class TestAzurePipelineRoundTrip:
             yaml_output = yaml.dump(data)
             assert yaml_output, "YAML serialization should produce output"
             assert len(yaml_output) > 0, "YAML output should not be empty"
-        except yaml.YAMLError as e:
+        except Exception as e:
             pytest.fail(f"YAML serialization failed: {e}")
 
 
@@ -550,11 +616,6 @@ class TestAzurePipelineRealWorldScenarios:
     def repo_root(self):
         """Locate the repository root directory."""
         return Path(__file__).parent.parent.parent
-    
-    @pytest.fixture
-    def azure_pipeline_file(self, repo_root):
-        """Get the Azure Pipeline configuration file path."""
-        return repo_root / 'azure-pipelines.yml'
     
     @pytest.fixture
     def azure_pipeline(self, repo_root):
