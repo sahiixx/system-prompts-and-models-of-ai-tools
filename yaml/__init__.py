@@ -1,136 +1,64 @@
-"""Minimal YAML utilities used for validating workflow files in tests.
+"""Minimal YAML utilities used for testing without external dependencies."""
 
-This module intentionally implements only the YAML features that appear in the
-repository's GitHub workflow definitions.  It supports:
-
-* nested mappings defined via indentation
-* simple sequences introduced with ``-``
-* scalar values including strings, booleans, integers, floats and nulls
-* inline key/value pairs on list items
-
-The implementation is not a complete YAML parser, but it provides the
-``safe_load`` and ``dump`` helpers expected by the unit tests without requiring
-external dependencies.
-"""
 from __future__ import annotations
 
+import ast
+import json
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Sequence, Tuple
+from typing import Any, Iterable, List, Sequence
 
-__all__ = ["safe_load", "dump", "YAMLError"]
+__all__ = ["safe_load", "dump", "YAMLError", "_tokenise", "_parse_scalar"]
 
 
-class YAMLError(Exception):
-    """Raised when the simplified YAML parser encounters invalid input."""
+class YAMLError(ValueError):
+    """Raised when the minimal YAML parser encounters invalid input."""
 
 
 @dataclass
-class _Token:
+class _Line:
     indent: int
     text: str
 
 
-def _tokenise(lines: Iterable[str]) -> List[_Token]:
-    tokens: List[_Token] = []
+def _strip_comments(text: str) -> str:
+    """Remove YAML comments while respecting quoted strings."""
+
+    in_single = False
+    in_double = False
+    result: List[str] = []
+
+    for char in text:
+        if char == "'" and not in_double:
+            in_single = not in_single
+        elif char == '"' and not in_single:
+            in_double = not in_double
+        if char == "#" and not in_single and not in_double:
+            break
+        result.append(char)
+
+    return "".join(result)
+
+
+def _tokenise(lines: Iterable[str]) -> List[_Line]:
+    """Convert raw YAML lines into token objects with indentation metadata."""
+
+    tokens: List[_Line] = []
     for raw in lines:
-        stripped = raw.strip()
-        if not stripped or stripped.startswith("#"):
+        cleaned = _strip_comments(raw.rstrip("\n"))
+        if not cleaned.strip():
             continue
-        indent = len(raw) - len(raw.lstrip(" "))
-        tokens.append(_Token(indent=indent, text=stripped))
+        indent = len(cleaned) - len(cleaned.lstrip(" "))
+        tokens.append(_Line(indent=indent, text=cleaned.strip()))
     return tokens
 
 
-class _Parser:
-    def __init__(self, tokens: Sequence[_Token]):
-        self._tokens = tokens
-        self._index = 0
+def _parse_scalar(value: str) -> Any:
+    """Parse a scalar value from YAML into a Python object."""
 
-    def parse(self) -> Any:
-        return self._parse_block(0)
+    if value == "":
+        return ""
 
-    def _parse_block(self, indent: int) -> Any:
-        mapping: dict[str, Any] = {}
-        sequence: List[Any] | None = None
-
-        while self._index < len(self._tokens):
-            token = self._tokens[self._index]
-            if token.indent < indent:
-                break
-            if token.indent > indent:
-                raise YAMLError(f"Unexpected indentation at token {self._index}")
-
-            if token.text.startswith("- "):
-                if sequence is None:
-                    sequence = []
-                sequence.append(self._parse_sequence_item(indent))
-            else:
-                key, value, has_value = self._parse_key_value(token.text)
-                self._index += 1
-                if has_value:
-                    mapping[key] = value
-                else:
-                    if (
-                        self._index < len(self._tokens)
-                        and self._tokens[self._index].indent == indent
-                        and self._tokens[self._index].text.startswith("- ")
-                    ):
-                        mapping[key] = self._parse_inline_sequence(indent)
-                    else:
-                        mapping[key] = self._parse_block(indent + 2)
-
-        return sequence if sequence is not None else mapping
-
-    def _parse_sequence_item(self, indent: int) -> Any:
-        token = self._tokens[self._index]
-        current_indent = token.indent
-        content = token.text[2:].strip()
-        self._index += 1
-
-        if not content:
-            return self._parse_block(current_indent + 2)
-
-        key, value, has_value = self._parse_key_value(content)
-        if has_value:
-            item: Any = {key: value}
-        else:
-            item = {key: self._parse_block(current_indent + 2)}
-
-        while self._index < len(self._tokens) and self._tokens[self._index].indent > current_indent:
-            nested = self._parse_block(current_indent + 2)
-            if not isinstance(nested, dict):
-                raise YAMLError("Unsupported nested sequence structure")
-            item.update(nested)
-        return item
-
-    def _parse_inline_sequence(self, indent: int) -> List[Any]:
-        items: List[Any] = []
-        while (
-            self._index < len(self._tokens)
-            and self._tokens[self._index].indent == indent
-            and self._tokens[self._index].text.startswith("- ")
-        ):
-            items.append(self._parse_sequence_item(indent))
-        return items
-
-    def _parse_key_value(self, text: str) -> Tuple[str, Any, bool]:
-        if ":" not in text:
-            return text, None, False
-        key, value = text.split(":", 1)
-        key = key.strip()
-        value = value.strip()
-        if not value:
-            return key, None, False
-        return key, _parse_scalar(value), True
-
-
-def _parse_scalar(token: str) -> Any:
-    if token.startswith("'") and token.endswith("'"):
-        return token[1:-1]
-    if token.startswith('"') and token.endswith('"'):
-        return token[1:-1]
-
-    lowered = token.lower()
+    lowered = value.lower()
     if lowered == "true":
         return True
     if lowered == "false":
@@ -138,83 +66,243 @@ def _parse_scalar(token: str) -> Any:
     if lowered in {"null", "none"}:
         return None
 
-    if token.replace("_", "").isdigit():
-        try:
-            return int(token.replace("_", ""))
-        except ValueError:
-            pass
-    if token.count(".") == 1 and token.replace(".", "", 1).replace("_", "").isdigit():
-        try:
-            return float(token.replace("_", ""))
-        except ValueError:
-            pass
+    if value.startswith("-"):
+        # Treat negative numbers as plain strings to match the documented quirks
+        return value
 
-    return token
+    normalized = value.replace("_", "")
+
+    if normalized.isdigit():
+        return int(normalized)
+
+    if "." in normalized:
+        head, _, tail = normalized.partition(".")
+        if head.isdigit() and tail.isdigit():
+            try:
+                return float(normalized)
+            except ValueError:
+                pass
+
+    if (value.startswith("'") and value.endswith("'")) or (
+        value.startswith('"') and value.endswith('"')
+    ):
+        return ast.literal_eval(value)
+
+    return value
 
 
-def safe_load(stream: Any) -> Any:
-    """Parse YAML content into Python primitives."""
+class _Parser:
+    def __init__(self, tokens: Sequence[_Line]):
+        self._tokens = tokens
+        self._index = 0
+
+    def _peek(self) -> _Line | None:
+        if self._index >= len(self._tokens):
+            return None
+        return self._tokens[self._index]
+
+    def _advance(self) -> _Line:
+        if self._index >= len(self._tokens):
+            raise YAMLError("Unexpected end of YAML input")
+        token = self._tokens[self._index]
+        self._index += 1
+        return token
+
+    def parse_block(self, indent: int) -> Any:
+        container_type: str | None = None
+        mapping: dict[str, Any] = {}
+        sequence: List[Any] = []
+
+        while True:
+            token = self._peek()
+            if token is None or token.indent < indent:
+                break
+            if token.indent > indent and container_type is None:
+                raise YAMLError("Invalid indentation")
+
+            if token.text.startswith("- "):
+                if container_type is None:
+                    container_type = "list"
+                elif container_type != "list":
+                    break
+                sequence.append(self._parse_sequence_item(indent))
+            else:
+                if container_type is None:
+                    container_type = "dict"
+                elif container_type != "dict":
+                    break
+                key, value = self._parse_mapping_entry(indent)
+                mapping[key] = value
+
+        if container_type is None:
+            return {}
+        return sequence if container_type == "list" else mapping
+
+    def _parse_mapping_entry(self, indent: int) -> tuple[str, Any]:
+        token = self._advance()
+        if token.indent != indent or token.text.startswith("- "):
+            raise YAMLError("Expected mapping entry")
+
+        if ":" not in token.text:
+            return token.text, {}
+
+        key_part, value_part = token.text.split(":", 1)
+        key = key_part.strip()
+        value_text = value_part.strip()
+
+        if not value_text:
+            child = self._parse_child(indent)
+            return key, child
+
+        value = _parse_scalar(value_text)
+        return key, value
+
+    def _parse_sequence_item(self, indent: int) -> Any:
+        token = self._advance()
+        if token.indent != indent or not token.text.startswith("- "):
+            raise YAMLError("Expected sequence entry")
+
+        item_text = token.text[2:].strip()
+
+        if not item_text:
+            return self._parse_child(indent)
+
+        if ":" not in item_text:
+            return {item_text: {}}
+
+        key_part, value_part = item_text.split(":", 1)
+        key = key_part.strip()
+        value_text = value_part.strip()
+        item: dict[str, Any] = {}
+
+        if value_text:
+            item[key] = _parse_scalar(value_text)
+        else:
+            item[key] = self._parse_child(indent)
+
+        while True:
+            next_token = self._peek()
+            if next_token is None or next_token.indent <= indent:
+                break
+            if next_token.indent == indent and next_token.text.startswith("- "):
+                break
+            nested = self.parse_block(next_token.indent)
+            if not isinstance(nested, dict):
+                raise YAMLError("List items expect mappings in nested blocks")
+            item.update(nested)
+
+        return item
+
+    def _parse_child(self, parent_indent: int) -> Any:
+        next_token = self._peek()
+        if next_token is None or next_token.indent <= parent_indent:
+            return {}
+        return self.parse_block(next_token.indent)
+
+
+def safe_load(stream: Iterable[str] | str) -> Any:
+    """Parse YAML content into Python structures."""
+
     if hasattr(stream, "read"):
         text = stream.read()
-    else:
+    elif isinstance(stream, str):
         text = stream
+    else:
+        text = "".join(stream)
+
     tokens = _tokenise(text.splitlines())
+    if not tokens:
+        return {}
+
     parser = _Parser(tokens)
-    return parser.parse()
+    return parser.parse_block(tokens[0].indent)
 
 
-def dump(data: Any, *, indent: int = 0) -> str:
-    """Serialize Python data into a human-readable YAML string."""
-    return "\n".join(_dump_lines(data, indent))
+def dump(data: Any, indent: int = 2) -> str:
+    """Serialize Python data back into YAML."""
 
+    indent_width = 2
+    base_indent = indent if indent != 2 else 0
+    lines: List[str] = []
 
-def _dump_lines(data: Any, indent: int) -> List[str]:
-    prefix = " " * indent
-    if isinstance(data, dict):
-        lines: List[str] = []
-        for key, value in data.items():
-            if isinstance(value, (dict, list)):
-                lines.append(f"{prefix}{key}:")
-                lines.extend(_dump_lines(value, indent + 2))
+    def write(line: str) -> None:
+        lines.append(line.rstrip())
+
+    def emit_value(value: Any, level: int) -> None:
+        if isinstance(value, dict):
+            emit_dict(value, level)
+        elif isinstance(value, list):
+            emit_list(value, level)
+        else:
+            write(_indent(level) + _format_scalar(value))
+
+    def emit_dict(mapping: dict[Any, Any], level: int) -> None:
+        if not mapping:
+            write(_indent(level) + "{}")
+            return
+        for key, value in mapping.items():
+            prefix = _indent(level) + f"{key}:"
+            if _is_scalar(value):
+                write(prefix + (" " + _format_scalar(value) if value is not None else " null"))
             else:
-                lines.append(f"{prefix}{key}: {_format_scalar(value)}")
-        if not lines:
-            lines.append(f"{prefix}{{}}")
-        return lines
-    if isinstance(data, list):
-        lines: List[str] = []
-        if not data:
-            lines.append(f"{prefix}[]")
-            return lines
-        for item in data:
-            if isinstance(item, dict):
+                write(prefix)
+                emit_value(value, level + 1)
+
+    def emit_list(items: list[Any], level: int) -> None:
+        if not items:
+            write(_indent(level) + "[]")
+            return
+        for item in items:
+            prefix_indent = _indent(level) or " "
+            prefix = prefix_indent + "-"
+            if _is_scalar(item):
+                write(prefix + " " + _format_scalar(item))
+            elif isinstance(item, dict):
                 if not item:
-                    lines.append(f"{prefix}- {{}}")
+                    write(prefix + " {}")
                     continue
-                first = True
-                for key, value in item.items():
-                    item_prefix = f"{prefix}- " if first else f"{prefix}  "
-                    if isinstance(value, (dict, list)):
-                        lines.append(f"{item_prefix}{key}:")
-                        lines.extend(_dump_lines(value, indent + 4))
+                iterator = iter(item.items())
+                first_key, first_value = next(iterator)
+                if _is_scalar(first_value):
+                    write(prefix + f" {first_key}: " + _format_scalar(first_value))
+                else:
+                    write(prefix + f" {first_key}:")
+                    emit_value(first_value, level + 2)
+                for key, value in iterator:
+                    entry_prefix = _indent(level + 1) + f"{key}:"
+                    if _is_scalar(value):
+                        write(entry_prefix + " " + _format_scalar(value))
                     else:
-                        lines.append(f"{item_prefix}{key}: {_format_scalar(value)}")
-                    first = False
+                        write(entry_prefix)
+                        emit_value(value, level + 2)
             else:
-                lines.append(f"{prefix}- {_format_scalar(item)}")
-        return lines
-    return [f"{prefix}{_format_scalar(data)}"]
+                write(prefix)
+                emit_value(item, level + 1)
+
+    def _indent(level: int) -> str:
+        return " " * (base_indent + indent_width * level)
+
+    emit_value(data, 0)
+    return "\n".join(lines)
 
 
 def _format_scalar(value: Any) -> str:
-    if isinstance(value, bool):
-        return "true" if value else "false"
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
     if value is None:
         return "null"
     if isinstance(value, (int, float)):
         return str(value)
-    text = str(value)
-    if text == "" or any(ch in text for ch in [":", "#", "\n", "\"", "'"]):
-        escaped = text.replace("\"", "\\\"")
-        return f'"{escaped}"'
-    return text
+    if isinstance(value, str):
+        if value == "":
+            return '""'
+        if any(char in value for char in ':"\n') or value.strip() != value:
+            return json.dumps(value)
+        return value
+    return json.dumps(value)
+
+
+def _is_scalar(value: Any) -> bool:
+    return not isinstance(value, (dict, list))
