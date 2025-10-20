@@ -1,7 +1,8 @@
 """
-Comprehensive unit tests for Azure Pipelines configuration
-Tests YAML structure, configuration, and best practices for azure-pipelines.yml
+Comprehensive unit tests for Azure Pipelines configuration file
+Tests azure-pipelines.yml structure, configuration, and best practices
 """
+
 import pytest
 import yaml
 from pathlib import Path
@@ -12,12 +13,7 @@ class TestAzurePipelinesStructure:
     
     @pytest.fixture
     def repo_root(self):
-        """
-        Locate the repository root directory.
-        
-        Returns:
-            Path: Path to the repository root directory.
-        """
+        """Get repository root directory."""
         return Path(__file__).parent.parent.parent
     
     @pytest.fixture
