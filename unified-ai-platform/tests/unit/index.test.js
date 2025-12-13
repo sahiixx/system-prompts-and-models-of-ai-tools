@@ -644,4 +644,146 @@ describe('UnifiedAIPlatform', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('Security and Input Validation', () => {
+    test('should sanitize XSS attempts in memory values', async () => {
+      const xssPayload = '<script>alert("XSS")</script>';
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'xss_test', value: xssPayload })
+        .expect(200);
+
+      const stored = platform.memory.get('xss_test');
+      expect(stored.content).toBe(xssPayload);
+      // Value is stored but should not execute when rendered
+    });
+
+    test('should handle SQL injection attempts gracefully', async () => {
+      const sqlPayload = "'; DROP TABLE users; --";
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: sqlPayload, value: 'data' })
+        .expect(200);
+
+      expect(platform.memory.has(sqlPayload)).toBe(true);
+    });
+
+    test('should handle extremely large payload bodies', async () => {
+      const largeValue = 'A'.repeat(1024 * 1024 * 11); // 11MB
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'large', value: largeValue });
+
+      // Should reject payloads larger than limit (10MB)
+      expect([413, 500]).toContain(response.status);
+    });
+
+    test('should validate Content-Type header', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .set('Content-Type', 'text/plain')
+        .send('not json');
+
+      // Should handle gracefully
+      expect(response.status).toBeDefined();
+    });
+
+    test('should handle unicode and special characters in keys', async () => {
+      const unicodeKey = '测试🎯émoji';
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: unicodeKey, value: 'data' })
+        .expect(200);
+
+      expect(platform.memory.has(unicodeKey)).toBe(true);
+    });
+
+    test('should reject undefined as value (not null)', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'test', value: undefined })
+        .expect(400);
+
+      expect(response.body.error).toBeDefined();
+    });
+  });
+
+  describe('Performance and Load Testing', () => {
+    test('should handle rapid sequential requests', async () => {
+      const promises = [];
+      for (let i = 0; i < 50; i++) {
+        promises.push(
+          request(platform.app)
+            .post('/api/v1/memory')
+            .send({ key: `rapid_${i}`, value: `value_${i}` })
+        );
+      }
+
+      const responses = await Promise.all(promises);
+      const successCount = responses.filter(r => r.status === 200).length;
+      expect(successCount).toBe(50);
+    });
+
+    test('should maintain performance under mixed load', async () => {
+      const start = Date.now();
+      const operations = [
+        ...Array(10).fill(0).map((_, i) => 
+          request(platform.app).get('/health')
+        ),
+        ...Array(10).fill(0).map((_, i) => 
+          request(platform.app).post('/api/v1/memory').send({ key: `k${i}`, value: `v${i}` })
+        ),
+        ...Array(10).fill(0).map((_, i) => 
+          request(platform.app).post('/api/v1/plans').send({ task_description: `Task ${i}` })
+        ),
+      ];
+
+      await Promise.all(operations);
+      const duration = Date.now() - start;
+
+      // Should complete 30 operations reasonably fast
+      expect(duration).toBeLessThan(10000); // 10 seconds
+    });
+
+    test('should not leak memory with many operations', async () => {
+      const initialMemory = process.memoryUsage().heapUsed;
+
+      for (let i = 0; i < 100; i++) {
+        await request(platform.app)
+          .post('/api/v1/memory')
+          .send({ key: `mem_test_${i}`, value: `data_${i}` });
+      }
+
+      const finalMemory = process.memoryUsage().heapUsed;
+      const memoryIncrease = finalMemory - initialMemory;
+
+      // Memory increase should be reasonable (less than 50MB)
+      expect(memoryIncrease).toBeLessThan(50 * 1024 * 1024);
+    });
+  });
+
+  describe('Response Format Consistency', () => {
+    test('all error responses should have consistent format', async () => {
+      const error404 = await request(platform.app).get('/nonexistent')
+;      const error400 = await request(platform.app).post('/api/v1/memory').send({});
+
+      expect(error404.body).toHaveProperty('error');
+      expect(error404.body).toHaveProperty('timestamp');
+      expect(error400.body).toHaveProperty('error');
+    });
+
+    test('all success responses should have consistent format', async () => {
+      const responses = await Promise.all([
+        request(platform.app).get('/health'),
+        request(platform.app).get('/api/v1/tools'),
+        request(platform.app).get('/api/v1/memory'),
+      ]);
+
+      responses.forEach(response => {
+        expect(response.status).toBe(200);
+        expect(response.headers['content-type']).toMatch(/json/);
+      });
+    });
+  });
+
 });

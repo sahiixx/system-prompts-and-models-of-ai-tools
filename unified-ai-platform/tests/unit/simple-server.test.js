@@ -704,4 +704,102 @@ describe('SimpleUnifiedAIPlatform', () => {
       });
     });
   });
+
+  describe('Security and Input Validation', () => {
+    test('should handle XSS attempts in memory values', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const xssPayload = '<script>alert("XSS")</script>';
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'xss_test',
+          value: xssPayload
+        });
+
+        expect(response.status).toBe(200);
+        const stored = platform.memory.get('xss_test');
+        expect(stored.content).toBe(xssPayload);
+        done();
+      });
+    });
+
+    test('should handle unicode characters properly', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const unicodeData = { key: '测试🎯', value: 'データ🌟' };
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', unicodeData);
+
+        expect(response.status).toBe(200);
+        const stored = platform.memory.get(unicodeData.key);
+        expect(stored.content).toBe(unicodeData.value);
+        done();
+      });
+    });
+  });
+
+  describe('Performance Under Load', () => {
+    test('should handle 100 rapid requests', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const promises = Array.from({ length: 100 }, (_, i) =>
+          makeRequest(server, 'POST', '/api/v1/memory', {
+            key: `load_${i}`,
+            value: `data_${i}`
+          })
+        );
+
+        const responses = await Promise.all(promises);
+        const successCount = responses.filter(r => r.status === 200).length;
+        
+        expect(successCount).toBe(100);
+        expect(platform.memory.size).toBe(100);
+        done();
+      });
+    }, 15000);
+
+    test('should maintain response time under load', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const start = Date.now();
+        
+        const promises = Array.from({ length: 50 }, () =>
+          makeRequest(server, 'GET', '/health')
+        );
+
+        await Promise.all(promises);
+        const duration = Date.now() - start;
+
+        // 50 health checks should complete in reasonable time
+        expect(duration).toBeLessThan(5000);
+        done();
+      });
+    });
+  });
+
+  describe('Response Format Validation', () => {
+    test('all responses should have proper JSON format', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const endpoints = [
+          '/health',
+          '/api/v1/tools',
+          '/api/v1/memory',
+          '/api/v1/plans',
+          '/api/v1/capabilities',
+          '/api/v1/demo'
+        ];
+
+        const responses = await Promise.all(
+          endpoints.map(ep => makeRequest(server, 'GET', ep))
+        );
+
+        responses.forEach(response => {
+          expect(response.status).toBe(200);
+          expect(response.headers['content-type']).toBe('application/json');
+          expect(typeof response.body).toBe('object');
+        });
+        done();
+      });
+    });
+  });
+
 });
