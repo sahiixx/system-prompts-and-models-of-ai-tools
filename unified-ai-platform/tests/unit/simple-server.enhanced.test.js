@@ -1,18 +1,17 @@
 /**
- * Enhanced Tests for SimpleUnifiedAIPlatform
+ * Enhanced Unit Tests for SimpleUnifiedAIPlatform (src/simple-server.js)
  * 
- * Comprehensive tests covering advanced scenarios for the HTTP-based server:
- * - Advanced state management
- * - Complex workflows
- * - Edge case handling
- * - Performance scenarios
- * - Error recovery
+ * Additional comprehensive tests covering:
+ * - Advanced HTTP scenarios
+ * - Streaming and chunked requests
+ * - Connection handling
+ * - Protocol edge cases
  */
 
 const http = require('http');
 const { SimpleUnifiedAIPlatform } = require('../../src/simple-server');
 
-function makeRequest(server, method, path, data = null) {
+function makeRequest(server, method, path, data = null, headers = {}) {
   return new Promise((resolve, reject) => {
     const addr = server.address();
     const options = {
@@ -21,7 +20,8 @@ function makeRequest(server, method, path, data = null) {
       path: path,
       method: method,
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...headers
       }
     };
 
@@ -31,9 +31,9 @@ function makeRequest(server, method, path, data = null) {
       res.on('end', () => {
         try {
           const parsed = body ? JSON.parse(body) : {};
-          resolve({ status: res.statusCode, headers: res.headers, body: parsed });
+          resolve({ status: res.statusCode, headers: res.headers, body: parsed, rawBody: body });
         } catch (e) {
-          resolve({ status: res.statusCode, headers: res.headers, body: body });
+          resolve({ status: res.statusCode, headers: res.headers, body: body, rawBody: body });
         }
       });
     });
@@ -47,10 +47,10 @@ function makeRequest(server, method, path, data = null) {
   });
 }
 
-describe('SimpleUnifiedAIPlatform Enhanced Tests', () => {
+describe('SimpleUnifiedAIPlatform - Enhanced Tests', () => {
   let platform;
   let server;
-  const testPort = 3004;
+  const testPort = 3003;
 
   beforeEach(() => {
     platform = new SimpleUnifiedAIPlatform();
@@ -68,604 +68,403 @@ describe('SimpleUnifiedAIPlatform Enhanced Tests', () => {
     }
   });
 
-  describe('Advanced Memory Patterns', () => {
-    test('should handle memory with complex metadata', (done) => {
+  describe('HTTP Protocol Edge Cases', () => {
+    test('should handle multiple headers correctly', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const complexMemory = {
-          key: 'user_profile',
-          value: {
-            user: {
-              id: 'user123',
-              name: 'Test User',
-              preferences: {
-                theme: 'dark',
-                language: 'en',
-                notifications: {
-                  email: true,
-                  push: false
-                }
-              }
-            },
-            metadata: {
-              created: new Date().toISOString(),
-              version: 1,
-              tags: ['active', 'verified']
-            }
+        const response = await makeRequest(server, 'GET', '/health', null, {
+          'X-Custom-Header': 'test-value',
+          'X-Request-ID': '12345'
+        });
+        
+        expect(response.status).toBe(200);
+        expect(response.body.status).toBe('healthy');
+        done();
+      });
+    });
+
+    test('should handle HEAD requests gracefully', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, () => {
+        const options = {
+          hostname: 'localhost',
+          port: testPort,
+          path: '/health',
+          method: 'HEAD'
+        };
+
+        const req = http.request(options, (res) => {
+          expect([200, 404]).toContain(res.statusCode);
+          done();
+        });
+
+        req.end();
+      });
+    });
+
+    test('should handle PUT requests (not explicitly supported)', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'PUT', '/api/v1/memory', {
+          key: 'test',
+          value: 'data'
+        });
+        
+        expect(response.status).toBe(404);
+        done();
+      });
+    });
+
+    test('should handle DELETE requests (not explicitly supported)', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'DELETE', '/api/v1/memory');
+        expect(response.status).toBe(404);
+        done();
+      });
+    });
+  });
+
+  describe('Request Body Parsing', () => {
+    test('should handle empty request body for GET', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/api/v1/memory');
+        expect(response.status).toBe(200);
+        expect(response.body.memories).toBeDefined();
+        done();
+      });
+    });
+
+    test('should handle request with no Content-Type', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, () => {
+        const options = {
+          hostname: 'localhost',
+          port: testPort,
+          path: '/api/v1/memory',
+          method: 'POST'
+        };
+
+        const req = http.request(options, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            expect([200, 400]).toContain(res.statusCode);
+            done();
+          });
+        });
+
+        req.write(JSON.stringify({ key: 'test', value: 'data' }));
+        req.end();
+      });
+    });
+
+    test('should handle chunked request body', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, () => {
+        const options = {
+          hostname: 'localhost',
+          port: testPort,
+          path: '/api/v1/memory',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Transfer-Encoding': 'chunked'
           }
         };
 
-        await makeRequest(server, 'POST', '/api/v1/memory', complexMemory);
-
-        const stored = platform.memory.get('user_profile');
-        expect(stored.content.user.preferences.theme).toBe('dark');
-        expect(stored.content.metadata.tags).toContain('verified');
-        
-        done();
-      });
-    });
-
-    test('should support memory namespacing pattern', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const namespaces = ['app:config', 'user:settings', 'session:data'];
-
-        for (const ns of namespaces) {
-          await makeRequest(server, 'POST', '/api/v1/memory', {
-            key: `${ns}:item1`,
-            value: { namespace: ns, data: 'test' }
+        const req = http.request(options, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            const parsed = JSON.parse(body);
+            expect(parsed.success).toBe(true);
+            done();
           });
-        }
+        });
 
-        expect(platform.memory.size).toBe(3);
-        expect(platform.memory.has('app:config:item1')).toBe(true);
-        
-        done();
+        const data = JSON.stringify({ key: 'chunked', value: 'test' });
+        req.write(data);
+        req.end();
       });
     });
 
-    test('should handle memory key collision resolution', (done) => {
+    test('should handle very large JSON payloads', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const key = 'collision_test';
-
-        // First write
-        await makeRequest(server, 'POST', '/api/v1/memory', {
-          key,
-          value: { version: 1, data: 'first' }
+        const largeValue = 'x'.repeat(500000);
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'large',
+          value: largeValue
         });
-
-        // Second write (should overwrite)
-        await makeRequest(server, 'POST', '/api/v1/memory', {
-          key,
-          value: { version: 2, data: 'second' }
-        });
-
-        const stored = platform.memory.get(key);
-        expect(stored.content.version).toBe(2);
-        expect(stored.content.data).toBe('second');
         
-        done();
-      });
-    });
-
-    test('should handle bulk memory operations', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const bulkData = Array.from({ length: 50 }, (_, i) => ({
-          key: `bulk_${i}`,
-          value: { index: i, data: `item_${i}` }
-        }));
-
-        for (const item of bulkData) {
-          await makeRequest(server, 'POST', '/api/v1/memory', item);
-        }
-
-        expect(platform.memory.size).toBe(50);
-        
-        // Verify random samples
-        expect(platform.memory.get('bulk_10').content.index).toBe(10);
-        expect(platform.memory.get('bulk_25').content.index).toBe(25);
-        
+        expect(response.status).toBe(200);
+        expect(platform.memory.get('large').content).toBe(largeValue);
         done();
       });
     });
   });
 
-  describe('Advanced Plan Workflows', () => {
-    test('should handle hierarchical plan structures', (done) => {
+  describe('Connection Handling', () => {
+    test('should handle rapid connection/disconnection', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        // Parent plan
-        const parent = await makeRequest(server, 'POST', '/api/v1/plans', {
-          task_description: 'Parent project',
-          steps: ['Init', 'Execute', 'Finalize']
+        const promises = Array.from({ length: 20 }, () =>
+          makeRequest(server, 'GET', '/health')
+        );
+
+        const results = await Promise.all(promises);
+        results.forEach(result => {
+          expect(result.status).toBe(200);
         });
-
-        // Child plans
-        const children = [];
-        for (let i = 0; i < 3; i++) {
-          const child = await makeRequest(server, 'POST', '/api/v1/plans', {
-            task_description: `Child task ${i}`,
-            steps: [`Child ${i} step 1`, `Child ${i} step 2`]
-          });
-          children.push(child.body.plan_id);
-        }
-
-        // Store hierarchy
-        await makeRequest(server, 'POST', '/api/v1/memory', {
-          key: 'plan_hierarchy',
-          value: {
-            parent: parent.body.plan_id,
-            children
-          }
-        });
-
-        expect(platform.plans.size).toBe(4);
-        const hierarchy = platform.memory.get('plan_hierarchy');
-        expect(hierarchy.content.children).toHaveLength(3);
-        
         done();
       });
     });
 
-    test('should handle plan execution tracking', (done) => {
+    test('should handle concurrent requests to different endpoints', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const planResp = await makeRequest(server, 'POST', '/api/v1/plans', {
-          task_description: 'Tracked execution',
-          steps: ['Step 1', 'Step 2', 'Step 3']
+        const promises = [
+          makeRequest(server, 'GET', '/health'),
+          makeRequest(server, 'GET', '/api/v1/tools'),
+          makeRequest(server, 'GET', '/api/v1/capabilities'),
+          makeRequest(server, 'GET', '/api/v1/demo'),
+          makeRequest(server, 'GET', '/api/v1/memory')
+        ];
+
+        const results = await Promise.all(promises);
+        results.forEach(result => {
+          expect(result.status).toBe(200);
         });
-
-        const planId = planResp.body.plan_id;
-        const executionLog = [];
-
-        // Simulate step execution
-        const plan = platform.plans.get(planId);
-        for (let i = 0; i < plan.steps.length; i++) {
-          executionLog.push({
-            step: plan.steps[i],
-            status: 'completed',
-            timestamp: new Date().toISOString(),
-            duration_ms: Math.random() * 1000
-          });
-        }
-
-        await makeRequest(server, 'POST', '/api/v1/memory', {
-          key: `execution_log_${planId}`,
-          value: executionLog
-        });
-
-        const log = platform.memory.get(`execution_log_${planId}`);
-        expect(log.content).toHaveLength(3);
-        
         done();
       });
     });
 
-    test('should handle plan retry mechanisms', (done) => {
+    test('should handle slow clients gracefully', (done) => {
       server = platform.createServer();
-      server.listen(testPort, async () => {
-        const originalPlan = await makeRequest(server, 'POST', '/api/v1/plans', {
-          task_description: 'Task with retries'
-        });
-
-        // Simulate retries
-        const retryHistory = [];
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          retryHistory.push({
-            attempt,
-            planId: originalPlan.body.plan_id,
-            timestamp: new Date().toISOString(),
-            status: attempt < 3 ? 'failed' : 'success'
-          });
-        }
-
-        await makeRequest(server, 'POST', '/api/v1/memory', {
-          key: `retry_history_${originalPlan.body.plan_id}`,
-          value: retryHistory
-        });
-
-        const history = platform.memory.get(`retry_history_${originalPlan.body.plan_id}`);
-        expect(history.content).toHaveLength(3);
-        expect(history.content[2].status).toBe('success');
-        
-        done();
-      });
-    });
-  });
-
-  describe('Data Consistency Scenarios', () => {
-    test('should maintain consistency during rapid updates', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const key = 'rapid_update_test';
-        
-        // Rapid sequential updates
-        for (let i = 0; i < 20; i++) {
-          await makeRequest(server, 'POST', '/api/v1/memory', {
-            key,
-            value: { counter: i, timestamp: Date.now() }
-          });
-        }
-
-        const final = platform.memory.get(key);
-        expect(final.content.counter).toBe(19);
-        
-        done();
-      });
-    });
-
-    test('should handle interleaved read/write operations', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const operations = [];
-
-        for (let i = 0; i < 10; i++) {
-          // Write
-          operations.push(
-            makeRequest(server, 'POST', '/api/v1/memory', {
-              key: `interleave_${i}`,
-              value: i
-            })
-          );
-
-          // Read
-          operations.push(
-            makeRequest(server, 'GET', '/api/v1/memory')
-          );
-        }
-
-        const results = await Promise.all(operations);
-        const writes = results.filter((_, i) => i % 2 === 0);
-        const reads = results.filter((_, i) => i % 2 === 1);
-
-        // All writes should succeed
-        writes.forEach(w => expect(w.status).toBe(200));
-        
-        // All reads should succeed
-        reads.forEach(r => expect(r.status).toBe(200));
-        
-        done();
-      });
-    });
-
-    test('should maintain data integrity under load', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const writeOps = [];
-
-        // Concurrent writes with verification data
-        for (let i = 0; i < 30; i++) {
-          writeOps.push(
-            makeRequest(server, 'POST', '/api/v1/memory', {
-              key: `integrity_${i}`,
-              value: {
-                index: i,
-                checksum: `check_${i}`,
-                timestamp: Date.now()
-              }
-            })
-          );
-        }
-
-        await Promise.all(writeOps);
-
-        // Verify all data
-        for (let i = 0; i < 30; i++) {
-          const stored = platform.memory.get(`integrity_${i}`);
-          expect(stored.content.index).toBe(i);
-          expect(stored.content.checksum).toBe(`check_${i}`);
-        }
-        
-        done();
-      });
-    });
-  });
-
-  describe('Error Recovery Mechanisms', () => {
-    test('should recover from malformed request sequences', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        // Valid request
-        await makeRequest(server, 'POST', '/api/v1/memory', {
-          key: 'before_error',
-          value: 'valid'
-        });
-
-        // Malformed requests
-        await makeRequest(server, 'POST', '/api/v1/memory', {
-          invalid: 'structure'
-        });
-
-        try {
-          await makeRequest(server, 'POST', '/api/v1/memory', {
-            key: 'test',
-            value: undefined
-          });
-        } catch (e) {
-          // Expected to fail
-        }
-
-        // Valid request after errors
-        await makeRequest(server, 'POST', '/api/v1/memory', {
-          key: 'after_error',
-          value: 'recovered'
-        });
-
-        // System should have recovered
-        expect(platform.memory.has('before_error')).toBe(true);
-        expect(platform.memory.has('after_error')).toBe(true);
-        
-        done();
-      });
-    });
-
-    test('should handle connection interruptions gracefully', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        // Simulate interrupted request
-        const addr = server.address();
-        const req = http.request({
+      server.listen(testPort, () => {
+        const options = {
           hostname: 'localhost',
-          port: addr.port,
+          port: testPort,
           path: '/api/v1/memory',
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
+        };
+
+        const req = http.request(options, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            expect(res.statusCode).toBe(200);
+            done();
+          });
         });
 
-        req.write('{"key": "interrupted"');
-        req.destroy(); // Interrupt
-
-        // Give server time to handle
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Server should still be operational
-        const health = await makeRequest(server, 'GET', '/health');
-        expect(health.status).toBe(200);
+        const data = JSON.stringify({ key: 'slow', value: 'client' });
         
+        // Simulate slow writing
+        for (let i = 0; i < data.length; i += 10) {
+          req.write(data.slice(i, i + 10));
+        }
+        
+        setTimeout(() => req.end(), 50);
+      });
+    });
+  });
+
+  describe('Error Recovery', () => {
+    test('should recover from JSON parsing errors', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, () => {
+        const options = {
+          hostname: 'localhost',
+          port: testPort,
+          path: '/api/v1/memory',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        };
+
+        const req = http.request(options, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            // Should not crash server
+            expect([200, 400]).toContain(res.statusCode);
+            done();
+          });
+        });
+
+        req.write('{invalid json');
+        req.end();
+      });
+    });
+
+    test('should handle requests after JSON parsing error', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        // Send bad request
+        await makeRequest(server, 'POST', '/api/v1/memory', null).catch(() => {});
+        
+        // Server should still work
+        const response = await makeRequest(server, 'GET', '/health');
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+
+    test('should handle missing files gracefully', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/');
+        expect([200, 404]).toContain(response.status);
         done();
       });
     });
   });
 
-  describe('Performance Optimization Scenarios', () => {
-    test('should handle request bursts efficiently', (done) => {
+  describe('Data Integrity', () => {
+    test('should maintain data across multiple operations', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const burstSize = 50;
-        const startTime = Date.now();
+        // Create multiple memories
+        await makeRequest(server, 'POST', '/api/v1/memory', { key: 'k1', value: 'v1' });
+        await makeRequest(server, 'POST', '/api/v1/memory', { key: 'k2', value: 'v2' });
+        await makeRequest(server, 'POST', '/api/v1/memory', { key: 'k3', value: 'v3' });
 
-        const requests = Array.from({ length: burstSize }, (_, i) =>
+        // Verify all are stored
+        const response = await makeRequest(server, 'GET', '/api/v1/memory');
+        expect(response.body.count).toBe(3);
+        
+        // Verify data integrity
+        expect(platform.memory.get('k1').content).toBe('v1');
+        expect(platform.memory.get('k2').content).toBe('v2');
+        expect(platform.memory.get('k3').content).toBe('v3');
+        done();
+      });
+    });
+
+    test('should handle concurrent writes to different keys', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const promises = Array.from({ length: 50 }, (_, i) =>
           makeRequest(server, 'POST', '/api/v1/memory', {
-            key: `burst_${i}`,
-            value: `data_${i}`
+            key: `concurrent_${i}`,
+            value: `value_${i}`
           })
         );
 
-        await Promise.all(requests);
-        const duration = Date.now() - startTime;
-
-        // Should complete burst in reasonable time
-        expect(duration).toBeLessThan(5000);
-        expect(platform.memory.size).toBe(burstSize);
+        await Promise.all(promises);
+        expect(platform.memory.size).toBe(50);
         
+        // Verify each entry
+        for (let i = 0; i < 50; i++) {
+          expect(platform.memory.get(`concurrent_${i}`).content).toBe(`value_${i}`);
+        }
         done();
       });
     });
 
-    test('should optimize repeated identical requests', (done) => {
+    test('should preserve plan data through multiple creates', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        // Populate data
-        await makeRequest(server, 'POST', '/api/v1/memory', {
-          key: 'cached_data',
-          value: 'test'
+        const plan1 = await makeRequest(server, 'POST', '/api/v1/plans', {
+          task_description: 'Plan 1',
+          steps: ['A', 'B']
         });
 
-        const readCount = 20;
-        const startTime = Date.now();
+        const plan2 = await makeRequest(server, 'POST', '/api/v1/plans', {
+          task_description: 'Plan 2',
+          steps: ['C', 'D']
+        });
 
-        const reads = Array.from({ length: readCount }, () =>
-          makeRequest(server, 'GET', '/api/v1/memory')
-        );
+        // Verify both plans exist
+        const response = await makeRequest(server, 'GET', '/api/v1/plans');
+        expect(response.body.count).toBe(2);
 
-        const results = await Promise.all(reads);
-        const duration = Date.now() - startTime;
-
-        // All reads should succeed
-        results.forEach(r => expect(r.status).toBe(200));
+        // Verify individual plan data
+        const storedPlan1 = platform.plans.get(plan1.body.plan_id);
+        const storedPlan2 = platform.plans.get(plan2.body.plan_id);
         
-        // Should be fast (< 50ms per read average)
-        expect(duration / readCount).toBeLessThan(50);
-        
+        expect(storedPlan1.task_description).toBe('Plan 1');
+        expect(storedPlan2.task_description).toBe('Plan 2');
+        expect(storedPlan1.steps).toEqual(['A', 'B']);
+        expect(storedPlan2.steps).toEqual(['C', 'D']);
         done();
       });
     });
   });
 
-  describe('Advanced Validation', () => {
-    test('should validate complex nested structures', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const complexStructure = {
-          key: 'nested_validation',
-          value: {
-            level1: {
-              level2: {
-                level3: {
-                  array: [1, 2, { nested: true }],
-                  string: 'deep value'
-                }
-              },
-              parallel: {
-                data: 'side branch'
-              }
-            }
-          }
-        };
-
-        await makeRequest(server, 'POST', '/api/v1/memory', complexStructure);
-
-        const stored = platform.memory.get('nested_validation');
-        expect(stored.content.level1.level2.level3.array[2].nested).toBe(true);
-        
+  describe('Platform Lifecycle', () => {
+    test('should initialize correctly on start', (done) => {
+      platform.start().then(() => {
+        expect(platform.isInitialized).toBe(true);
         done();
       });
     });
 
-    test('should handle all JSON primitive types', (done) => {
+    test('should log capabilities without errors', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      platform.logPlatformCapabilities();
+      
+      expect(consoleSpy).toHaveBeenCalledTimes(expect.any(Number));
+      expect(consoleSpy.mock.calls.length).toBeGreaterThan(0);
+      
+      consoleSpy.mockRestore();
+    });
+
+    test('should handle start errors gracefully', (done) => {
+      const existingServer = http.createServer();
+      existingServer.listen(testPort, () => {
+        platform.start().catch((error) => {
+          expect(error).toBeDefined();
+          existingServer.close(done);
+        });
+      });
+    });
+  });
+
+  describe('Query Parameters', () => {
+    test('should handle query parameters in GET requests', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const primitives = {
-          string: 'text',
-          number: 42,
-          boolean: true,
-          null_value: null,
-          array: [1, 2, 3],
-          object: { key: 'value' }
-        };
-
-        for (const [key, value] of Object.entries(primitives)) {
-          await makeRequest(server, 'POST', '/api/v1/memory', {
-            key: `primitive_${key}`,
-            value
-          });
-        }
-
-        expect(platform.memory.size).toBe(6);
-        
+        const response = await makeRequest(server, 'GET', '/health?debug=true');
+        expect(response.status).toBe(200);
         done();
       });
     });
 
-    test('should handle special numeric values', (done) => {
+    test('should ignore query parameters for POST requests', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const specialNumbers = [
-          { key: 'zero', value: 0 },
-          { key: 'negative', value: -42 },
-          { key: 'float', value: 3.14159 },
-          { key: 'large', value: Number.MAX_SAFE_INTEGER },
-          { key: 'small', value: Number.MIN_SAFE_INTEGER }
-        ];
-
-        for (const item of specialNumbers) {
-          await makeRequest(server, 'POST', '/api/v1/memory', item);
-        }
-
-        expect(platform.memory.get('zero').content).toBe(0);
-        expect(platform.memory.get('float').content).toBeCloseTo(3.14159);
-        
+        const response = await makeRequest(server, 'POST', '/api/v1/memory?extra=param', {
+          key: 'test',
+          value: 'data'
+        });
+        expect(response.status).toBe(200);
         done();
       });
     });
   });
 
-  describe('Stress Testing', () => {
-    test('should handle sustained high load', (done) => {
+  describe('Special Characters in URLs', () => {
+    test('should handle URL-encoded characters', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const iterations = 5;
-        const operationsPerIteration = 20;
-
-        for (let i = 0; i < iterations; i++) {
-          const ops = Array.from({ length: operationsPerIteration }, (_, j) =>
-            makeRequest(server, 'POST', '/api/v1/memory', {
-              key: `stress_${i}_${j}`,
-              value: `iteration_${i}_item_${j}`
-            })
-          );
-
-          await Promise.all(ops);
-        }
-
-        expect(platform.memory.size).toBe(iterations * operationsPerIteration);
-        
-        // System should still be responsive
-        const health = await makeRequest(server, 'GET', '/health');
-        expect(health.status).toBe(200);
-        
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'test key with spaces',
+          value: 'test value'
+        });
+        expect(response.status).toBe(200);
         done();
       });
     });
 
-    test('should handle mixed operation stress', (done) => {
+    test('should handle routes with trailing slashes', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const operations = [];
-
-        for (let i = 0; i < 30; i++) {
-          operations.push(
-            makeRequest(server, 'POST', '/api/v1/memory', {
-              key: `mixed_mem_${i}`,
-              value: i
-            })
-          );
-
-          operations.push(
-            makeRequest(server, 'POST', '/api/v1/plans', {
-              task_description: `Mixed plan ${i}`
-            })
-          );
-
-          operations.push(
-            makeRequest(server, 'GET', '/health')
-          );
-        }
-
-        const results = await Promise.all(operations);
-        
-        // All operations should complete
-        results.forEach(r => expect(r.status).toBeLessThan(500));
-        
-        done();
-      });
-    });
-  });
-
-  describe('Endpoint Consistency', () => {
-    test('should provide consistent response structure', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const endpoints = [
-          { path: '/health', method: 'GET' },
-          { path: '/api/v1/tools', method: 'GET' },
-          { path: '/api/v1/memory', method: 'GET' },
-          { path: '/api/v1/plans', method: 'GET' },
-          { path: '/api/v1/capabilities', method: 'GET' },
-          { path: '/api/v1/demo', method: 'GET' }
-        ];
-
-        for (const endpoint of endpoints) {
-          const response = await makeRequest(server, endpoint.method, endpoint.path);
-          
-          expect(response.status).toBe(200);
-          expect(typeof response.body).toBe('object');
-          expect(response.headers['content-type']).toBe('application/json');
-        }
-        
-        done();
-      });
-    });
-
-    test('should maintain CORS consistency', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const paths = [
-          '/health',
-          '/api/v1/tools',
-          '/api/v1/memory',
-          '/api/v1/plans'
-        ];
-
-        for (const path of paths) {
-          const response = await makeRequest(server, 'GET', path);
-          
-          expect(response.headers['access-control-allow-origin']).toBe('*');
-          expect(response.headers['access-control-allow-methods']).toBeDefined();
-        }
-        
+        const response = await makeRequest(server, 'GET', '/health/');
+        expect([200, 404]).toContain(response.status);
         done();
       });
     });

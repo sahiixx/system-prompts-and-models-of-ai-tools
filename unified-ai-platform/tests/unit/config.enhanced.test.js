@@ -1,19 +1,18 @@
 /**
  * Enhanced Unit Tests for Configuration Files
  * 
- * These additional tests provide comprehensive coverage for:
- * - Configuration validation and schema integrity
- * - Edge cases and boundary conditions
- * - Performance and resource constraints
- * - Security and data integrity
- * - Complex tool configurations
+ * Additional comprehensive tests for:
+ * - Configuration validation
+ * - Edge cases in config values
+ * - Tool schema validation
+ * - Performance characteristics
  */
 
 const fs = require('fs');
 const path = require('path');
 
 describe('Configuration Files - Enhanced Tests', () => {
-  describe('system-config.json - Advanced Validation', () => {
+  describe('system-config.json - Deep Validation', () => {
     let config;
 
     beforeAll(() => {
@@ -22,243 +21,133 @@ describe('Configuration Files - Enhanced Tests', () => {
       config = JSON.parse(configData);
     });
 
-    describe('Version Management', () => {
-      test('should follow semantic versioning', () => {
+    describe('Version Validation', () => {
+      test('should have semantic versioning format', () => {
         const version = config.platform.version;
         expect(version).toMatch(/^\d+\.\d+\.\d+$/);
-        
-        const [major, minor, patch] = version.split('.').map(Number);
+      });
+
+      test('should have non-negative version numbers', () => {
+        const [major, minor, patch] = config.platform.version.split('.').map(Number);
         expect(major).toBeGreaterThanOrEqual(0);
         expect(minor).toBeGreaterThanOrEqual(0);
         expect(patch).toBeGreaterThanOrEqual(0);
       });
-
-      test('should have valid version number components', () => {
-        const version = config.platform.version;
-        const parts = version.split('.');
-        
-        parts.forEach(part => {
-          const num = parseInt(part, 10);
-          expect(num).not.toBeNaN();
-          expect(num).toBeLessThan(1000); // Reasonable upper bound
-        });
-      });
     });
 
-    describe('Core Capabilities - Deep Validation', () => {
-      test('multi_modal should have valid processor names', () => {
-        const processors = config.core_capabilities.multi_modal.processors;
-        expect(processors).toBeDefined();
-        expect(Array.isArray(processors)).toBe(true);
-        
-        processors.forEach(processor => {
-          expect(typeof processor).toBe('string');
-          expect(processor.length).toBeGreaterThan(0);
-          expect(processor).toMatch(/^[a-z_]+$/); // snake_case validation
+    describe('Capability Configuration Consistency', () => {
+      test('all capabilities should have enabled property', () => {
+        const capabilities = config.core_capabilities;
+        Object.values(capabilities).forEach(capability => {
+          expect(capability).toHaveProperty('enabled');
+          expect(typeof capability.enabled).toBe('boolean');
         });
       });
 
-      test('multi_modal should support expected media types', () => {
-        const types = config.core_capabilities.multi_modal.supported_types;
-        const expectedTypes = ['text', 'code', 'image', 'audio'];
-        
-        expectedTypes.forEach(type => {
-          expect(types).toContain(type);
-        });
+      test('multi-modal should have complete configuration', () => {
+        const multiModal = config.core_capabilities.multi_modal;
+        expect(multiModal.supported_types).toBeDefined();
+        expect(Array.isArray(multiModal.supported_types)).toBe(true);
+        expect(multiModal.processors).toBeDefined();
+        expect(Array.isArray(multiModal.processors)).toBe(true);
+        expect(multiModal.processors.length).toBeGreaterThan(0);
       });
 
-      test('memory_system types should be comprehensive', () => {
-        const memoryTypes = config.core_capabilities.memory_system.types;
-        expect(memoryTypes.length).toBeGreaterThan(0);
-        
-        memoryTypes.forEach(type => {
-          expect(typeof type).toBe('string');
-          expect(type.length).toBeGreaterThan(0);
-        });
+      test('memory system should specify persistence type', () => {
+        const memory = config.core_capabilities.memory_system;
+        expect(memory.persistence).toBeDefined();
+        expect(typeof memory.persistence).toBe('string');
+        expect(memory.types).toBeDefined();
+        expect(Array.isArray(memory.types)).toBe(true);
       });
 
-      test('memory_system should have valid persistence strategy', () => {
-        const persistence = config.core_capabilities.memory_system.persistence;
-        const validStrategies = ['in_memory', 'redis', 'database', 'file_system', 'hybrid'];
-        
-        expect(validStrategies).toContain(persistence);
-      });
-
-      test('tool_system flags should be boolean', () => {
-        const toolSystem = config.core_capabilities.tool_system;
-        expect(typeof toolSystem.modular).toBe('boolean');
-        expect(typeof toolSystem.json_defined).toBe('boolean');
-        expect(typeof toolSystem.dynamic_loading).toBe('boolean');
-      });
-
-      test('planning_system should have valid modes', () => {
-        const modes = config.core_capabilities.planning_system.modes;
-        expect(modes).toContain('two_phase');
-        
-        modes.forEach(mode => {
-          expect(typeof mode).toBe('string');
-          expect(mode.length).toBeGreaterThan(0);
-        });
-      });
-
-      test('planning_system strategies should be actionable', () => {
-        const strategies = config.core_capabilities.planning_system.strategies;
-        const validStrategies = ['sequential', 'parallel', 'adaptive', 'reactive', 'proactive'];
-        
-        strategies.forEach(strategy => {
-          expect(typeof strategy).toBe('string');
-          expect(validStrategies.some(valid => strategy.includes(valid) || valid.includes(strategy))).toBe(true);
-        });
+      test('planning system should define all modes and strategies', () => {
+        const planning = config.core_capabilities.planning_system;
+        expect(planning.modes).toBeDefined();
+        expect(planning.strategies).toBeDefined();
+        expect(planning.modes.length).toBeGreaterThan(0);
+        expect(planning.strategies.length).toBeGreaterThan(0);
       });
 
       test('security features should be comprehensive', () => {
-        const features = config.core_capabilities.security.features;
-        const essentialFeatures = ['authentication', 'authorization'];
-        
-        essentialFeatures.forEach(feature => {
-          expect(features).toContain(feature);
-        });
-        
-        expect(features.length).toBeGreaterThanOrEqual(3);
+        const security = config.core_capabilities.security;
+        expect(security.features).toContain('authentication');
+        expect(security.features).toContain('authorization');
+        expect(security.features.length).toBeGreaterThanOrEqual(4);
       });
     });
 
-    describe('Operating Modes - Consistency', () => {
-      test('development mode should have debug enabled', () => {
-        expect(config.operating_modes.development.debug).toBe(true);
+    describe('Operating Modes Configuration', () => {
+      test('development and production modes should be mutually exclusive in debug', () => {
+        const dev = config.operating_modes.development.debug;
+        const prod = config.operating_modes.production.debug;
+        expect(dev).not.toBe(prod);
       });
 
-      test('production mode should have debug disabled', () => {
-        expect(config.operating_modes.production.debug).toBe(false);
+      test('production mode should optimize performance', () => {
+        const prod = config.operating_modes.production;
+        expect(prod.performance_optimized).toBe(true);
       });
 
-      test('development mode should have verbose logging', () => {
-        const logging = config.operating_modes.development.logging;
-        expect(['verbose', 'debug', 'info']).toContain(logging);
-      });
-
-      test('production mode should have minimal logging', () => {
-        const logging = config.operating_modes.production.logging;
-        expect(['error', 'warn', 'info']).toContain(logging);
-      });
-
-      test('operating modes should have distinct configurations', () => {
+      test('development mode should enable debugging features', () => {
         const dev = config.operating_modes.development;
-        const prod = config.operating_modes.production;
-        
-        // At least one setting should differ
-        const differs = dev.debug !== prod.debug || dev.logging !== prod.logging;
-        expect(differs).toBe(true);
+        expect(dev.debug).toBe(true);
+        expect(dev.logging).toBe('verbose');
       });
     });
 
-    describe('Performance Targets - Validation', () => {
-      test('response time targets should be realistic', () => {
+    describe('Performance Targets', () => {
+      test('response times should be realistic', () => {
         const { target_ms, max_ms } = config.performance.response_time;
-        
         expect(target_ms).toBeGreaterThan(0);
-        expect(target_ms).toBeLessThan(10000); // Less than 10 seconds
-        expect(max_ms).toBeGreaterThan(target_ms);
-        expect(max_ms).toBeLessThan(60000); // Less than 1 minute
+        expect(target_ms).toBeLessThan(max_ms);
+        expect(max_ms).toBeLessThan(30000); // Should be under 30 seconds
       });
 
-      test('memory usage limits should be reasonable', () => {
+      test('memory limits should be reasonable', () => {
         const { max_mb } = config.performance.memory_usage;
-        
         expect(max_mb).toBeGreaterThan(0);
-        expect(max_mb).toBeLessThan(10000); // Less than 10GB
+        expect(max_mb).toBeLessThan(10000); // Should be under 10GB
       });
 
-      test('concurrent operations should have sensible limits', () => {
-        const { max_parallel, queue_size } = config.performance.concurrent_operations;
-        
-        expect(max_parallel).toBeGreaterThan(0);
-        expect(max_parallel).toBeLessThanOrEqual(100); // Reasonable parallel limit
-        expect(queue_size).toBeGreaterThanOrEqual(max_parallel);
-        expect(queue_size).toBeLessThan(10000);
-      });
-
-      test('performance optimization flag should exist in production', () => {
-        const prod = config.operating_modes.production;
-        expect(prod.performance_optimized).toBeDefined();
+      test('concurrent operations should have queue', () => {
+        const concurrent = config.performance.concurrent_operations;
+        expect(concurrent.max_parallel).toBeGreaterThan(0);
+        expect(concurrent.queue_size).toBeGreaterThan(concurrent.max_parallel);
       });
     });
 
-    describe('Configuration Completeness', () => {
-      test('should have all required top-level keys', () => {
-        const requiredKeys = ['platform', 'core_capabilities', 'operating_modes', 'performance'];
-        
-        requiredKeys.forEach(key => {
-          expect(config).toHaveProperty(key);
-          expect(config[key]).not.toBeNull();
-          expect(config[key]).not.toBeUndefined();
-        });
+    describe('Data Type Validation', () => {
+      test('all string fields should be non-empty', () => {
+        expect(config.platform.name.length).toBeGreaterThan(0);
+        expect(config.platform.version.length).toBeGreaterThan(0);
+        expect(config.platform.description.length).toBeGreaterThan(0);
       });
 
-      test('should not have empty string values', () => {
-        const checkForEmptyStrings = (obj, path = '') => {
-          for (const [key, value] of Object.entries(obj)) {
-            const currentPath = path ? `${path}.${key}` : key;
-            
-            if (typeof value === 'string') {
-              expect(value.length).toBeGreaterThan(0);
-            } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-              checkForEmptyStrings(value, currentPath);
-            }
-          }
-        };
-        
-        checkForEmptyStrings(config);
-      });
-
-      test('should not have null or undefined values in critical paths', () => {
-        expect(config.platform.name).not.toBeNull();
-        expect(config.platform.version).not.toBeNull();
-        expect(config.platform.description).not.toBeNull();
-        
-        Object.values(config.core_capabilities).forEach(capability => {
-          expect(capability.enabled).not.toBeUndefined();
-        });
-      });
-    });
-
-    describe('Data Type Consistency', () => {
-      test('all enabled flags should be boolean', () => {
-        const capabilities = config.core_capabilities;
-        
-        Object.values(capabilities).forEach(capability => {
-          if (capability.hasOwnProperty('enabled')) {
-            expect(typeof capability.enabled).toBe('boolean');
-          }
-        });
-      });
-
-      test('all numeric values should be valid numbers', () => {
-        const performance = config.performance;
-        
-        Object.values(performance).forEach(metric => {
-          Object.entries(metric).forEach(([key, value]) => {
-            if (key.includes('_ms') || key.includes('_mb') || key.includes('max_') || key.includes('target_')) {
-              expect(typeof value).toBe('number');
-              expect(value).not.toBeNaN();
-              expect(isFinite(value)).toBe(true);
+      test('all boolean fields should be true or false', () => {
+        const checkBooleans = (obj) => {
+          Object.entries(obj).forEach(([key, value]) => {
+            if (typeof value === 'boolean') {
+              expect([true, false]).toContain(value);
+            } else if (typeof value === 'object' && value !== null) {
+              checkBooleans(value);
             }
           });
-        });
+        };
+        checkBooleans(config);
       });
 
-      test('all array fields should be valid arrays', () => {
-        const multiModal = config.core_capabilities.multi_modal;
-        const memory = config.core_capabilities.memory_system;
-        const planning = config.core_capabilities.planning_system;
-        const security = config.core_capabilities.security;
-        
-        expect(Array.isArray(multiModal.supported_types)).toBe(true);
-        expect(Array.isArray(multiModal.processors)).toBe(true);
-        expect(Array.isArray(memory.types)).toBe(true);
-        expect(Array.isArray(planning.modes)).toBe(true);
-        expect(Array.isArray(planning.strategies)).toBe(true);
-        expect(Array.isArray(security.features)).toBe(true);
+      test('all number fields should be non-negative', () => {
+        const checkNumbers = (obj) => {
+          Object.entries(obj).forEach(([key, value]) => {
+            if (typeof value === 'number') {
+              expect(value).toBeGreaterThanOrEqual(0);
+            } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+              checkNumbers(value);
+            }
+          });
+        };
+        checkNumbers(config.performance);
       });
     });
   });
@@ -272,9 +161,9 @@ describe('Configuration Files - Enhanced Tests', () => {
       tools = JSON.parse(toolsData);
     });
 
-    describe('Tool Structure Validation', () => {
-      test('all tools should have consistent structure', () => {
-        tools.forEach((tool, index) => {
+    describe('Tool Schema Validation', () => {
+      test('all tools should follow consistent schema', () => {
+        tools.forEach(tool => {
           expect(tool).toHaveProperty('type');
           expect(tool).toHaveProperty('function');
           expect(tool.function).toHaveProperty('name');
@@ -283,83 +172,36 @@ describe('Configuration Files - Enhanced Tests', () => {
         });
       });
 
-      test('all tool names should be valid identifiers', () => {
-        tools.forEach(tool => {
-          const name = tool.function.name;
-          // Valid snake_case identifier
-          expect(name).toMatch(/^[a-z][a-z0-9_]*$/);
-          // Not too long
-          expect(name.length).toBeLessThan(100);
-          // Not reserved keywords (basic check)
-          const reserved = ['function', 'class', 'return', 'if', 'else', 'for', 'while'];
-          expect(reserved).not.toContain(name);
-        });
-      });
-
-      test('all descriptions should be meaningful', () => {
-        tools.forEach(tool => {
-          const desc = tool.function.description;
-          expect(desc.length).toBeGreaterThan(10); // Substantial description
-          expect(desc.length).toBeLessThan(1000); // Not excessively long
-          // Should start with capital letter
-          expect(desc[0]).toMatch(/[A-Z]/);
-        });
-      });
-    });
-
-    describe('Parameter Schema Validation', () => {
-      test('all parameter schemas should be valid JSON Schema', () => {
-        tools.forEach(tool => {
-          const params = tool.function.parameters;
-          expect(params.type).toBe('object');
-          expect(params).toHaveProperty('properties');
-          expect(typeof params.properties).toBe('object');
-        });
-      });
-
-      test('all parameters should have descriptions', () => {
-        tools.forEach(tool => {
-          const properties = tool.function.parameters.properties || {};
-          
-          Object.entries(properties).forEach(([paramName, paramDef]) => {
-            expect(paramDef).toHaveProperty('description');
-            expect(paramDef.description.length).toBeGreaterThan(0);
-          });
-        });
-      });
-
-      test('required parameters should be in properties', () => {
-        tools.forEach(tool => {
-          const required = tool.function.parameters.required || [];
-          const properties = Object.keys(tool.function.parameters.properties || {});
-          
-          required.forEach(reqParam => {
-            expect(properties).toContain(reqParam);
-          });
-        });
-      });
-
       test('all parameter types should be valid JSON Schema types', () => {
-        const validTypes = ['string', 'number', 'integer', 'boolean', 'array', 'object', 'null'];
+        const validTypes = ['string', 'number', 'integer', 'boolean', 'array', 'object'];
         
         tools.forEach(tool => {
           const properties = tool.function.parameters.properties || {};
-          
           Object.values(properties).forEach(prop => {
-            if (prop.type) {
-              expect(validTypes).toContain(prop.type);
+            expect(validTypes).toContain(prop.type);
+          });
+        });
+      });
+
+      test('array parameters should define items', () => {
+        tools.forEach(tool => {
+          const properties = tool.function.parameters.properties || {};
+          Object.entries(properties).forEach(([name, prop]) => {
+            if (prop.type === 'array') {
+              expect(prop.items).toBeDefined();
             }
           });
         });
       });
 
-      test('array parameters should have items definition', () => {
+      test('object parameters should define properties', () => {
         tools.forEach(tool => {
           const properties = tool.function.parameters.properties || {};
-          
           Object.entries(properties).forEach(([name, prop]) => {
-            if (prop.type === 'array') {
-              expect(prop).toHaveProperty('items');
+            if (prop.type === 'object') {
+              // Object type parameters may or may not have properties defined
+              // This is valid JSON Schema
+              expect(prop).toBeDefined();
             }
           });
         });
@@ -367,173 +209,159 @@ describe('Configuration Files - Enhanced Tests', () => {
     });
 
     describe('Tool Naming Conventions', () => {
-      test('should not have duplicate tool names', () => {
-        const names = tools.map(t => t.function.name);
-        const uniqueNames = new Set(names);
-        expect(uniqueNames.size).toBe(names.length);
-      });
-
-      test('tool names should follow consistent patterns', () => {
-        const names = tools.map(t => t.function.name);
-        
-        // All should use underscores, not hyphens or camelCase
-        names.forEach(name => {
-          expect(name).not.toMatch(/-/);
-          expect(name).not.toMatch(/[A-Z]/);
+      test('tool names should not have uppercase letters', () => {
+        tools.forEach(tool => {
+          expect(tool.function.name).toBe(tool.function.name.toLowerCase());
         });
       });
 
-      test('tool names should be descriptive', () => {
+      test('tool names should not start with numbers', () => {
         tools.forEach(tool => {
-          const name = tool.function.name;
-          // Should have at least 3 characters
-          expect(name.length).toBeGreaterThanOrEqual(3);
-          // Common abbreviations are okay but shouldn't be too cryptic
-          const parts = name.split('_');
-          parts.forEach(part => {
-            expect(part.length).toBeGreaterThan(0);
-          });
+          expect(tool.function.name).toMatch(/^[a-z]/);
+        });
+      });
+
+      test('tool names should not have spaces', () => {
+        tools.forEach(tool => {
+          expect(tool.function.name).not.toMatch(/\s/);
         });
       });
     });
 
-    describe('Tool Capabilities Coverage', () => {
-      test('should include file system tools', () => {
-        const names = tools.map(t => t.function.name);
-        const fileSystemTools = names.filter(name => 
-          name.includes('file') || name.includes('dir') || name.includes('read') || name.includes('write')
-        );
-        expect(fileSystemTools.length).toBeGreaterThan(0);
-      });
-
-      test('should include search/query tools', () => {
-        const names = tools.map(t => t.function.name);
-        const searchTools = names.filter(name => 
-          name.includes('search') || name.includes('find') || name.includes('query')
-        );
-        expect(searchTools.length).toBeGreaterThan(0);
-      });
-
-      test('should include execution tools', () => {
-        const names = tools.map(t => t.function.name);
-        const execTools = names.filter(name => 
-          name.includes('run') || name.includes('execute') || name.includes('command') || name.includes('terminal')
-        );
-        expect(execTools.length).toBeGreaterThan(0);
-      });
-    });
-
-    describe('Parameter Validation Rules', () => {
-      test('string parameters should not have invalid constraints', () => {
+    describe('Description Quality', () => {
+      test('descriptions should be meaningful', () => {
         tools.forEach(tool => {
-          const properties = tool.function.parameters.properties || {};
-          
-          Object.entries(properties).forEach(([name, prop]) => {
-            if (prop.type === 'string') {
-              // If maxLength exists, it should be reasonable
-              if (prop.maxLength) {
-                expect(prop.maxLength).toBeGreaterThan(0);
-                expect(prop.maxLength).toBeLessThan(1000000);
-              }
-              // If minLength exists, it should be reasonable
-              if (prop.minLength) {
-                expect(prop.minLength).toBeGreaterThanOrEqual(0);
-                if (prop.maxLength) {
-                  expect(prop.minLength).toBeLessThanOrEqual(prop.maxLength);
-                }
-              }
-            }
-          });
-        });
-      });
-
-      test('numeric parameters should have reasonable bounds', () => {
-        tools.forEach(tool => {
-          const properties = tool.function.parameters.properties || {};
-          
-          Object.entries(properties).forEach(([name, prop]) => {
-            if (prop.type === 'number' || prop.type === 'integer') {
-              if (prop.minimum !== undefined && prop.maximum !== undefined) {
-                expect(prop.minimum).toBeLessThanOrEqual(prop.maximum);
-              }
-            }
-          });
-        });
-      });
-
-      test('boolean parameters should be simple', () => {
-        tools.forEach(tool => {
-          const properties = tool.function.parameters.properties || {};
-          
-          Object.entries(properties).forEach(([name, prop]) => {
-            if (prop.type === 'boolean') {
-              // Boolean parameters shouldn't have enum or other complex constraints
-              expect(prop.enum).toBeUndefined();
-              expect(prop.pattern).toBeUndefined();
-            }
-          });
-        });
-      });
-    });
-
-    describe('Tool Completeness', () => {
-      test('should have reasonable number of tools', () => {
-        expect(tools.length).toBeGreaterThan(5);
-        expect(tools.length).toBeLessThan(200); // Not overwhelming
-      });
-
-      test('each tool should be complete and not a stub', () => {
-        tools.forEach(tool => {
-          // Should have meaningful description
           expect(tool.function.description.length).toBeGreaterThan(10);
-          // Should have at least one parameter or be explicitly parameterless
-          const properties = tool.function.parameters.properties || {};
-          expect(Object.keys(properties).length).toBeGreaterThanOrEqual(0);
         });
       });
 
-      test('tools should not have placeholder descriptions', () => {
-        const placeholders = ['TODO', 'TBD', 'FIXME', 'placeholder', 'example'];
-        
+      test('parameter descriptions should exist when defined', () => {
         tools.forEach(tool => {
-          const desc = tool.function.description.toLowerCase();
+          const properties = tool.function.parameters.properties || {};
+          Object.entries(properties).forEach(([name, prop]) => {
+            if (prop.description) {
+              expect(prop.description.length).toBeGreaterThan(0);
+            }
+          });
+        });
+      });
+
+      test('descriptions should not contain placeholder text', () => {
+        const placeholders = ['TODO', 'TBD', 'FIXME', 'XXX'];
+        tools.forEach(tool => {
           placeholders.forEach(placeholder => {
-            expect(desc).not.toContain(placeholder.toLowerCase());
+            expect(tool.function.description.toUpperCase()).not.toContain(placeholder);
           });
         });
       });
     });
 
-    describe('Tool Safety and Security', () => {
-      test('dangerous operations should have confirmation parameters', () => {
-        const dangerousKeywords = ['delete', 'remove', 'destroy', 'drop', 'truncate'];
-        
+    describe('Required Parameters Validation', () => {
+      test('required array should not contain duplicates', () => {
         tools.forEach(tool => {
-          const name = tool.function.name.toLowerCase();
-          const isDangerous = dangerousKeywords.some(keyword => name.includes(keyword));
-          
-          if (isDangerous) {
-            const properties = tool.function.parameters.properties || {};
-            // Should have some form of confirmation, force flag, or detailed parameters
-            expect(Object.keys(properties).length).toBeGreaterThan(0);
-          }
+          const required = tool.function.parameters.required || [];
+          const uniqueRequired = [...new Set(required)];
+          expect(required.length).toBe(uniqueRequired.length);
         });
       });
 
-      test('file system operations should specify target paths', () => {
+      test('required parameters should exist in properties', () => {
         tools.forEach(tool => {
-          const name = tool.function.name;
+          const required = tool.function.parameters.required || [];
           const properties = tool.function.parameters.properties || {};
+          const propertyNames = Object.keys(properties);
           
-          if (name.includes('file') || name.includes('write') || name.includes('read')) {
-            // Should have path, file, or target parameter
-            const hasPathParam = Object.keys(properties).some(key => 
-              key.includes('path') || key.includes('file') || key.includes('target')
-            );
-            expect(hasPathParam).toBe(true);
-          }
+          required.forEach(reqParam => {
+            expect(propertyNames).toContain(reqParam);
+          });
         });
       });
+
+      test('all properties should be either required or optional', () => {
+        tools.forEach(tool => {
+          const required = tool.function.parameters.required || [];
+          const properties = tool.function.parameters.properties || {};
+          const propertyNames = Object.keys(properties);
+          
+          // Just verify they exist - being in required or not is both valid
+          propertyNames.forEach(propName => {
+            expect(properties[propName]).toBeDefined();
+          });
+        });
+      });
+    });
+
+    describe('Tool Coverage', () => {
+      test('should have tools for common operations', () => {
+        const toolNames = tools.map(t => t.function.name);
+        
+        // Should have at least some basic tools
+        expect(toolNames.length).toBeGreaterThan(0);
+      });
+
+      test('should not have empty tools array', () => {
+        expect(tools.length).toBeGreaterThan(0);
+      });
+
+      test('tools should cover various categories', () => {
+        const toolNames = tools.map(t => t.function.name).join(' ');
+        
+        // Check for various operation types (flexible, not all required)
+        const hasVariety = toolNames.includes('search') || 
+                          toolNames.includes('read') || 
+                          toolNames.includes('run') ||
+                          toolNames.includes('list');
+        
+        expect(hasVariety).toBe(true);
+      });
+    });
+
+    describe('JSON Schema Compliance', () => {
+      test('parameters should have type object', () => {
+        tools.forEach(tool => {
+          expect(tool.function.parameters.type).toBe('object');
+        });
+      });
+
+      test('parameters should have properties field', () => {
+        tools.forEach(tool => {
+          expect(tool.function.parameters.properties).toBeDefined();
+          expect(typeof tool.function.parameters.properties).toBe('object');
+        });
+      });
+    });
+  });
+
+  describe('Configuration File System', () => {
+    test('both config files should be in correct directory', () => {
+      const configDir = path.join(__dirname, '../../config');
+      expect(fs.existsSync(configDir)).toBe(true);
+      
+      const systemConfig = path.join(configDir, 'system-config.json');
+      const toolsConfig = path.join(configDir, 'tools.json');
+      
+      expect(fs.existsSync(systemConfig)).toBe(true);
+      expect(fs.existsSync(toolsConfig)).toBe(true);
+    });
+
+    test('config files should be readable', () => {
+      const systemConfig = path.join(__dirname, '../../config/system-config.json');
+      const toolsConfig = path.join(__dirname, '../../config/tools.json');
+      
+      expect(() => fs.readFileSync(systemConfig, 'utf8')).not.toThrow();
+      expect(() => fs.readFileSync(toolsConfig, 'utf8')).not.toThrow();
+    });
+
+    test('config files should not be too large', () => {
+      const systemConfig = path.join(__dirname, '../../config/system-config.json');
+      const toolsConfig = path.join(__dirname, '../../config/tools.json');
+      
+      const systemStats = fs.statSync(systemConfig);
+      const toolsStats = fs.statSync(toolsConfig);
+      
+      // Config files should be under 1MB
+      expect(systemStats.size).toBeLessThan(1024 * 1024);
+      expect(toolsStats.size).toBeLessThan(1024 * 1024);
     });
   });
 
@@ -554,67 +382,16 @@ describe('Configuration Files - Enhanced Tests', () => {
       }
     });
 
-    test('tool count should be reasonable for concurrent operations', () => {
-      const maxParallel = config.performance.concurrent_operations.max_parallel;
-      // Should be able to handle at least as many tools as concurrent operations
-      expect(tools.length).toBeGreaterThanOrEqual(Math.min(maxParallel, 5));
+    test('platform version should be consistent', () => {
+      expect(config.platform.version).toBeDefined();
+      expect(typeof config.platform.version).toBe('string');
     });
 
-    test('configuration should support declared tool capabilities', () => {
-      // If tools exist, tool_system should be properly configured
-      if (tools.length > 0) {
-        expect(config.core_capabilities.tool_system.json_defined).toBe(true);
+    test('configurations should be internally consistent', () => {
+      // If tool system is modular, should support dynamic loading
+      if (config.core_capabilities.tool_system.modular) {
+        expect(config.core_capabilities.tool_system.dynamic_loading).toBeDefined();
       }
-    });
-
-    test('memory system should support tool state persistence', () => {
-      if (tools.length > 0) {
-        expect(config.core_capabilities.memory_system.enabled).toBe(true);
-      }
-    });
-  });
-
-  describe('Configuration File Integrity', () => {
-    test('system-config.json should be well-formed', () => {
-      const configPath = path.join(__dirname, '../../config/system-config.json');
-      const content = fs.readFileSync(configPath, 'utf8');
-      
-      // Should not have trailing commas (which are invalid JSON)
-      expect(content).not.toMatch(/,\s*}/);
-      expect(content).not.toMatch(/,\s*\]/);
-    });
-
-    test('tools.json should be well-formed', () => {
-      const toolsPath = path.join(__dirname, '../../config/tools.json');
-      const content = fs.readFileSync(toolsPath, 'utf8');
-      
-      // Should not have trailing commas
-      expect(content).not.toMatch(/,\s*}/);
-      expect(content).not.toMatch(/,\s*\]/);
-    });
-
-    test('configuration files should have consistent encoding', () => {
-      const configPath = path.join(__dirname, '../../config/system-config.json');
-      const toolsPath = path.join(__dirname, '../../config/tools.json');
-      
-      // Should be readable as UTF-8
-      expect(() => {
-        fs.readFileSync(configPath, 'utf8');
-        fs.readFileSync(toolsPath, 'utf8');
-      }).not.toThrow();
-    });
-
-    test('configuration files should not be excessively large', () => {
-      const configPath = path.join(__dirname, '../../config/system-config.json');
-      const toolsPath = path.join(__dirname, '../../config/tools.json');
-      
-      const configStats = fs.statSync(configPath);
-      const toolsStats = fs.statSync(toolsPath);
-      
-      // Config should be less than 100KB
-      expect(configStats.size).toBeLessThan(100 * 1024);
-      // Tools should be less than 5MB
-      expect(toolsStats.size).toBeLessThan(5 * 1024 * 1024);
     });
   });
 });

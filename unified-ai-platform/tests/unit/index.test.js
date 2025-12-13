@@ -644,146 +644,628 @@ describe('UnifiedAIPlatform', () => {
       consoleSpy.mockRestore();
     });
   });
-
-  describe('Security and Input Validation', () => {
+});
+  describe('Security Tests', () => {
     test('should sanitize XSS attempts in memory values', async () => {
-      const xssPayload = '<script>alert("XSS")</script>';
-      const response = await request(platform.app)
+      const xssAttempt = '<script>alert("xss")</script>';
+      await request(platform.app)
         .post('/api/v1/memory')
-        .send({ key: 'xss_test', value: xssPayload })
+        .send({ key: 'xss_test', value: xssAttempt })
         .expect(200);
 
       const stored = platform.memory.get('xss_test');
-      expect(stored.content).toBe(xssPayload);
-      // Value is stored but should not execute when rendered
+      expect(stored.content).toBe(xssAttempt);
+      // Value should be stored but helmet should prevent execution in responses
     });
 
     test('should handle SQL injection attempts gracefully', async () => {
-      const sqlPayload = "'; DROP TABLE users; --";
+      const sqlInjection = "'; DROP TABLE users; --";
       const response = await request(platform.app)
         .post('/api/v1/memory')
-        .send({ key: sqlPayload, value: 'data' })
+        .send({ key: sqlInjection, value: 'test' })
         .expect(200);
 
-      expect(platform.memory.has(sqlPayload)).toBe(true);
+      expect(response.body.success).toBe(true);
+      expect(platform.memory.has(sqlInjection)).toBe(true);
     });
 
-    test('should handle extremely large payload bodies', async () => {
-      const largeValue = 'A'.repeat(1024 * 1024 * 11); // 11MB
+    test('should reject excessively large payloads', async () => {
+      const largePayload = 'A'.repeat(15 * 1024 * 1024); // 15MB, exceeds 10MB limit
       const response = await request(platform.app)
         .post('/api/v1/memory')
-        .send({ key: 'large', value: largeValue });
+        .send({ key: 'large', value: largePayload });
 
-      // Should reject payloads larger than limit (10MB)
-      expect([413, 500]).toContain(response.status);
+      expect(response.status).toBe(413);
     });
 
-    test('should validate Content-Type header', async () => {
+    test('should set security headers on all responses', async () => {
+      const response = await request(platform.app)
+        .get('/health')
+        .expect(200);
+
+      expect(response.headers['x-content-type-options']).toBeDefined();
+      expect(response.headers['x-frame-options']).toBeDefined();
+    });
+
+    test('should handle path traversal attempts', async () => {
+      const traversalAttempt = '../../etc/passwd';
       const response = await request(platform.app)
         .post('/api/v1/memory')
-        .set('Content-Type', 'text/plain')
-        .send('not json');
+        .send({ key: traversalAttempt, value: 'test' })
+        .expect(200);
 
-      // Should handle gracefully
-      expect(response.status).toBeDefined();
+      expect(platform.memory.has(traversalAttempt)).toBe(true);
     });
 
     test('should handle unicode and special characters in keys', async () => {
-      const unicodeKey = '测试🎯émoji';
-      const response = await request(platform.app)
+      const unicodeKey = '测试🔥';
+      await request(platform.app)
         .post('/api/v1/memory')
-        .send({ key: unicodeKey, value: 'data' })
+        .send({ key: unicodeKey, value: 'unicode test' })
         .expect(200);
 
       expect(platform.memory.has(unicodeKey)).toBe(true);
     });
 
-    test('should reject undefined as value (not null)', async () => {
+    test('should handle null byte injection', async () => {
+      const nullByteKey = 'test\x00injection';
       const response = await request(platform.app)
         .post('/api/v1/memory')
-        .send({ key: 'test', value: undefined })
-        .expect(400);
+        .send({ key: nullByteKey, value: 'test' })
+        .expect(200);
 
-      expect(response.body.error).toBeDefined();
+      expect(response.body.success).toBe(true);
+    });
+
+    test('should validate Content-Type headers', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .set('Content-Type', 'text/plain')
+        .send('invalid data format');
+
+      // Should handle gracefully even with wrong content-type
+      expect([200, 400, 415]).toContain(response.status);
     });
   });
 
-  describe('Performance and Load Testing', () => {
-    test('should handle rapid sequential requests', async () => {
+  describe('Performance and Stress Tests', () => {
+    test('should handle rapid successive requests', async () => {
       const promises = [];
       for (let i = 0; i < 50; i++) {
         promises.push(
           request(platform.app)
-            .post('/api/v1/memory')
-            .send({ key: `rapid_${i}`, value: `value_${i}` })
+            .get('/health')
         );
       }
 
       const responses = await Promise.all(promises);
-      const successCount = responses.filter(r => r.status === 200).length;
-      expect(successCount).toBe(50);
+      responses.forEach(response => {
+        expect(response.status).toBe(200);
+      });
     });
 
-    test('should maintain performance under mixed load', async () => {
-      const start = Date.now();
-      const operations = [
-        ...Array(10).fill(0).map((_, i) => 
-          request(platform.app).get('/health')
-        ),
-        ...Array(10).fill(0).map((_, i) => 
-          request(platform.app).post('/api/v1/memory').send({ key: `k${i}`, value: `v${i}` })
-        ),
-        ...Array(10).fill(0).map((_, i) => 
-          request(platform.app).post('/api/v1/plans').send({ task_description: `Task ${i}` })
-        ),
-      ];
+    test('should handle mixed concurrent read/write operations', async () => {
+      const operations = [];
+      
+      // Mix of reads and writes
+      for (let i = 0; i < 20; i++) {
+        if (i % 2 === 0) {
+          operations.push(
+            request(platform.app)
+              .post('/api/v1/memory')
+              .send({ key: `perf_${i}`, value: `value_${i}` })
+          );
+        } else {
+          operations.push(
+            request(platform.app)
+              .get('/api/v1/memory')
+          );
+        }
+      }
 
-      await Promise.all(operations);
-      const duration = Date.now() - start;
+      const responses = await Promise.all(operations);
+      responses.forEach(response => {
+        expect([200, 201]).toContain(response.status);
+      });
+    });
 
-      // Should complete 30 operations reasonably fast
-      expect(duration).toBeLessThan(10000); // 10 seconds
+    test('should maintain consistent response times under load', async () => {
+      const startTime = Date.now();
+      const promises = Array.from({ length: 100 }, () =>
+        request(platform.app).get('/health')
+      );
+
+      await Promise.all(promises);
+      const endTime = Date.now();
+      const totalTime = endTime - startTime;
+
+      // 100 requests should complete in reasonable time (< 10 seconds)
+      expect(totalTime).toBeLessThan(10000);
     });
 
     test('should not leak memory with many operations', async () => {
       const initialMemory = process.memoryUsage().heapUsed;
-
+      
+      // Perform many operations
       for (let i = 0; i < 100; i++) {
         await request(platform.app)
           .post('/api/v1/memory')
-          .send({ key: `mem_test_${i}`, value: `data_${i}` });
+          .send({ key: `leak_test_${i}`, value: `value_${i}` });
+      }
+
+      // Clear the map
+      platform.memory.clear();
+      
+      // Force garbage collection if available
+      if (global.gc) {
+        global.gc();
       }
 
       const finalMemory = process.memoryUsage().heapUsed;
       const memoryIncrease = finalMemory - initialMemory;
-
-      // Memory increase should be reasonable (less than 50MB)
+      
+      // Memory should not increase by more than 50MB
       expect(memoryIncrease).toBeLessThan(50 * 1024 * 1024);
     });
+
+    test('should handle alternating plan creation and retrieval', async () => {
+      for (let i = 0; i < 10; i++) {
+        await request(platform.app)
+          .post('/api/v1/plans')
+          .send({ task_description: `Task ${i}` })
+          .expect(200);
+
+        await request(platform.app)
+          .get('/api/v1/plans')
+          .expect(200);
+      }
+
+      expect(platform.plans.size).toBe(10);
+    });
   });
 
-  describe('Response Format Consistency', () => {
-    test('all error responses should have consistent format', async () => {
-      const error404 = await request(platform.app).get('/nonexistent')
-;      const error400 = await request(platform.app).post('/api/v1/memory').send({});
+  describe('Data Validation and Edge Cases', () => {
+    test('should handle boolean values in memory', async () => {
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'bool_test', value: true })
+        .expect(200);
 
-      expect(error404.body).toHaveProperty('error');
-      expect(error404.body).toHaveProperty('timestamp');
-      expect(error400.body).toHaveProperty('error');
+      const stored = platform.memory.get('bool_test');
+      expect(stored.content).toBe(true);
     });
 
-    test('all success responses should have consistent format', async () => {
-      const responses = await Promise.all([
-        request(platform.app).get('/health'),
-        request(platform.app).get('/api/v1/tools'),
-        request(platform.app).get('/api/v1/memory'),
-      ]);
+    test('should handle numeric values in memory', async () => {
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'num_test', value: 12345 })
+        .expect(200);
 
+      const stored = platform.memory.get('num_test');
+      expect(stored.content).toBe(12345);
+    });
+
+    test('should handle floating point numbers', async () => {
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'float_test', value: 3.14159 })
+        .expect(200);
+
+      const stored = platform.memory.get('float_test');
+      expect(stored.content).toBe(3.14159);
+    });
+
+    test('should handle negative numbers', async () => {
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'negative', value: -42 })
+        .expect(200);
+
+      const stored = platform.memory.get('negative');
+      expect(stored.content).toBe(-42);
+    });
+
+    test('should handle arrays as values', async () => {
+      const arrayValue = [1, 2, 3, 'four', { five: 5 }];
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'array_test', value: arrayValue })
+        .expect(200);
+
+      const stored = platform.memory.get('array_test');
+      expect(stored.content).toEqual(arrayValue);
+    });
+
+    test('should handle deeply nested objects', async () => {
+      const deepObject = {
+        level1: {
+          level2: {
+            level3: {
+              level4: {
+                level5: 'deep value'
+              }
+            }
+          }
+        }
+      };
+
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'deep', value: deepObject })
+        .expect(200);
+
+      const stored = platform.memory.get('deep');
+      expect(stored.content).toEqual(deepObject);
+    });
+
+    test('should handle keys with special characters', async () => {
+      const specialKeys = [
+        'key-with-dashes',
+        'key.with.dots',
+        'key_with_underscores',
+        'key:with:colons',
+        'key/with/slashes'
+      ];
+
+      for (const key of specialKeys) {
+        await request(platform.app)
+          .post('/api/v1/memory')
+          .send({ key, value: 'test' })
+          .expect(200);
+
+        expect(platform.memory.has(key)).toBe(true);
+      }
+    });
+
+    test('should handle very long keys', async () => {
+      const longKey = 'k'.repeat(1000);
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: longKey, value: 'test' })
+        .expect(200);
+
+      expect(platform.memory.has(longKey)).toBe(true);
+    });
+
+    test('should handle whitespace-only keys', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: '   ', value: 'test' })
+        .expect(400);
+
+      expect(response.body.error).toBeDefined();
+    });
+
+    test('should handle date objects in values', async () => {
+      const dateValue = new Date().toISOString();
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'date_test', value: dateValue })
+        .expect(200);
+
+      const stored = platform.memory.get('date_test');
+      expect(stored.content).toBe(dateValue);
+    });
+
+    test('should handle empty arrays as steps', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/plans')
+        .send({ task_description: 'Test', steps: [] })
+        .expect(200);
+
+      const plan = platform.plans.get(response.body.plan_id);
+      expect(plan.steps).toEqual([]);
+    });
+
+    test('should handle plan steps with complex objects', async () => {
+      const complexSteps = [
+        { action: 'analyze', details: { depth: 5 } },
+        { action: 'implement', files: ['a.js', 'b.js'] }
+      ];
+
+      const response = await request(platform.app)
+        .post('/api/v1/plans')
+        .send({ task_description: 'Complex plan', steps: complexSteps })
+        .expect(200);
+
+      const plan = platform.plans.get(response.body.plan_id);
+      expect(plan.steps).toEqual(complexSteps);
+    });
+  });
+
+  describe('Error Recovery and Resilience', () => {
+    test('should recover from memory operation errors', async () => {
+      // Even if one operation fails, subsequent ones should work
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: null, value: 'test' })
+        .expect(400);
+
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'recovery_test', value: 'success' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+    });
+
+    test('should handle errors without crashing server', async () => {
+      // Try to cause an error
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ invalid: 'data' })
+        .expect(400);
+
+      // Server should still be responsive
+      const health = await request(platform.app)
+        .get('/health')
+        .expect(200);
+
+      expect(health.body.status).toBe('healthy');
+    });
+
+    test('should handle malformed JSON in error handler', async () => {
+      // This tests the error handling middleware
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .set('Content-Type', 'application/json')
+        .send('{"broken": json}');
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should maintain state consistency after errors', async () => {
+      const initialSize = platform.memory.size;
+
+      // Try invalid operation
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: '', value: 'test' })
+        .expect(400);
+
+      // Memory size should not change
+      expect(platform.memory.size).toBe(initialSize);
+    });
+
+    test('should handle concurrent errors gracefully', async () => {
+      const promises = Array.from({ length: 10 }, () =>
+        request(platform.app)
+          .post('/api/v1/memory')
+          .send({ invalid: 'data' })
+      );
+
+      const responses = await Promise.all(promises);
       responses.forEach(response => {
-        expect(response.status).toBe(200);
-        expect(response.headers['content-type']).toMatch(/json/);
+        expect(response.status).toBe(400);
       });
+
+      // Server should still be healthy
+      const health = await request(platform.app)
+        .get('/health')
+        .expect(200);
+
+      expect(health.body.status).toBe('healthy');
     });
   });
 
+  describe('API Response Format Consistency', () => {
+    test('all endpoints should return JSON', async () => {
+      const endpoints = [
+        '/health',
+        '/api/v1/tools',
+        '/api/v1/memory',
+        '/api/v1/plans',
+        '/api/v1/capabilities',
+        '/api/v1/demo'
+      ];
+
+      for (const endpoint of endpoints) {
+        const response = await request(platform.app)
+          .get(endpoint)
+          .expect('Content-Type', /json/);
+
+        expect(response.status).toBe(200);
+      }
+    });
+
+    test('all error responses should include timestamp', async () => {
+      const response = await request(platform.app)
+        .get('/nonexistent')
+        .expect(404);
+
+      expect(response.body.timestamp).toBeDefined();
+      expect(new Date(response.body.timestamp).toString()).not.toBe('Invalid Date');
+    });
+
+    test('all error responses should include error field', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({})
+        .expect(400);
+
+      expect(response.body.error).toBeDefined();
+      expect(typeof response.body.error).toBe('string');
+    });
+
+    test('success responses should have consistent structure', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'test', value: 'data' })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('success');
+      expect(response.body).toHaveProperty('message');
+    });
+  });
+
+  describe('HTTP Method Handling', () => {
+    test('should reject PUT requests on GET-only endpoints', async () => {
+      const response = await request(platform.app)
+        .put('/health')
+        .send({});
+
+      expect(response.status).toBe(404);
+    });
+
+    test('should reject DELETE requests on all endpoints', async () => {
+      const response = await request(platform.app)
+        .delete('/api/v1/memory')
+        .send({});
+
+      expect(response.status).toBe(404);
+    });
+
+    test('should reject PATCH requests', async () => {
+      const response = await request(platform.app)
+        .patch('/api/v1/memory')
+        .send({});
+
+      expect(response.status).toBe(404);
+    });
+
+    test('should handle HEAD requests appropriately', async () => {
+      const response = await request(platform.app)
+        .head('/health');
+
+      // HEAD should return same status as GET but no body
+      expect([200, 404]).toContain(response.status);
+    });
+  });
+
+  describe('Content Encoding and Compression', () => {
+    test('should compress responses when appropriate', async () => {
+      const response = await request(platform.app)
+        .get('/api/v1/capabilities')
+        .set('Accept-Encoding', 'gzip');
+
+      // Response should be successful
+      expect(response.status).toBe(200);
+    });
+
+    test('should handle various accept-encoding headers', async () => {
+      const encodings = ['gzip', 'deflate', 'br', '*'];
+
+      for (const encoding of encodings) {
+        const response = await request(platform.app)
+          .get('/health')
+          .set('Accept-Encoding', encoding);
+
+        expect(response.status).toBe(200);
+      }
+    });
+  });
+
+  describe('Rate Limiting and Request Handling', () => {
+    test('should handle requests with various user-agents', async () => {
+      const userAgents = [
+        'Mozilla/5.0',
+        'curl/7.64.1',
+        'PostmanRuntime/7.26.8',
+        'Python-requests/2.25.1'
+      ];
+
+      for (const ua of userAgents) {
+        const response = await request(platform.app)
+          .get('/health')
+          .set('User-Agent', ua);
+
+        expect(response.status).toBe(200);
+      }
+    });
+
+    test('should handle requests without user-agent', async () => {
+      const response = await request(platform.app)
+        .get('/health');
+
+      expect(response.status).toBe(200);
+    });
+
+    test('should handle requests with custom headers', async () => {
+      const response = await request(platform.app)
+        .get('/health')
+        .set('X-Custom-Header', 'custom-value')
+        .set('X-Request-ID', '12345');
+
+      expect(response.status).toBe(200);
+    });
+  });
+
+  describe('Query Parameters', () => {
+    test('should ignore query parameters on endpoints that don\'t use them', async () => {
+      const response = await request(platform.app)
+        .get('/health?unused=param&another=value')
+        .expect(200);
+
+      expect(response.body.status).toBe('healthy');
+    });
+
+    test('should handle malformed query strings gracefully', async () => {
+      const response = await request(platform.app)
+        .get('/health?malformed=&&&===');
+
+      expect(response.status).toBe(200);
+    });
+  });
+
+  describe('Memory Management', () => {
+    test('should handle clearing all memories', () => {
+      platform.memory.set('key1', { content: 'val1' });
+      platform.memory.set('key2', { content: 'val2' });
+      
+      platform.memory.clear();
+      
+      expect(platform.memory.size).toBe(0);
+    });
+
+    test('should handle deleting individual memories', async () => {
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'to_delete', value: 'test' })
+        .expect(200);
+
+      platform.memory.delete('to_delete');
+
+      expect(platform.memory.has('to_delete')).toBe(false);
+    });
+
+    test('should handle checking memory existence', async () => {
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'exists', value: 'test' })
+        .expect(200);
+
+      expect(platform.memory.has('exists')).toBe(true);
+      expect(platform.memory.has('does_not_exist')).toBe(false);
+    });
+  });
+
+  describe('Platform Initialization', () => {
+    test('should have isInitialized false before start', () => {
+      expect(platform.isInitialized).toBe(false);
+    });
+
+    test('should properly initialize all core components', () => {
+      expect(platform.memory).toBeInstanceOf(Map);
+      expect(platform.plans).toBeInstanceOf(Map);
+      expect(platform.tools).toBeDefined();
+      expect(platform.app).toBeDefined();
+    });
+
+    test('should set up all required middleware', () => {
+      const middlewareStack = platform.app._router.stack;
+      expect(middlewareStack.length).toBeGreaterThan(0);
+    });
+
+    test('should configure all routes', () => {
+      const routes = [];
+      platform.app._router.stack.forEach(layer => {
+        if (layer.route) {
+          routes.push(layer.route.path);
+        }
+      });
+
+      expect(routes).toContain('/health');
+      expect(routes.length).toBeGreaterThan(5);
+    });
+  });
 });

@@ -1,14 +1,12 @@
 /**
- * Enhanced Comprehensive Tests for UnifiedAIPlatform
+ * Enhanced Unit Tests for UnifiedAIPlatform (src/index.js)
  * 
- * These tests provide extensive coverage of advanced scenarios:
- * - Complex state management
- * - Advanced error recovery
- * - Memory lifecycle operations
- * - Plan execution workflows
- * - Cross-feature integration
- * - Advanced security scenarios
- * - Performance edge cases
+ * These additional tests provide comprehensive coverage for:
+ * - Security and input validation
+ * - Performance and load handling
+ * - Data persistence and race conditions
+ * - Advanced error scenarios
+ * - Integration between components
  */
 
 const request = require('supertest');
@@ -48,682 +46,523 @@ jest.mock('../../config/tools.json', () => ([
   }
 ]));
 
-describe('UnifiedAIPlatform Enhanced Tests', () => {
+describe('UnifiedAIPlatform - Enhanced Tests', () => {
   let platform;
 
   beforeEach(() => {
     platform = new UnifiedAIPlatform();
   });
 
-  describe('Advanced Memory Operations', () => {
-    test('should handle memory versioning pattern', async () => {
-      const key = 'versioned_data';
-      
-      // Version 1
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({ key, value: { version: 1, data: 'initial' } })
-        .expect(200);
-
-      // Version 2
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({ key, value: { version: 2, data: 'updated' } })
-        .expect(200);
-
-      // Version 3
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({ key, value: { version: 3, data: 'final' } })
-        .expect(200);
-
-      const stored = platform.memory.get(key);
-      expect(stored.content.version).toBe(3);
-    });
-
-    test('should handle memory with metadata patterns', async () => {
-      const memoryWithMeta = {
-        key: 'documented_memory',
-        value: {
-          data: 'actual content',
-          metadata: {
-            author: 'test',
-            tags: ['important', 'verified'],
-            created_by: 'system',
-            last_modified: new Date().toISOString()
-          }
-        }
-      };
-
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send(memoryWithMeta)
-        .expect(200);
-
-      const stored = platform.memory.get('documented_memory');
-      expect(stored.content.metadata).toBeDefined();
-      expect(stored.content.metadata.tags).toContain('important');
-    });
-
-    test('should handle memory search patterns', async () => {
-      // Store multiple related memories
-      const memories = [
-        { key: 'user:1:profile', value: { name: 'User 1' } },
-        { key: 'user:1:settings', value: { theme: 'dark' } },
-        { key: 'user:2:profile', value: { name: 'User 2' } },
-        { key: 'user:2:settings', value: { theme: 'light' } }
-      ];
-
-      for (const mem of memories) {
-        await request(platform.app)
-          .post('/api/v1/memory')
-          .send(mem)
-          .expect(200);
-      }
-
-      const allMemories = await request(platform.app)
-        .get('/api/v1/memory')
-        .expect(200);
-
-      expect(allMemories.body.count).toBe(4);
-      
-      // Simulate search by key pattern
-      const user1Keys = allMemories.body.memories
-        .filter(([key]) => key.startsWith('user:1:'));
-      
-      expect(user1Keys).toHaveLength(2);
-    });
-
-    test('should handle memory expiration pattern', async () => {
-      const expiringMemory = {
-        key: 'temp_session',
-        value: {
-          data: 'temporary',
-          expires_at: new Date(Date.now() + 1000).toISOString()
-        }
-      };
-
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send(expiringMemory)
-        .expect(200);
-
-      const stored = platform.memory.get('temp_session');
-      expect(stored.content.expires_at).toBeDefined();
-    });
-
-    test('should handle memory relationships', async () => {
-      // Parent memory
-      const parentId = 'parent_' + Date.now();
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({ 
-          key: parentId,
-          value: { type: 'parent', children: [] }
-        })
-        .expect(200);
-
-      // Child memories
-      for (let i = 0; i < 3; i++) {
-        const childId = `child_${i}_${Date.now()}`;
-        await request(platform.app)
-          .post('/api/v1/memory')
-          .send({ 
-            key: childId,
-            value: { type: 'child', parent: parentId, index: i }
-          })
-          .expect(200);
-
-        // Update parent with child reference
-        const parent = platform.memory.get(parentId);
-        parent.content.children.push(childId);
-        platform.memory.set(parentId, parent);
-      }
-
-      const parent = platform.memory.get(parentId);
-      expect(parent.content.children).toHaveLength(3);
-    });
-
-    test('should handle circular reference detection', async () => {
-      const data = {
-        key: 'circular_test',
-        value: {
-          id: 1,
-          name: 'Test',
-          reference: null
-        }
-      };
-
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send(data)
-        .expect(200);
-
-      // System should handle without crashing
-      const health = await request(platform.app).get('/health');
-      expect(health.status).toBe(200);
-    });
+  afterEach(async () => {
+    if (platform.server) {
+      await new Promise((resolve) => {
+        platform.server.close(resolve);
+      });
+    }
   });
 
-  describe('Advanced Plan Operations', () => {
-    test('should handle multi-phase plan execution', async () => {
-      const phases = ['Planning', 'Development', 'Testing', 'Deployment'];
-      const planIds = [];
-
-      for (const phase of phases) {
+  describe('Security Tests', () => {
+    describe('Input Validation', () => {
+      test('should reject SQL injection attempts in memory keys', async () => {
+        const sqlInjection = "'; DROP TABLE users; --";
         const response = await request(platform.app)
-          .post('/api/v1/plans')
-          .send({
-            task_description: `${phase} Phase`,
-            steps: [`${phase} Step 1`, `${phase} Step 2`]
-          })
+          .post('/api/v1/memory')
+          .send({ key: sqlInjection, value: 'test' })
           .expect(200);
 
-        planIds.push(response.body.plan_id);
-      }
+        const stored = platform.memory.get(sqlInjection);
+        expect(stored).toBeDefined();
+        expect(stored.content).toBe('test');
+      });
 
-      // Store execution order
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({
-          key: 'execution_order',
-          value: { phases, planIds }
-        })
-        .expect(200);
+      test('should handle XSS attempts in memory values', async () => {
+        const xssPayload = '<script>alert("XSS")</script>';
+        const response = await request(platform.app)
+          .post('/api/v1/memory')
+          .send({ key: 'xss_test', value: xssPayload })
+          .expect(200);
 
-      expect(platform.plans.size).toBe(4);
+        const stored = platform.memory.get('xss_test');
+        expect(stored.content).toBe(xssPayload);
+      });
+
+      test('should handle extremely long keys', async () => {
+        const longKey = 'k'.repeat(10000);
+        const response = await request(platform.app)
+          .post('/api/v1/memory')
+          .send({ key: longKey, value: 'test' })
+          .expect(200);
+
+        expect(platform.memory.has(longKey)).toBe(true);
+      });
+
+      test('should handle special characters in keys', async () => {
+        const specialChars = '!@#$%^&*()[]{}|\\;:\'"<>,.?/~`';
+        const response = await request(platform.app)
+          .post('/api/v1/memory')
+          .send({ key: specialChars, value: 'test' })
+          .expect(200);
+
+        expect(platform.memory.has(specialChars)).toBe(true);
+      });
+
+      test('should handle unicode characters in keys and values', async () => {
+        const unicodeKey = '你好世界🌍';
+        const unicodeValue = '👋🎉💻';
+        const response = await request(platform.app)
+          .post('/api/v1/memory')
+          .send({ key: unicodeKey, value: unicodeValue })
+          .expect(200);
+
+        const stored = platform.memory.get(unicodeKey);
+        expect(stored.content).toBe(unicodeValue);
+      });
     });
 
-    test('should handle plan dependencies', async () => {
-      // Create dependent plans
-      const setupPlan = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Setup infrastructure',
-          steps: ['Initialize', 'Configure']
-        })
-        .expect(200);
+    describe('Request Size Limits', () => {
+      test('should handle large JSON payloads within limit', async () => {
+        const largeValue = 'x'.repeat(1000000); // 1MB
+        const response = await request(platform.app)
+          .post('/api/v1/memory')
+          .send({ key: 'large', value: largeValue })
+          .expect(200);
 
-      const buildPlan = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Build application',
-          steps: ['Compile', 'Test']
-        })
-        .expect(200);
+        const stored = platform.memory.get('large');
+        expect(stored.content).toBe(largeValue);
+      });
 
-      // Store dependency relationship
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({
-          key: 'plan_dependencies',
-          value: {
-            [buildPlan.body.plan_id]: {
-              depends_on: [setupPlan.body.plan_id]
-            }
-          }
-        })
-        .expect(200);
+      test('should handle deeply nested objects', async () => {
+        let deepObject = { value: 'end' };
+        for (let i = 0; i < 100; i++) {
+          deepObject = { nested: deepObject };
+        }
 
-      const deps = platform.memory.get('plan_dependencies');
-      expect(deps.content[buildPlan.body.plan_id].depends_on).toContain(setupPlan.body.plan_id);
+        const response = await request(platform.app)
+          .post('/api/v1/memory')
+          .send({ key: 'deep', value: deepObject })
+          .expect(200);
+
+        expect(platform.memory.has('deep')).toBe(true);
+      });
     });
 
-    test('should handle plan status transitions', async () => {
-      const planResponse = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Task with status tracking'
-        })
-        .expect(200);
+    describe('Header Validation', () => {
+      test('should handle missing Content-Type header', async () => {
+        const response = await request(platform.app)
+          .get('/health')
+          .expect(200);
 
-      const planId = planResponse.body.plan_id;
-      const statusHistory = [];
+        expect(response.body.status).toBe('healthy');
+      });
 
-      // Simulate status transitions
-      const statuses = ['created', 'in_progress', 'completed'];
-      for (const status of statuses) {
-        const plan = platform.plans.get(planId);
-        plan.status = status;
-        plan.updated_at = new Date().toISOString();
-        platform.plans.set(planId, plan);
-        
-        statusHistory.push({
-          status,
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({
-          key: `status_history_${planId}`,
-          value: statusHistory
-        })
-        .expect(200);
-
-      const finalPlan = platform.plans.get(planId);
-      expect(finalPlan.status).toBe('completed');
-    });
-
-    test('should handle conditional plan execution', async () => {
-      // Main plan
-      const mainPlan = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Main workflow',
-          steps: ['Check condition', 'Execute branch']
-        })
-        .expect(200);
-
-      // Conditional branches
-      const branch1 = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Branch 1: Success path',
-          steps: ['Handle success']
-        })
-        .expect(200);
-
-      const branch2 = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Branch 2: Fallback path',
-          steps: ['Handle fallback']
-        })
-        .expect(200);
-
-      // Store conditional logic
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({
-          key: 'conditional_plans',
-          value: {
-            main: mainPlan.body.plan_id,
-            branches: {
-              success: branch1.body.plan_id,
-              fallback: branch2.body.plan_id
-            }
-          }
-        })
-        .expect(200);
-
-      expect(platform.plans.size).toBe(3);
-    });
-
-    test('should handle plan rollback scenarios', async () => {
-      const deployPlan = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Deploy to production',
-          steps: ['Backup', 'Deploy', 'Verify', 'Cleanup']
-        })
-        .expect(200);
-
-      const rollbackPlan = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Rollback deployment',
-          steps: ['Stop service', 'Restore backup', 'Restart', 'Verify']
-        })
-        .expect(200);
-
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({
-          key: 'rollback_mapping',
-          value: {
-            [deployPlan.body.plan_id]: rollbackPlan.body.plan_id
-          }
-        })
-        .expect(200);
-
-      const mapping = platform.memory.get('rollback_mapping');
-      expect(mapping.content[deployPlan.body.plan_id]).toBe(rollbackPlan.body.plan_id);
+      test('should handle invalid Content-Type', async () => {
+        const response = await request(platform.app)
+          .post('/api/v1/memory')
+          .set('Content-Type', 'text/plain')
+          .send('not json')
+          .expect(400);
+      });
     });
   });
 
-  describe('Cross-Feature Integration', () => {
-    test('should handle memory-driven plan generation', async () => {
-      // Store requirements
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({
-          key: 'project_requirements',
-          value: {
-            features: ['auth', 'api', 'frontend'],
-            priority: 'high',
-            deadline: '2024-12-31'
-          }
-        })
-        .expect(200);
+  describe('Performance Tests', () => {
+    describe('Response Time', () => {
+      test('should respond to health check quickly', async () => {
+        const start = Date.now();
+        await request(platform.app)
+          .get('/health')
+          .expect(200);
+        const duration = Date.now() - start;
 
-      // Generate plan based on requirements
-      const requirements = platform.memory.get('project_requirements');
-      const steps = requirements.content.features.map(f => `Implement ${f}`);
+        expect(duration).toBeLessThan(1000);
+      });
 
-      await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Project implementation',
-          steps
-        })
-        .expect(200);
+      test('should handle rapid sequential requests', async () => {
+        const requests = [];
+        for (let i = 0; i < 50; i++) {
+          requests.push(
+            request(platform.app)
+              .get('/health')
+              .expect(200)
+          );
+        }
 
-      expect(platform.plans.size).toBe(1);
-      const plan = Array.from(platform.plans.values())[0];
-      expect(plan.steps).toHaveLength(3);
+        const results = await Promise.all(requests);
+        expect(results).toHaveLength(50);
+      });
     });
 
-    test('should handle tool-assisted planning', async () => {
-      // Store available tools
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({
-          key: 'available_tools',
-          value: platform.tools.map(t => t.function.name)
-        })
-        .expect(200);
+    describe('Memory Management', () => {
+      test('should handle large number of memory entries', async () => {
+        const promises = Array.from({ length: 1000 }, (_, i) =>
+          request(platform.app)
+            .post('/api/v1/memory')
+            .send({ key: `key_${i}`, value: `value_${i}` })
+        );
 
-      // Create plan referencing tools
-      await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Execute with tools',
-          steps: ['Use tool 1', 'Process', 'Use tool 2']
-        })
-        .expect(200);
+        await Promise.all(promises);
+        expect(platform.memory.size).toBe(1000);
+      });
 
-      const tools = platform.memory.get('available_tools');
-      expect(Array.isArray(tools.content)).toBe(true);
+      test('should handle large number of plans', async () => {
+        const promises = Array.from({ length: 100 }, (_, i) =>
+          request(platform.app)
+            .post('/api/v1/plans')
+            .send({ task_description: `Task ${i}` })
+        );
+
+        await Promise.all(promises);
+        expect(platform.plans.size).toBe(100);
+      });
+
+      test('should retrieve all memories efficiently', async () => {
+        for (let i = 0; i < 100; i++) {
+          platform.memory.set(`key_${i}`, {
+            content: `value_${i}`,
+            created_at: new Date().toISOString(),
+            last_accessed: new Date().toISOString()
+          });
+        }
+
+        const start = Date.now();
+        const response = await request(platform.app)
+          .get('/api/v1/memory')
+          .expect(200);
+        const duration = Date.now() - start;
+
+        expect(response.body.count).toBe(100);
+        expect(duration).toBeLessThan(500);
+      });
+    });
+  });
+
+  describe('Data Persistence and Race Conditions', () => {
+    test('should maintain data consistency under concurrent writes to same key', async () => {
+      const key = 'race_condition_test';
+      const promises = Array.from({ length: 10 }, (_, i) =>
+        request(platform.app)
+          .post('/api/v1/memory')
+          .send({ key: key, value: `value_${i}` })
+      );
+
+      await Promise.all(promises);
+      
+      const stored = platform.memory.get(key);
+      expect(stored).toBeDefined();
+      expect(stored.content).toMatch(/^value_\d+$/);
     });
 
-    test('should handle context-aware operations', async () => {
-      // Set context
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({
-          key: 'current_context',
-          value: {
-            user: 'test_user',
-            session: 'session_123',
-            workspace: 'project_a'
-          }
-        })
-        .expect(200);
+    test('should handle concurrent plan creation with unique IDs', async () => {
+      const promises = Array.from({ length: 20 }, (_, i) =>
+        request(platform.app)
+          .post('/api/v1/plans')
+          .send({ task_description: `Concurrent task ${i}` })
+      );
 
-      // Create context-aware plan
-      const context = platform.memory.get('current_context');
-      await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: `Task for ${context.content.user} in ${context.content.workspace}`
-        })
-        .expect(200);
+      const responses = await Promise.all(promises);
+      const planIds = responses.map(r => r.body.plan_id);
+      const uniqueIds = new Set(planIds);
 
-      const plan = Array.from(platform.plans.values())[0];
-      expect(plan.task_description).toContain('test_user');
+      expect(uniqueIds.size).toBe(20);
     });
 
-    test('should handle feedback loops', async () => {
-      // Initial plan
-      const plan1 = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Initial attempt'
-        })
-        .expect(200);
-
-      // Store feedback
+    test('should preserve memory metadata through updates', async () => {
       await request(platform.app)
         .post('/api/v1/memory')
-        .send({
-          key: `feedback_${plan1.body.plan_id}`,
-          value: {
-            status: 'needs_improvement',
-            suggestions: ['Add more detail', 'Include tests']
-          }
-        })
+        .send({ key: 'meta_test', value: 'original' })
         .expect(200);
 
-      // Revised plan incorporating feedback
-      const feedback = platform.memory.get(`feedback_${plan1.body.plan_id}`);
+      const original = platform.memory.get('meta_test');
+      const originalCreatedAt = original.created_at;
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
       await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Revised attempt with improvements',
-          steps: feedback.content.suggestions
-        })
+        .post('/api/v1/memory')
+        .send({ key: 'meta_test', value: 'updated' })
         .expect(200);
 
-      expect(platform.plans.size).toBe(2);
+      const updated = platform.memory.get('meta_test');
+      expect(updated.content).toBe('updated');
+      expect(updated.created_at).not.toBe(originalCreatedAt);
     });
   });
 
   describe('Advanced Error Scenarios', () => {
-    test('should handle cascading failures gracefully', async () => {
-      // Valid operation
-      await request(platform.app)
+    test('should handle circular JSON structures gracefully', async () => {
+      const circular = { name: 'test' };
+      circular.self = circular;
+
+      // Express should handle this gracefully
+      const response = await request(platform.app)
         .post('/api/v1/memory')
-        .send({ key: 'valid1', value: 'data1' })
+        .send({ key: 'circular', value: 'safe_value' })
+        .expect(200);
+    });
+
+    test('should handle very large arrays in plan steps', async () => {
+      const hugeSteps = Array.from({ length: 10000 }, (_, i) => `Step ${i}`);
+      const response = await request(platform.app)
+        .post('/api/v1/plans')
+        .send({ task_description: 'Huge plan', steps: hugeSteps })
         .expect(200);
 
-      // Series of invalid operations
-      const invalidOps = [
-        request(platform.app).post('/api/v1/memory').send({}),
-        request(platform.app).post('/api/v1/plans').send({}),
-        request(platform.app).post('/api/v1/memory').send({ key: '', value: 'x' })
-      ];
-
-      await Promise.allSettled(invalidOps);
-
-      // System should still be responsive
-      const health = await request(platform.app).get('/health');
-      expect(health.status).toBe(200);
-      expect(platform.memory.size).toBe(1);
+      const plan = platform.plans.get(response.body.plan_id);
+      expect(plan.steps).toHaveLength(10000);
     });
 
-    test('should recover from partial operation failures', async () => {
-      const operations = [];
-      
-      // Mix of valid and invalid
-      for (let i = 0; i < 20; i++) {
-        if (i % 3 === 0) {
-          operations.push(
-            request(platform.app).post('/api/v1/memory').send({})
-          );
-        } else {
-          operations.push(
-            request(platform.app).post('/api/v1/memory').send({
-              key: `key_${i}`,
-              value: `value_${i}`
-            })
-          );
-        }
-      }
+    test('should handle missing route with proper error format', async () => {
+      const response = await request(platform.app)
+        .get('/api/v2/nonexistent')
+        .expect(404);
 
-      await Promise.allSettled(operations);
-
-      // Should have ~13-14 valid entries (20 - 6-7 invalid)
-      expect(platform.memory.size).toBeGreaterThan(10);
-      expect(platform.memory.size).toBeLessThan(15);
+      expect(response.body).toHaveProperty('error');
+      expect(response.body).toHaveProperty('message');
+      expect(response.body).toHaveProperty('timestamp');
     });
 
-    test('should handle timeout scenarios', async () => {
-      // Simulate operations that might timeout
-      const timeoutOps = Array.from({ length: 5 }, (_, i) =>
-        request(platform.app)
-          .post('/api/v1/plans')
-          .send({
-            task_description: 'Heavy task',
-            steps: Array.from({ length: 1000 }, (_, j) => `Step ${j}`)
-          })
-          .timeout(5000)
-      );
+    test('should handle POST to GET-only endpoints gracefully', async () => {
+      const response = await request(platform.app)
+        .post('/health')
+        .expect(404);
 
-      const results = await Promise.allSettled(timeoutOps);
-      
-      // Some operations should complete
-      const fulfilled = results.filter(r => r.status === 'fulfilled').length;
-      expect(fulfilled).toBeGreaterThan(0);
+      expect(response.body.error).toBe('Not Found');
     });
   });
 
-  describe('Advanced Validation Scenarios', () => {
-    test('should validate complex data structures', async () => {
-      const complexData = {
-        array_of_objects: [
-          { id: 1, nested: { deep: { value: 'test' } } },
-          { id: 2, nested: { deep: { value: 'test2' } } }
-        ],
-        mixed_types: [1, 'string', true, null, { key: 'value' }],
-        functions_serialized: {
-          type: 'function',
-          name: 'testFunc',
-          params: ['a', 'b']
-        }
-      };
-
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({ key: 'complex_validation', value: complexData })
-        .expect(200);
-
-      const stored = platform.memory.get('complex_validation');
-      expect(stored.content.array_of_objects).toHaveLength(2);
-      expect(stored.content.mixed_types).toHaveLength(5);
-    });
-
-    test('should handle boundary value testing', async () => {
-      const boundaryTests = [
-        { key: 'min_int', value: Number.MIN_SAFE_INTEGER },
-        { key: 'max_int', value: Number.MAX_SAFE_INTEGER },
-        { key: 'empty_string', value: '' },
-        { key: 'empty_array', value: [] },
-        { key: 'empty_object', value: {} },
-        { key: 'zero', value: 0 },
-        { key: 'false', value: false }
-      ];
-
-      for (const test of boundaryTests) {
-        const response = await request(platform.app)
-          .post('/api/v1/memory')
-          .send(test);
-
-        expect([200, 400]).toContain(response.status);
-      }
-    });
-
-    test('should handle character encoding edge cases', async () => {
-      const encodingTests = [
-        'UTF-8: 你好世界',
-        'Emoji: 🎉🚀💻',
-        'Special: ™️®️©️',
-        'Math: ∑∫∂√',
-        'Arrows: ←↑→↓',
-        'Box: ┌┐└┘',
-        'Combining: é (e + ́)'
-      ];
-
-      for (const text of encodingTests) {
-        await request(platform.app)
-          .post('/api/v1/memory')
-          .send({ key: `encoding_${Math.random()}`, value: text })
-          .expect(200);
-      }
-    });
-  });
-
-  describe('Performance Under Stress', () => {
-    test('should maintain performance with growing dataset', async () => {
-      const sizes = [10, 50, 100, 200];
-      const times = [];
-
-      for (const size of sizes) {
-        const start = Date.now();
-        
-        for (let i = 0; i < size; i++) {
-          await request(platform.app)
-            .post('/api/v1/memory')
-            .send({ key: `stress_${size}_${i}`, value: 'data' });
-        }
-
-        times.push(Date.now() - start);
-      }
-
-      // Performance degradation should be roughly linear
-      const firstRate = times[0] / sizes[0];
-      const lastRate = times[times.length - 1] / sizes[sizes.length - 1];
-      
-      expect(lastRate / firstRate).toBeLessThan(5);
-    });
-
-    test('should handle memory pressure gracefully', async () => {
-      // Create many large objects
-      const largeData = 'x'.repeat(10000);
-      
-      for (let i = 0; i < 50; i++) {
-        await request(platform.app)
-          .post('/api/v1/memory')
-          .send({ key: `pressure_${i}`, value: largeData });
-      }
-
-      // System should still respond
-      const health = await request(platform.app).get('/health');
-      expect(health.status).toBe(200);
-      expect(health.body.memory).toBeDefined();
-    });
-  });
-
-  describe('State Consistency Verification', () => {
-    test('should maintain consistency across operations', async () => {
-      const operations = [];
-
-      // Interleaved operations
-      for (let i = 0; i < 10; i++) {
-        operations.push(
-          request(platform.app).post('/api/v1/memory').send({
-            key: `consistency_mem_${i}`,
-            value: i
-          })
-        );
-        
-        operations.push(
-          request(platform.app).post('/api/v1/plans').send({
-            task_description: `Consistency plan ${i}`
-          })
-        );
-      }
-
-      await Promise.all(operations);
-
-      // Verify final state
-      expect(platform.memory.size).toBe(10);
-      expect(platform.plans.size).toBe(10);
-
-      // Verify each entry is correct
-      for (let i = 0; i < 10; i++) {
-        const mem = platform.memory.get(`consistency_mem_${i}`);
-        expect(mem.content).toBe(i);
-      }
-    });
-
-    test('should handle state queries during modifications', async () => {
-      const writeOps = Array.from({ length: 20 }, (_, i) =>
-        request(platform.app).post('/api/v1/memory').send({
-          key: `query_test_${i}`,
-          value: i
+  describe('Integration Tests', () => {
+    test('should support complete workflow: create plan, store memory, retrieve both', async () => {
+      // Create plan
+      const planResponse = await request(platform.app)
+        .post('/api/v1/plans')
+        .send({ 
+          task_description: 'Integration test task',
+          steps: ['Step 1', 'Step 2']
         })
-      );
+        .expect(200);
 
-      const readOps = Array.from({ length: 10 }, () =>
-        request(platform.app).get('/api/v1/memory')
-      );
+      const planId = planResponse.body.plan_id;
 
-      await Promise.all([...writeOps, ...readOps]);
+      // Store memory related to plan
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ 
+          key: `plan_context_${planId}`,
+          value: { status: 'in_progress', planId: planId }
+        })
+        .expect(200);
 
-      // All reads should complete successfully
-      expect(platform.memory.size).toBe(20);
+      // Retrieve both
+      const plansResponse = await request(platform.app)
+        .get('/api/v1/plans')
+        .expect(200);
+
+      const memoryResponse = await request(platform.app)
+        .get('/api/v1/memory')
+        .expect(200);
+
+      expect(plansResponse.body.count).toBe(1);
+      expect(memoryResponse.body.count).toBe(1);
+    });
+
+    test('should maintain state across multiple operations', async () => {
+      const operations = [
+        () => request(platform.app)
+          .post('/api/v1/memory')
+          .send({ key: 'state1', value: 'data1' }),
+        () => request(platform.app)
+          .post('/api/v1/plans')
+          .send({ task_description: 'Plan 1' }),
+        () => request(platform.app)
+          .post('/api/v1/memory')
+          .send({ key: 'state2', value: 'data2' }),
+        () => request(platform.app)
+          .post('/api/v1/plans')
+          .send({ task_description: 'Plan 2' }),
+      ];
+
+      for (const operation of operations) {
+        await operation();
+      }
+
+      const memoryResponse = await request(platform.app)
+        .get('/api/v1/memory')
+        .expect(200);
+
+      const plansResponse = await request(platform.app)
+        .get('/api/v1/plans')
+        .expect(200);
+
+      expect(memoryResponse.body.count).toBe(2);
+      expect(plansResponse.body.count).toBe(2);
+    });
+
+    test('should handle mixed successful and failed operations', async () => {
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'valid', value: 'data' })
+        .expect(200);
+
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: '', value: 'invalid' })
+        .expect(400);
+
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'valid2', value: 'data2' })
+        .expect(200);
+
+      const response = await request(platform.app)
+        .get('/api/v1/memory')
+        .expect(200);
+
+      expect(response.body.count).toBe(2);
+    });
+  });
+
+  describe('Edge Cases - Type Coercion', () => {
+    test('should handle boolean values', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'bool_test', value: true })
+        .expect(200);
+
+      const stored = platform.memory.get('bool_test');
+      expect(stored.content).toBe(true);
+    });
+
+    test('should handle number values', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'number_test', value: 42 })
+        .expect(200);
+
+      const stored = platform.memory.get('number_test');
+      expect(stored.content).toBe(42);
+    });
+
+    test('should handle array values', async () => {
+      const arrayValue = [1, 'two', { three: 3 }, [4, 5]];
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'array_test', value: arrayValue })
+        .expect(200);
+
+      const stored = platform.memory.get('array_test');
+      expect(stored.content).toEqual(arrayValue);
+    });
+
+    test('should handle empty string values', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'empty_test', value: '' })
+        .expect(400);
+    });
+
+    test('should handle zero as value', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'zero_test', value: 0 })
+        .expect(200);
+
+      const stored = platform.memory.get('zero_test');
+      expect(stored.content).toBe(0);
+    });
+
+    test('should handle false as value', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'false_test', value: false })
+        .expect(200);
+
+      const stored = platform.memory.get('false_test');
+      expect(stored.content).toBe(false);
+    });
+  });
+
+  describe('Timestamp and Metadata Validation', () => {
+    test('should use valid ISO 8601 timestamps', async () => {
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'time_test', value: 'data' })
+        .expect(200);
+
+      const stored = platform.memory.get('time_test');
+      expect(stored.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+      expect(stored.last_accessed).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+    });
+
+    test('should update last_accessed on each memory operation', async () => {
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'access_test', value: 'data' })
+        .expect(200);
+
+      const first = platform.memory.get('access_test');
+      const firstAccess = first.last_accessed;
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'access_test', value: 'updated' })
+        .expect(200);
+
+      const second = platform.memory.get('access_test');
+      expect(second.last_accessed).not.toBe(firstAccess);
+    });
+
+    test('should include proper plan metadata', async () => {
+      const response = await request(platform.app)
+        .post('/api/v1/plans')
+        .send({ task_description: 'Metadata test' })
+        .expect(200);
+
+      const plan = platform.plans.get(response.body.plan_id);
+      expect(plan).toMatchObject({
+        task_description: 'Metadata test',
+        status: 'created',
+        steps: []
+      });
+      expect(plan.created_at).toBeDefined();
+    });
+  });
+
+  describe('Health Check Comprehensive', () => {
+    test('should report accurate memory usage', async () => {
+      const response = await request(platform.app)
+        .get('/health')
+        .expect(200);
+
+      const memUsage = response.body.memory;
+      expect(memUsage.heapUsed).toBeGreaterThan(0);
+      expect(memUsage.heapTotal).toBeGreaterThan(memUsage.heapUsed);
+      expect(memUsage.external).toBeGreaterThanOrEqual(0);
+    });
+
+    test('should report increasing uptime', async () => {
+      const first = await request(platform.app)
+        .get('/health')
+        .expect(200);
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const second = await request(platform.app)
+        .get('/health')
+        .expect(200);
+
+      expect(second.body.uptime).toBeGreaterThan(first.body.uptime);
+    });
+
+    test('should always return valid timestamp', async () => {
+      const response = await request(platform.app)
+        .get('/health')
+        .expect(200);
+
+      const timestamp = new Date(response.body.timestamp);
+      expect(timestamp.getTime()).toBeGreaterThan(0);
+      expect(timestamp.getTime()).toBeLessThanOrEqual(Date.now());
     });
   });
 });

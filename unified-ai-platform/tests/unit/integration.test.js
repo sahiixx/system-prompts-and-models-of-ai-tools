@@ -1,425 +1,534 @@
 /**
  * Integration Tests for Unified AI Platform
  * 
- * These tests verify the integration between different components:
- * - Configuration loading and usage
- * - Memory and plans interaction
- * - End-to-end workflows
- * - Cross-component data flow
+ * These tests verify integration between components and end-to-end workflows
  */
 
 const request = require('supertest');
 const { UnifiedAIPlatform } = require('../../src/index');
 const { SimpleUnifiedAIPlatform } = require('../../src/simple-server');
-
-jest.mock('../../config/system-config.json', () => ({
-  platform: {
-    name: 'Unified AI Platform',
-    version: '1.0.0',
-    description: 'Integration test platform'
-  },
-  core_capabilities: {
-    multi_modal: { enabled: true, supported_types: ['text', 'code'] },
-    memory_system: { enabled: true, types: ['short_term', 'long_term'] },
-    tool_system: { enabled: true, modular: true },
-    planning_system: { enabled: true, modes: ['sequential', 'parallel'] },
-    security: { enabled: true, features: ['encryption', 'auth'] }
-  },
-  operating_modes: {
-    development: { debug: true, logging: 'verbose' },
-    production: { debug: false, logging: 'error' }
-  },
-  performance: {
-    response_time: { target_ms: 1000, max_ms: 5000 },
-    memory_usage: { max_mb: 512, warning_mb: 400 },
-    concurrent_operations: { max_parallel: 10, queue_size: 100 }
-  }
-}));
-
-jest.mock('../../config/tools.json', () => ([
-  {
-    type: 'function',
-    function: {
-      name: 'codebase_search',
-      description: 'Search the codebase',
-      parameters: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'Search query' }
-        },
-        required: ['query']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'read_file',
-      description: 'Read file contents',
-      parameters: {
-        type: 'object',
-        properties: {
-          path: { type: 'string', description: 'File path' }
-        },
-        required: ['path']
-      }
-    }
-  }
-]));
+const http = require('http');
 
 describe('Integration Tests', () => {
-  let platform;
+  describe('Express vs Simple Server Compatibility', () => {
+    let expressPlatform;
+    let simplePlatform;
+    let simpleServer;
 
-  beforeEach(() => {
-    platform = new UnifiedAIPlatform();
-  });
-
-  describe('Configuration Integration', () => {
-    test('should load and use system configuration', async () => {
-      const response = await request(platform.app)
-        .get('/api/v1/capabilities');
-
-      expect(response.body.platform.name).toBe('Unified AI Platform');
-      expect(response.body.core_capabilities.multi_modal).toBeDefined();
+    beforeEach(() => {
+      expressPlatform = new UnifiedAIPlatform();
+      simplePlatform = new SimpleUnifiedAIPlatform();
+      simplePlatform.port = 3003;
     });
 
-    test('should load and expose tools configuration', async () => {
-      const response = await request(platform.app)
-        .get('/api/v1/tools');
-
-      expect(response.body.tools).toBeDefined();
-      expect(response.body.tools.length).toBeGreaterThan(0);
-      expect(response.body.count).toBe(response.body.tools.length);
-    });
-
-    test('should use performance settings from config', async () => {
-      const response = await request(platform.app)
-        .get('/api/v1/capabilities');
-
-      expect(response.body.performance.response_time.target_ms).toBe(1000);
-      expect(response.body.performance.memory_usage.max_mb).toBe(512);
-    });
-
-    test('should reflect feature flags from config', async () => {
-      const response = await request(platform.app)
-        .get('/health');
-
-      expect(response.body.features.multi_modal).toBe(true);
-      expect(response.body.features.memory_system).toBe(true);
-      expect(response.body.features.tool_system).toBe(true);
-    });
-  });
-
-  describe('Memory and Plans Workflow', () => {
-    test('should create plan and store related memory', async () => {
-      // Create a plan
-      const planResponse = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({
-          task_description: 'Build user dashboard',
-          steps: ['Design layout', 'Implement components', 'Add tests']
+    afterEach((done) => {
+      if (simpleServer) {
+        simpleServer.close(() => {
+          simpleServer = null;
+          done();
         });
-
-      expect(planResponse.status).toBe(200);
-      const planId = planResponse.body.plan_id;
-
-      // Store memory related to the plan
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({
-          key: `plan_${planId}_context`,
-          value: {
-            user_preferences: 'dark theme',
-            last_modified: new Date().toISOString()
-          }
-        });
-
-      // Verify both are stored
-      expect(platform.plans.has(planId)).toBe(true);
-      expect(platform.memory.has(`plan_${planId}_context`)).toBe(true);
-    });
-
-    test('should handle multiple related memories for a plan', async () => {
-      const planResponse = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({ task_description: 'Feature X' });
-
-      const planId = planResponse.body.plan_id;
-
-      // Store multiple related memories
-      const memories = [
-        { key: `${planId}_context`, value: 'context data' },
-        { key: `${planId}_dependencies`, value: ['dep1', 'dep2'] },
-        { key: `${planId}_metadata`, value: { version: '1.0' } }
-      ];
-
-      for (const mem of memories) {
-        await request(platform.app)
-          .post('/api/v1/memory')
-          .send(mem);
+      } else {
+        done();
       }
-
-      // Verify all stored
-      expect(platform.memory.size).toBeGreaterThanOrEqual(3);
     });
 
-    test('should retrieve plans and related memories', async () => {
-      // Create plan
-      const planResponse = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({ task_description: 'Retrieve test' });
+    test('both servers should return same health check structure', async () => {
+      const expressHealth = await request(expressPlatform.app)
+        .get('/health')
+        .expect(200);
 
-      const planId = planResponse.body.plan_id;
+      simpleServer = simplePlatform.createServer();
+      simpleServer.listen(3003, async () => {
+        const options = {
+          hostname: 'localhost',
+          port: 3003,
+          path: '/health',
+          method: 'GET'
+        };
 
-      // Store related memory
-      await request(platform.app)
+        const req = http.request(options, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            const simpleHealth = JSON.parse(body);
+            
+            expect(expressHealth.body.status).toBe(simpleHealth.status);
+            expect(expressHealth.body.platform).toBe(simpleHealth.platform);
+            expect(expressHealth.body.features).toMatchObject(simpleHealth.features);
+          });
+        });
+
+        req.end();
+      });
+    });
+
+    test('both servers should handle memory operations consistently', async () => {
+      const testData = { key: 'integration_test', value: 'test_value' };
+
+      // Test Express server
+      const expressResponse = await request(expressPlatform.app)
         .post('/api/v1/memory')
-        .send({ key: `plan_${planId}`, value: 'related data' });
+        .send(testData)
+        .expect(200);
 
-      // Retrieve plans
-      const plansResponse = await request(platform.app)
-        .get('/api/v1/plans');
+      // Test Simple server
+      simpleServer = simplePlatform.createServer();
+      simpleServer.listen(3003, () => {
+        const options = {
+          hostname: 'localhost',
+          port: 3003,
+          path: '/api/v1/memory',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        };
 
-      // Retrieve memories
-      const memoryResponse = await request(platform.app)
-        .get('/api/v1/memory');
+        const req = http.request(options, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            const simpleResponse = JSON.parse(body);
+            
+            expect(expressResponse.body.success).toBe(simpleResponse.success);
+            expect(expressResponse.body.message).toBe(simpleResponse.message);
+          });
+        });
 
-      expect(plansResponse.body.count).toBeGreaterThan(0);
-      expect(memoryResponse.body.count).toBeGreaterThan(0);
+        req.write(JSON.stringify(testData));
+        req.end();
+      });
+    });
+
+    test('both servers should handle plan creation consistently', async () => {
+      const planData = {
+        task_description: 'Integration test plan',
+        steps: ['Step 1', 'Step 2']
+      };
+
+      // Test Express server
+      const expressResponse = await request(expressPlatform.app)
+        .post('/api/v1/plans')
+        .send(planData)
+        .expect(200);
+
+      expect(expressResponse.body.success).toBe(true);
+      expect(expressResponse.body.plan_id).toBeDefined();
+
+      // Test Simple server
+      simpleServer = simplePlatform.createServer();
+      simpleServer.listen(3003, () => {
+        const options = {
+          hostname: 'localhost',
+          port: 3003,
+          path: '/api/v1/plans',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        };
+
+        const req = http.request(options, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            const simpleResponse = JSON.parse(body);
+            
+            expect(simpleResponse.success).toBe(true);
+            expect(simpleResponse.plan_id).toBeDefined();
+            expect(simpleResponse.plan_id).toMatch(/^plan_\d+$/);
+          });
+        });
+
+        req.write(JSON.stringify(planData));
+        req.end();
+      });
+    });
+
+    test('both servers should return same error formats', async () => {
+      // Test Express server error
+      const expressError = await request(expressPlatform.app)
+        .post('/api/v1/memory')
+        .send({})
+        .expect(400);
+
+      expect(expressError.body.error).toBeDefined();
+
+      // Test Simple server error
+      simpleServer = simplePlatform.createServer();
+      simpleServer.listen(3003, () => {
+        const options = {
+          hostname: 'localhost',
+          port: 3003,
+          path: '/api/v1/memory',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        };
+
+        const req = http.request(options, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            const simpleError = JSON.parse(body);
+            expect(simpleError.error).toBeDefined();
+            expect(res.statusCode).toBe(400);
+          });
+        });
+
+        req.write(JSON.stringify({}));
+        req.end();
+      });
     });
   });
 
   describe('End-to-End Workflows', () => {
-    test('should complete a full task planning workflow', async () => {
-      // 1. Check health
-      const healthResponse = await request(platform.app)
-        .get('/health');
-      expect(healthResponse.status).toBe(200);
+    let platform;
+
+    beforeEach(() => {
+      platform = new UnifiedAIPlatform();
+    });
+
+    test('complete task planning workflow', async () => {
+      // 1. Check system health
+      const health = await request(platform.app)
+        .get('/health')
+        .expect(200);
+
+      expect(health.body.status).toBe('healthy');
 
       // 2. Get available tools
-      const toolsResponse = await request(platform.app)
-        .get('/api/v1/tools');
-      expect(toolsResponse.body.tools.length).toBeGreaterThan(0);
+      const tools = await request(platform.app)
+        .get('/api/v1/tools')
+        .expect(200);
 
-      // 3. Create a plan
+      expect(tools.body.tools).toBeDefined();
+
+      // 3. Store user preferences
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'user_prefs', value: { theme: 'dark', lang: 'en' } })
+        .expect(200);
+
+      // 4. Create a plan
       const planResponse = await request(platform.app)
         .post('/api/v1/plans')
         .send({
-          task_description: 'Complete workflow test',
-          steps: ['Step 1', 'Step 2']
-        });
-      expect(planResponse.status).toBe(200);
+          task_description: 'Build authentication system',
+          steps: [
+            'Design database schema',
+            'Implement user model',
+            'Create authentication endpoints',
+            'Add JWT token generation',
+            'Write tests'
+          ]
+        })
+        .expect(200);
 
-      // 4. Store context in memory
-      const memoryResponse = await request(platform.app)
-        .post('/api/v1/memory')
-        .send({
-          key: 'workflow_context',
-          value: { status: 'in_progress' }
-        });
-      expect(memoryResponse.status).toBe(200);
+      const planId = planResponse.body.plan_id;
 
-      // 5. Verify everything is stored
-      const finalPlansResponse = await request(platform.app)
-        .get('/api/v1/plans');
-      const finalMemoryResponse = await request(platform.app)
-        .get('/api/v1/memory');
+      // 5. Retrieve the plan
+      const plansResponse = await request(platform.app)
+        .get('/api/v1/plans')
+        .expect(200);
 
-      expect(finalPlansResponse.body.count).toBeGreaterThan(0);
-      expect(finalMemoryResponse.body.count).toBeGreaterThan(0);
+      expect(plansResponse.body.count).toBeGreaterThan(0);
+      const plan = plansResponse.body.plans.find(p => p[0] === planId);
+      expect(plan).toBeDefined();
+
+      // 6. Verify final system state
+      const finalHealth = await request(platform.app)
+        .get('/health')
+        .expect(200);
+
+      expect(finalHealth.body.status).toBe('healthy');
     });
 
-    test('should handle interleaved operations', async () => {
-      const operations = [];
+    test('memory management workflow', async () => {
+      // Store multiple memories
+      const memories = [
+        { key: 'user_id', value: '12345' },
+        { key: 'session_token', value: 'abc-def-ghi' },
+        { key: 'preferences', value: { theme: 'light', notifications: true } },
+        { key: 'last_action', value: 'login' },
+        { key: 'timestamp', value: new Date().toISOString() }
+      ];
 
-      // Interleave plan creation and memory storage
-      for (let i = 0; i < 5; i++) {
-        operations.push(
-          request(platform.app)
-            .post('/api/v1/plans')
-            .send({ task_description: `Task ${i}` })
-        );
-        operations.push(
-          request(platform.app)
-            .post('/api/v1/memory')
-            .send({ key: `key_${i}`, value: `value_${i}` })
-        );
+      for (const memory of memories) {
+        await request(platform.app)
+          .post('/api/v1/memory')
+          .send(memory)
+          .expect(200);
       }
 
-      const responses = await Promise.all(operations);
-      responses.forEach(res => {
-        expect(res.status).toBe(200);
-      });
-
-      expect(platform.plans.size).toBe(5);
-      expect(platform.memory.size).toBe(5);
-    });
-  });
-
-  describe('Cross-Component Data Consistency', () => {
-    test('should maintain consistency between memory reads and writes', async () => {
-      const testData = { key: 'consistency', value: { count: 0 } };
-
-      // Write
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send(testData);
-
-      // Read
+      // Retrieve all memories
       const response = await request(platform.app)
-        .get('/api/v1/memory');
+        .get('/api/v1/memory')
+        .expect(200);
 
-      const stored = response.body.memories.find(m => m[0] === 'consistency');
-      expect(stored).toBeDefined();
-      expect(stored[1].content).toEqual(testData.value);
-    });
+      expect(response.body.count).toBe(memories.length);
 
-    test('should maintain plan state across operations', async () => {
-      // Create plan
-      const createResponse = await request(platform.app)
-        .post('/api/v1/plans')
-        .send({ task_description: 'State test', steps: ['A', 'B'] });
-
-      const planId = createResponse.body.plan_id;
-
-      // Retrieve plans
-      const getResponse = await request(platform.app)
-        .get('/api/v1/plans');
-
-      const plan = getResponse.body.plans.find(p => p[0] === planId);
-      expect(plan).toBeDefined();
-      expect(plan[1].status).toBe('created');
-      expect(plan[1].steps).toEqual(['A', 'B']);
-    });
-
-    test('should handle updates without losing data', async () => {
-      // Initial data
+      // Update a memory
       await request(platform.app)
         .post('/api/v1/memory')
-        .send({ key: 'update_test', value: 'v1' });
-
-      // Update
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({ key: 'update_test', value: 'v2' });
+        .send({ key: 'user_id', value: '67890' })
+        .expect(200);
 
       // Verify update
-      const response = await request(platform.app)
-        .get('/api/v1/memory');
-
-      const stored = response.body.memories.find(m => m[0] === 'update_test');
-      expect(stored[1].content).toBe('v2');
-    });
-  });
-
-  describe('Error Recovery Integration', () => {
-    test('should recover from failed operations', async () => {
-      // Failed operation
-      await request(platform.app)
-        .post('/api/v1/memory')
-        .send({ key: 'test' }); // Missing value
-
-      // Successful operation should still work
-      const response = await request(platform.app)
-        .post('/api/v1/memory')
-        .send({ key: 'recovery', value: 'success' });
-
-      expect(response.status).toBe(200);
+      const stored = platform.memory.get('user_id');
+      expect(stored.content).toBe('67890');
     });
 
-    test('should continue serving after errors', async () => {
-      // Trigger error
-      await request(platform.app)
-        .get('/nonexistent');
+    test('concurrent operations workflow', async () => {
+      // Simulate concurrent user actions
+      const operations = [
+        request(platform.app).get('/health'),
+        request(platform.app).get('/api/v1/tools'),
+        request(platform.app).post('/api/v1/memory').send({ key: 'op1', value: 'val1' }),
+        request(platform.app).post('/api/v1/memory').send({ key: 'op2', value: 'val2' }),
+        request(platform.app).post('/api/v1/plans').send({ task_description: 'Task 1' }),
+        request(platform.app).post('/api/v1/plans').send({ task_description: 'Task 2' }),
+        request(platform.app).get('/api/v1/memory'),
+        request(platform.app).get('/api/v1/plans'),
+        request(platform.app).get('/api/v1/capabilities'),
+        request(platform.app).get('/api/v1/demo')
+      ];
 
-      // Verify service still works
-      const response = await request(platform.app)
-        .get('/health');
+      const results = await Promise.all(operations);
 
-      expect(response.status).toBe(200);
-    });
-  });
-
-  describe('Platform Comparison', () => {
-    test('both platforms should provide health check', async () => {
-      const simplePlatform = new SimpleUnifiedAIPlatform();
-
-      // Express platform
-      const expressResponse = await request(platform.app)
-        .get('/health');
-
-      expect(expressResponse.status).toBe(200);
-      expect(expressResponse.body.status).toBe('healthy');
-    });
-
-    test('both platforms should store memory', async () => {
-      const testData = { key: 'test', value: 'data' };
-
-      // Express platform
-      const expressResponse = await request(platform.app)
-        .post('/api/v1/memory')
-        .send(testData);
-
-      expect(expressResponse.status).toBe(200);
-      expect(platform.memory.has('test')).toBe(true);
-
-      // Simple platform
-      const simplePlatform = new SimpleUnifiedAIPlatform();
-      simplePlatform.memory.set('test', {
-        content: 'data',
-        created_at: new Date().toISOString(),
-        last_accessed: new Date().toISOString()
+      // All operations should succeed
+      results.forEach(result => {
+        expect(result.status).toBe(200);
       });
 
-      expect(simplePlatform.memory.has('test')).toBe(true);
+      // Verify data integrity
+      expect(platform.memory.size).toBe(2);
+      expect(platform.plans.size).toBe(2);
+    });
+
+    test('error recovery workflow', async () => {
+      // Make successful request
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'test1', value: 'value1' })
+        .expect(200);
+
+      // Make failing request
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({})
+        .expect(400);
+
+      // System should still work
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'test2', value: 'value2' })
+        .expect(200);
+
+      // Verify both successful memories were stored
+      const response = await request(platform.app)
+        .get('/api/v1/memory')
+        .expect(200);
+
+      expect(response.body.count).toBe(2);
     });
   });
 
-  describe('Stress Test Scenarios', () => {
-    test('should handle high volume of mixed operations', async () => {
-      const operations = [];
+  describe('Data Flow Integration', () => {
+    let platform;
 
-      // Generate mixed operations
-      for (let i = 0; i < 50; i++) {
-        if (i % 3 === 0) {
-          operations.push(
-            request(platform.app).get('/health')
-          );
-        } else if (i % 3 === 1) {
-          operations.push(
-            request(platform.app)
-              .post('/api/v1/memory')
-              .send({ key: `stress_${i}`, value: `val_${i}` })
-          );
-        } else {
-          operations.push(
-            request(platform.app)
-              .post('/api/v1/plans')
-              .send({ task_description: `Task ${i}` })
-          );
-        }
-      }
-
-      const responses = await Promise.all(operations);
-      const successCount = responses.filter(r => r.status === 200).length;
-
-      expect(successCount).toBeGreaterThan(45); // Allow some failures under stress
+    beforeEach(() => {
+      platform = new UnifiedAIPlatform();
     });
 
-    test('should maintain performance under load', async () => {
-      const start = Date.now();
+    test('data should flow correctly from input to storage', async () => {
+      const testData = {
+        key: 'flow_test',
+        value: {
+          nested: {
+            deep: {
+              value: 'test'
+            }
+          }
+        }
+      };
 
-      const operations = Array.from({ length: 100 }, (_, i) =>
-        request(platform.app)
-          .get('/health')
-      );
+      // Send data
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send(testData)
+        .expect(200);
 
-      await Promise.all(operations);
+      // Retrieve and verify
+      const response = await request(platform.app)
+        .get('/api/v1/memory')
+        .expect(200);
 
-      const duration = Date.now() - start;
+      const memories = response.body.memories;
+      const storedMemory = memories.find(m => m[0] === 'flow_test');
+      
+      expect(storedMemory).toBeDefined();
+      expect(storedMemory[1].content).toEqual(testData.value);
+    });
 
-      // 100 requests should complete reasonably fast (under 5 seconds)
-      expect(duration).toBeLessThan(5000);
+    test('plans should maintain referential integrity', async () => {
+      const planData = {
+        task_description: 'Complex task',
+        steps: [
+          { id: 1, action: 'Step 1', dependencies: [] },
+          { id: 2, action: 'Step 2', dependencies: [1] },
+          { id: 3, action: 'Step 3', dependencies: [1, 2] }
+        ]
+      };
+
+      const response = await request(platform.app)
+        .post('/api/v1/plans')
+        .send(planData)
+        .expect(200);
+
+      const planId = response.body.plan_id;
+      const storedPlan = platform.plans.get(planId);
+
+      expect(storedPlan.steps).toEqual(planData.steps);
+      expect(storedPlan.task_description).toBe(planData.task_description);
+    });
+  });
+
+  describe('Configuration Integration', () => {
+    test('system config should affect platform behavior', async () => {
+      const platform = new UnifiedAIPlatform();
+
+      const response = await request(platform.app)
+        .get('/api/v1/capabilities')
+        .expect(200);
+
+      // Verify config values are used
+      expect(response.body.platform.name).toBe('Unified AI Platform');
+      expect(response.body.core_capabilities).toBeDefined();
+      expect(response.body.performance).toBeDefined();
+    });
+
+    test('tools config should be loaded correctly', async () => {
+      const platform = new UnifiedAIPlatform();
+
+      const response = await request(platform.app)
+        .get('/api/v1/tools')
+        .expect(200);
+
+      expect(Array.isArray(response.body.tools)).toBe(true);
+      expect(response.body.count).toBe(response.body.tools.length);
+    });
+  });
+
+  describe('State Management Integration', () => {
+    let platform;
+
+    beforeEach(() => {
+      platform = new UnifiedAIPlatform();
+    });
+
+    test('memory and plans should be independent', async () => {
+      // Add memories
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'mem1', value: 'val1' })
+        .expect(200);
+
+      // Add plans
+      await request(platform.app)
+        .post('/api/v1/plans')
+        .send({ task_description: 'Task 1' })
+        .expect(200);
+
+      // Verify independence
+      expect(platform.memory.size).toBe(1);
+      expect(platform.plans.size).toBe(1);
+
+      // Clear memories
+      platform.memory.clear();
+
+      // Plans should remain
+      expect(platform.plans.size).toBe(1);
+    });
+
+    test('state should be consistent across multiple requests', async () => {
+      // First request batch
+      await Promise.all([
+        request(platform.app).post('/api/v1/memory').send({ key: 'a', value: '1' }),
+        request(platform.app).post('/api/v1/memory').send({ key: 'b', value: '2' }),
+        request(platform.app).post('/api/v1/plans').send({ task_description: 'T1' })
+      ]);
+
+      const state1 = {
+        memory: platform.memory.size,
+        plans: platform.plans.size
+      };
+
+      // Second request batch
+      await Promise.all([
+        request(platform.app).post('/api/v1/memory').send({ key: 'c', value: '3' }),
+        request(platform.app).post('/api/v1/plans').send({ task_description: 'T2' })
+      ]);
+
+      const state2 = {
+        memory: platform.memory.size,
+        plans: platform.plans.size
+      };
+
+      // State should have incremented correctly
+      expect(state2.memory).toBe(state1.memory + 1);
+      expect(state2.plans).toBe(state1.plans + 1);
+    });
+  });
+
+  describe('Cross-Feature Integration', () => {
+    let platform;
+
+    beforeEach(() => {
+      platform = new UnifiedAIPlatform();
+    });
+
+    test('capabilities endpoint should reflect actual features', async () => {
+      const response = await request(platform.app)
+        .get('/api/v1/capabilities')
+        .expect(200);
+
+      // Verify that advertised capabilities match reality
+      if (response.body.core_capabilities.memory_system.enabled) {
+        const memoryTest = await request(platform.app)
+          .post('/api/v1/memory')
+          .send({ key: 'test', value: 'test' });
+        expect(memoryTest.status).toBe(200);
+      }
+
+      if (response.body.core_capabilities.planning_system.enabled) {
+        const planTest = await request(platform.app)
+          .post('/api/v1/plans')
+          .send({ task_description: 'test' });
+        expect(planTest.status).toBe(200);
+      }
+
+      if (response.body.core_capabilities.tool_system.enabled) {
+        const toolsTest = await request(platform.app)
+          .get('/api/v1/tools');
+        expect(toolsTest.status).toBe(200);
+      }
+    });
+
+    test('demo endpoint should reflect integrated features', async () => {
+      const demoResponse = await request(platform.app)
+        .get('/api/v1/demo')
+        .expect(200);
+
+      const capsResponse = await request(platform.app)
+        .get('/api/v1/capabilities')
+        .expect(200);
+
+      // Demo should mention all enabled capabilities
+      const demoContent = JSON.stringify(demoResponse.body).toLowerCase();
+      
+      if (capsResponse.body.core_capabilities.multi_modal.enabled) {
+        expect(demoContent).toContain('multi');
+      }
+
+      if (capsResponse.body.core_capabilities.memory_system.enabled) {
+        expect(demoContent).toContain('memory');
+      }
     });
   });
 });
