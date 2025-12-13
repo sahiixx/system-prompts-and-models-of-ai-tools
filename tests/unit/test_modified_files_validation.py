@@ -13,11 +13,20 @@ class TestModifiedPromptFiles:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory relative to this file.
+        
+        Returns:
+            Path pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_lovable_agent_prompt_exists(self, repo_root):
-        """Test that Lovable Agent Prompt.txt exists and is readable."""
+        """
+        Verify the Lovable Agent Prompt file exists and contains substantial content.
+        
+        Checks that Lovable/Agent Prompt.txt exists at the repository root, is a regular file, can be read as UTF-8, is not empty, and contains more than 100 characters.
+        """
         prompt_file = repo_root / "Lovable" / "Agent Prompt.txt"
         assert prompt_file.exists(), f"Lovable Agent Prompt.txt not found at {prompt_file}"
         assert prompt_file.is_file(), "Lovable Agent Prompt.txt is not a file"
@@ -134,7 +143,11 @@ class TestModifiedPromptFiles:
             assert tag in closing_tags, f"Opening tag <{tag}> has no closing tag </{tag}>"
     
     def test_orchids_decision_making_prompt_exists(self, repo_root):
-        """Test that Orchids.app Decision-making prompt.txt exists."""
+        """
+        Verify the Orchids.app "Decision-making prompt.txt" file exists and is non-empty.
+        
+        Reads the file as UTF-8 and asserts it contains at least one character.
+        """
         prompt_file = repo_root / "Orchids.app" / "Decision-making prompt.txt"
         assert prompt_file.exists(), f"Orchids Decision-making prompt not found"
         
@@ -142,7 +155,12 @@ class TestModifiedPromptFiles:
         assert len(content) > 0, "Orchids Decision-making prompt is empty"
     
     def test_orchids_decision_making_structure(self, repo_root):
-        """Test that Orchids Decision-making prompt contains tool orchestration logic."""
+        """
+        Verify that the Orchids Decision-making prompt includes the required structural sections for role, task, tools, and rules.
+          
+        @returns
+          None
+        """
         prompt_file = repo_root / "Orchids.app" / "Decision-making prompt.txt"
         content = prompt_file.read_text(encoding='utf-8')
         
@@ -166,7 +184,12 @@ class TestModifiedJSONFiles:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory relative to this file.
+        
+        Returns:
+            Path pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_lovable_agent_tools_json_valid(self, repo_root):
@@ -220,7 +243,11 @@ class TestModifiedJSONFiles:
             assert name.islower() or '-' in name, f"Tool name '{name}' should be lowercase with hyphens"
     
     def test_lovable_tools_have_examples(self, repo_root):
-        """Test that tool parameters in Lovable Agent Tools.json have examples."""
+        """
+        Ensure each parameter property in Lovable/Agent Tools.json includes either an `example` or a `type`.
+        
+        Asserts that every tool's `parameters.properties` entry contains an `example` field or a `type` field; the test fails if any property lacks both.
+        """
         json_file = repo_root / "Lovable" / "Agent Tools.json"
         
         with open(json_file, 'r', encoding='utf-8') as f:
@@ -233,7 +260,9 @@ class TestModifiedJSONFiles:
                     f"Tool {tool['name']}, property {prop_name} should have an example or type"
     
     def test_lovable_required_parameters_exist(self, repo_root):
-        """Test that required parameters are defined in properties."""
+        """
+        Ensure each name listed in a tool's "parameters.required" array exists as a key in that tool's "parameters.properties" mapping.
+        """
         json_file = repo_root / "Lovable" / "Agent Tools.json"
         
         with open(json_file, 'r', encoding='utf-8') as f:
@@ -254,11 +283,20 @@ class TestFundingConfiguration:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory relative to this file.
+        
+        Returns:
+            Path pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_funding_yml_exists(self, repo_root):
-        """Test that .github/FUNDING.yml exists."""
+        """
+        Verify the repository contains a .github/FUNDING.yml file.
+        
+        This test fails if the FUNDING.yml file is not present at the repository root under .github.
+        """
         funding_file = repo_root / ".github" / "FUNDING.yml"
         assert funding_file.exists(), "FUNDING.yml not found"
     
@@ -292,7 +330,12 @@ class TestSpawnPrompt:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory relative to this file.
+        
+        Returns:
+            Path pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_spawn_directory_exists(self, repo_root):
@@ -326,7 +369,12 @@ class TestReadmeIntegrity:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory relative to this file.
+        
+        Returns:
+            Path pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_readme_exists(self, repo_root):
@@ -362,7 +410,12 @@ class TestV0PromptFile:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory relative to this file.
+        
+        Returns:
+            Path pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_v0_directory_exists(self, repo_root):
@@ -387,12 +440,22 @@ class TestPromptFileEncodings:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory relative to this file.
+        
+        Returns:
+            Path pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     @pytest.fixture
     def modified_text_files(self, repo_root):
-        """Get list of all modified text files."""
+        """
+        List the repository text files that should be checked for encoding and binary content.
+        
+        Returns:
+            A list of Path objects pointing to each text file to be validated.
+        """
         return [
             repo_root / "Lovable" / "Agent Prompt.txt",
             repo_root / "Lovable" / "Prompt.txt",
