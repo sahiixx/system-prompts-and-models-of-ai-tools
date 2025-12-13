@@ -13,7 +13,12 @@ class TestModifiedPromptFiles:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Return the repository root directory used by the tests.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_lovable_agent_prompt_exists(self, repo_root):
@@ -99,7 +104,12 @@ class TestModifiedPromptFiles:
             "Same.dev should mention its Docker/Ubuntu environment"
     
     def test_orchids_system_prompt_exists(self, repo_root):
-        """Test that Orchids.app System Prompt.txt exists and is valid."""
+        """
+        Verify the Orchids.app "System Prompt.txt" file exists and is not empty.
+        
+        Asserts that the file at Orchids.app/System Prompt.txt is present under the repository root
+        and that its UTF-8 decoded content has length greater than zero.
+        """
         prompt_file = repo_root / "Orchids.app" / "System Prompt.txt"
         assert prompt_file.exists(), f"Orchids.app System Prompt.txt not found"
         
@@ -166,11 +176,18 @@ class TestModifiedJSONFiles:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Return the repository root directory used by the tests.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_lovable_agent_tools_json_valid(self, repo_root):
-        """Test that Lovable Agent Tools.json is valid JSON."""
+        """
+        Verify Lovable/Agent Tools.json exists, parses as JSON, is a top-level array, and contains at least one element.
+        """
         json_file = repo_root / "Lovable" / "Agent Tools.json"
         assert json_file.exists(), f"Lovable Agent Tools.json not found"
         
@@ -220,7 +237,14 @@ class TestModifiedJSONFiles:
             assert name.islower() or '-' in name, f"Tool name '{name}' should be lowercase with hyphens"
     
     def test_lovable_tools_have_examples(self, repo_root):
-        """Test that tool parameters in Lovable Agent Tools.json have examples."""
+        """
+        Verify every parameter defined in Lovable/Agent Tools.json includes either an "example" or a "type".
+        
+        Asserts that for each tool in Lovable/Agent Tools.json, every property under `parameters.properties` contains an `"example"` field or a `"type"` field; the test fails if any property lacks both.
+        
+        Parameters:
+            repo_root (pathlib.Path): Path to the repository root used to locate Lovable/Agent Tools.json.
+        """
         json_file = repo_root / "Lovable" / "Agent Tools.json"
         
         with open(json_file, 'r', encoding='utf-8') as f:
@@ -254,7 +278,12 @@ class TestFundingConfiguration:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Return the repository root directory used by the tests.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_funding_yml_exists(self, repo_root):
@@ -263,7 +292,11 @@ class TestFundingConfiguration:
         assert funding_file.exists(), "FUNDING.yml not found"
     
     def test_funding_yml_structure(self, repo_root):
-        """Test that FUNDING.yml contains valid funding platforms."""
+        """
+        Verify that .github/FUNDING.yml lists at least one recognized funding platform.
+        
+        Checks the file case-insensitively for at least one of the platforms: "patreon", "github", "ko_fi", or "custom". Fails the test if none of these platform identifiers are present.
+        """
         funding_file = repo_root / ".github" / "FUNDING.yml"
         content = funding_file.read_text(encoding='utf-8')
         
@@ -278,7 +311,11 @@ class TestFundingConfiguration:
         assert len(content) > 0, "FUNDING.yml is empty"
     
     def test_funding_yml_valid_format(self, repo_root):
-        """Test that FUNDING.yml follows expected YAML format."""
+        """
+        Verify .github/FUNDING.yml contains basic YAML key-value lines.
+        
+        Checks that the file can be read as UTF-8, strips comments and blank lines, and asserts every remaining line contains a colon (':') indicating a key:value mapping.
+        """
         funding_file = repo_root / ".github" / "FUNDING.yml"
         content = funding_file.read_text(encoding='utf-8')
         
@@ -292,7 +329,12 @@ class TestSpawnPrompt:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Return the repository root directory used by the tests.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_spawn_directory_exists(self, repo_root):
@@ -326,7 +368,12 @@ class TestReadmeIntegrity:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Return the repository root directory used by the tests.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_readme_exists(self, repo_root):
@@ -341,7 +388,14 @@ class TestReadmeIntegrity:
         assert len(content) > 0, "README.md is empty"
     
     def test_readme_mentions_tools(self, repo_root):
-        """Test that README.md mentions the AI tools in the repository."""
+        """
+        Verify README.md mentions at least two of the project's major AI tools.
+        
+        Scans the README.md file in the repository root for occurrences of "Lovable", "Cursor", "Same.dev", and "Orchids" and asserts that at least two of those names appear.
+        
+        Parameters:
+            repo_root (pathlib.Path): Path to the repository root used to locate README.md.
+        """
         readme_file = repo_root / "README.md"
         content = readme_file.read_text(encoding='utf-8')
         
@@ -362,7 +416,12 @@ class TestV0PromptFile:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Return the repository root directory used by the tests.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_v0_directory_exists(self, repo_root):
@@ -387,12 +446,25 @@ class TestPromptFileEncodings:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Return the repository root directory used by the tests.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     @pytest.fixture
     def modified_text_files(self, repo_root):
-        """Get list of all modified text files."""
+        """
+        Return a list of Path objects for the project's modified prompt and related text files.
+        
+        Parameters:
+            repo_root (pathlib.Path): Path to the repository root.
+        
+        Returns:
+            list[pathlib.Path]: Paths to the modified prompt and related text files to validate.
+        """
         return [
             repo_root / "Lovable" / "Agent Prompt.txt",
             repo_root / "Lovable" / "Prompt.txt",
