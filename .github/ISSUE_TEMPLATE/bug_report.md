@@ -1,9 +1,10 @@
 ---
 name: Bug Report
 about: Report an issue with the repository
-title: '[BUG] '
+title: "[BUG] "
 labels: bug
 assignees: ''
+
 ---
 
 ## 🐛 Bug Description

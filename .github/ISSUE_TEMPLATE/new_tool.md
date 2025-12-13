@@ -1,9 +1,10 @@
 ---
 name: New Tool Submission
 about: Suggest adding a new AI coding tool to the repository
-title: '[NEW TOOL] '
-labels: new-tool
+title: "[NEW TOOL] "
+labels: ''
 assignees: ''
+
 ---
 
 ## 🚀 Tool Information
