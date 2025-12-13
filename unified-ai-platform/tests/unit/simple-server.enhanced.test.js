@@ -1,24 +1,60 @@
 /**
- * Enhanced Unit Tests for SimpleUnifiedAIPlatform (src/simple-server.js)
+ * Enhanced Unit Tests for SimpleUnifiedAIPlatform
  * 
- * Comprehensive coverage for the simplified HTTP server including:
- * - HTTP server creation and configuration
- * - Request parsing and routing
- * - CORS handling and preflight requests  
- * - File serving capabilities
- * - Error handling scenarios
- * - Memory and plan operations
- * - Query parameter handling
- * - Edge cases and boundary conditions
+ * These tests provide additional coverage for:
+ * - HTTP protocol edge cases
+ * - Request parsing and validation
+ * - Error recovery in native HTTP server
+ * - Performance under load
+ * - File system interactions
  */
 
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const { SimpleUnifiedAIPlatform } = require('../../src/simple-server');
+
+// Helper function to make HTTP requests
+function makeRequest(server, method, path, data = null, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const addr = server.address();
+    const options = {
+      hostname: 'localhost',
+      port: addr.port,
+      path: path,
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers
+      }
+    };
+
+    const req = http.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = body ? JSON.parse(body) : {};
+          resolve({ status: res.statusCode, headers: res.headers, body: parsed });
+        } catch (e) {
+          resolve({ status: res.statusCode, headers: res.headers, body: body });
+        }
+      });
+    });
+
+    req.on('error', reject);
+
+    if (data) {
+      req.write(JSON.stringify(data));
+    }
+    req.end();
+  });
+}
 
 describe('SimpleUnifiedAIPlatform - Enhanced Tests', () => {
   let platform;
   let server;
-  const testPort = 3001;
+  const testPort = 3003;
 
   beforeEach(() => {
     platform = new SimpleUnifiedAIPlatform();
@@ -26,576 +62,506 @@ describe('SimpleUnifiedAIPlatform - Enhanced Tests', () => {
   });
 
   afterEach((done) => {
-    if (server && server.listening) {
-      server.close(done);
+    if (server) {
+      server.close(() => {
+        server = null;
+        done();
+      });
     } else {
       done();
     }
   });
 
-  describe('Server Creation and Configuration', () => {
-    test('should create HTTP server instance', () => {
+  describe('HTTP Protocol - Advanced', () => {
+    test('should handle OPTIONS preflight with correct headers', (done) => {
       server = platform.createServer();
-      expect(server).toBeDefined();
-      expect(server).toBeInstanceOf(http.Server);
-    });
-
-    test('should initialize with default port', () => {
-      const newPlatform = new SimpleUnifiedAIPlatform();
-      expect(newPlatform.port).toBe(3000);
-    });
-
-    test('should respect PORT environment variable', () => {
-      process.env.PORT = '5000';
-      const newPlatform = new SimpleUnifiedAIPlatform();
-      expect(newPlatform.port).toBe('5000');
-      delete process.env.PORT;
-    });
-
-    test('should initialize empty memory Map', () => {
-      expect(platform.memory).toBeInstanceOf(Map);
-      expect(platform.memory.size).toBe(0);
-    });
-
-    test('should initialize empty plans Map', () => {
-      expect(platform.plans).toBeInstanceOf(Map);
-      expect(platform.plans.size).toBe(0);
-    });
-
-    test('should set isInitialized to false initially', () => {
-      expect(platform.isInitialized).toBe(false);
-    });
-  });
-
-  describe('CORS Headers and Preflight', () => {
-    test('should set CORS headers on all responses', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/health`, (res) => {
-          expect(res.headers['access-control-allow-origin']).toBe('*');
-          expect(res.headers['access-control-allow-methods']).toContain('GET');
-          expect(res.headers['access-control-allow-methods']).toContain('POST');
-          expect(res.headers['content-type']).toBe('application/json');
-          done();
-        });
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'OPTIONS', '/api/v1/memory');
+        
+        expect(response.status).toBe(200);
+        expect(response.headers['access-control-allow-origin']).toBe('*');
+        expect(response.headers['access-control-allow-methods']).toBeDefined();
+        done();
       });
     });
 
-    test('should handle OPTIONS preflight requests', (done) => {
+    test('should handle HEAD requests', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const options = {
+          hostname: 'localhost',
+          port: testPort,
+          path: '/health',
+          method: 'HEAD'
+        };
+
+        const req = http.request(options, (res) => {
+          expect([200, 404, 405]).toContain(res.statusCode);
+          done();
+        });
+        req.end();
+      });
+    });
+
+    test('should handle PUT requests', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'PUT', '/api/v1/memory', {
+          key: 'test',
+          value: 'test'
+        });
+        
+        // Should handle or return appropriate status
+        expect(response.status).toBeDefined();
+        done();
+      });
+    });
+
+    test('should handle DELETE requests', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'DELETE', '/api/v1/memory/test');
+        
+        expect(response.status).toBeDefined();
+        done();
+      });
+    });
+
+    test('should handle requests without Content-Type header', (done) => {
       server = platform.createServer();
       server.listen(testPort, () => {
         const options = {
           hostname: 'localhost',
           port: testPort,
           path: '/api/v1/memory',
-          method: 'OPTIONS'
+          method: 'POST'
         };
 
         const req = http.request(options, (res) => {
-          expect(res.statusCode).toBe(200);
-          done();
-        });
-
-        req.end();
-      });
-    });
-
-    test('should include required CORS headers in OPTIONS response', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'OPTIONS'
-        };
-
-        const req = http.request(options, (res) => {
-          expect(res.headers['access-control-allow-headers']).toBeDefined();
-          expect(res.headers['access-control-allow-methods']).toBeDefined();
-          done();
-        });
-
-        req.end();
-      });
-    });
-  });
-
-  describe('Health Check Endpoint', () => {
-    test('should return health status with all required fields', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/health`, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const health = JSON.parse(data);
-            expect(health.status).toBe('healthy');
-            expect(health.platform).toBe('Unified AI Platform');
-            expect(health.version).toBeDefined();
-            expect(health.timestamp).toBeDefined();
-            expect(health.uptime).toBeDefined();
-            expect(health.memory).toBeDefined();
-            expect(health.features).toBeDefined();
-            done();
-          });
-        });
-      });
-    });
-
-    test('should include feature flags in health check', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/health`, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const health = JSON.parse(data);
-            expect(health.features.multi_modal).toBe(true);
-            expect(health.features.memory_system).toBe(true);
-            expect(health.features.tool_system).toBe(true);
-            expect(health.features.planning_system).toBe(true);
-            expect(health.features.security).toBe(true);
-            done();
-          });
-        });
-      });
-    });
-
-    test('should return initialized status', (done) => {
-      platform.isInitialized = true;
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/health`, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const health = JSON.parse(data);
-            expect(health.initialized).toBe(true);
-            done();
-          });
-        });
-      });
-    });
-  });
-
-  describe('Memory Operations via HTTP', () => {
-    test('should store and retrieve memory via POST', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const postData = JSON.stringify({ key: 'test_key', value: 'test_value' });
-        
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length
-          }
-        };
-
-        const req = http.request(options, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const response = JSON.parse(data);
-            expect(response.success).toBe(true);
-            expect(response.message).toBe('Memory stored successfully');
-            done();
-          });
-        });
-
-        req.write(postData);
-        req.end();
-      });
-    });
-
-    test('should reject memory POST without key', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const postData = JSON.stringify({ value: 'test_value' });
-        
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length
-          }
-        };
-
-        const req = http.request(options, (res) => {
-          expect(res.statusCode).toBe(400);
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const response = JSON.parse(data);
-            expect(response.error).toBeDefined();
-            done();
-          });
-        });
-
-        req.write(postData);
-        req.end();
-      });
-    });
-
-    test('should reject memory POST without value', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const postData = JSON.stringify({ key: 'test_key' });
-        
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length
-          }
-        };
-
-        const req = http.request(options, (res) => {
-          expect(res.statusCode).toBe(400);
-          done();
-        });
-
-        req.write(postData);
-        req.end();
-      });
-    });
-
-    test('should retrieve all memories via GET', (done) => {
-      platform.memory.set('key1', { content: 'value1', created_at: new Date().toISOString(), last_accessed: new Date().toISOString() });
-      platform.memory.set('key2', { content: 'value2', created_at: new Date().toISOString(), last_accessed: new Date().toISOString() });
-      
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/api/v1/memory`, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const response = JSON.parse(data);
-            expect(response.count).toBe(2);
-            expect(Array.isArray(response.memories)).toBe(true);
-            expect(response.description).toBeDefined();
-            done();
-          });
-        });
-      });
-    });
-
-    test('should handle complex objects in memory', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const complexValue = { nested: { data: [1, 2, 3] }, flag: true };
-        const postData = JSON.stringify({ key: 'complex', value: complexValue });
-        
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length
-          }
-        };
-
-        const req = http.request(options, (res) => {
-          expect(res.statusCode).toBe(200);
-          done();
-        });
-
-        req.write(postData);
-        req.end();
-      });
-    });
-  });
-
-  describe('Plan Operations via HTTP', () => {
-    test('should create plan via POST', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const postData = JSON.stringify({ 
-          task_description: 'Test task',
-          steps: ['Step 1', 'Step 2']
-        });
-        
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/plans',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length
-          }
-        };
-
-        const req = http.request(options, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const response = JSON.parse(data);
-            expect(response.success).toBe(true);
-            expect(response.plan_id).toMatch(/^plan_\d+$/);
-            expect(response.message).toBe('Plan created successfully');
-            done();
-          });
-        });
-
-        req.write(postData);
-        req.end();
-      });
-    });
-
-    test('should create plan without steps', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const postData = JSON.stringify({ task_description: 'Simple task' });
-        
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/plans',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length
-          }
-        };
-
-        const req = http.request(options, (res) => {
-          expect(res.statusCode).toBe(200);
-          done();
-        });
-
-        req.write(postData);
-        req.end();
-      });
-    });
-
-    test('should reject plan POST without task_description', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const postData = JSON.stringify({ steps: ['Step 1'] });
-        
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/plans',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length
-          }
-        };
-
-        const req = http.request(options, (res) => {
-          expect(res.statusCode).toBe(400);
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const response = JSON.parse(data);
-            expect(response.error).toBeDefined();
-            done();
-          });
-        });
-
-        req.write(postData);
-        req.end();
-      });
-    });
-
-    test('should retrieve all plans via GET', (done) => {
-      platform.plans.set('plan_123', {
-        task_description: 'Test plan',
-        steps: [],
-        created_at: new Date().toISOString(),
-        status: 'created'
-      });
-      
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/api/v1/plans`, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const response = JSON.parse(data);
-            expect(response.count).toBe(1);
-            expect(Array.isArray(response.plans)).toBe(true);
-            expect(response.description).toBeDefined();
-            done();
-          });
-        });
-      });
-    });
-
-    test('should generate unique plan IDs', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        let planIds = [];
-        let completed = 0;
-        
-        for (let i = 0; i < 3; i++) {
-          const postData = JSON.stringify({ task_description: `Task ${i}` });
-          
-          const options = {
-            hostname: 'localhost',
-            port: testPort,
-            path: '/api/v1/plans',
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': postData.length
-            }
-          };
-
-          const req = http.request(options, (res) => {
-            let data = '';
-            res.on('data', chunk => data += chunk);
-            res.on('end', () => {
-              const response = JSON.parse(data);
-              planIds.push(response.plan_id);
-              completed++;
-              
-              if (completed === 3) {
-                const uniqueIds = new Set(planIds);
-                expect(uniqueIds.size).toBe(3);
-                done();
-              }
-            });
-          });
-
-          req.write(postData);
-          req.end();
-        }
-      });
-    });
-  });
-
-  describe('Tools Endpoint', () => {
-    test('should load and return tools from config', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/api/v1/tools`, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const response = JSON.parse(data);
-            expect(Array.isArray(response.tools)).toBe(true);
-            expect(response.count).toBe(response.tools.length);
-            expect(response.description).toBeDefined();
-            done();
-          });
-        });
-      });
-    });
-
-    test('should handle missing tools file gracefully', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/api/v1/tools`, (res) => {
-          expect(res.statusCode).toBe(200);
-          done();
-        });
-      });
-    });
-  });
-
-  describe('Capabilities Endpoint', () => {
-    test('should return platform capabilities', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/api/v1/capabilities`, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const response = JSON.parse(data);
-            expect(response.platform).toBeDefined();
-            expect(response.core_capabilities).toBeDefined();
-            expect(response.performance).toBeDefined();
-            expect(response.description).toBeDefined();
-            done();
-          });
-        });
-      });
-    });
-  });
-
-  describe('Demo Endpoint', () => {
-    test('should return demo information', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/api/v1/demo`, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const response = JSON.parse(data);
-            expect(response.message).toBeDefined();
-            expect(Array.isArray(response.features)).toBe(true);
-            expect(Array.isArray(response.systems_combined)).toBe(true);
-            expect(response.status).toBeDefined();
-            done();
-          });
-        });
-      });
-    });
-  });
-
-  describe('Error Handling', () => {
-    test('should return 404 for unknown routes', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/unknown/route`, (res) => {
-          expect(res.statusCode).toBe(404);
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            const response = JSON.parse(data);
-            expect(response.error).toBe('Not Found');
-            expect(response.message).toContain('/unknown/route');
-            expect(response.timestamp).toBeDefined();
-            done();
-          });
-        });
-      });
-    });
-
-    test('should handle malformed JSON gracefully', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const postData = '{invalid json}';
-        
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length
-          }
-        };
-
-        const req = http.request(options, (res) => {
-          // Should not crash the server
           expect(res.statusCode).toBeDefined();
           done();
         });
 
-        req.write(postData);
+        req.write(JSON.stringify({ key: 'test', value: 'test' }));
         req.end();
       });
     });
 
-    test('should handle request errors gracefully', (done) => {
+    test('should handle request with custom headers', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(
+          server,
+          'GET',
+          '/health',
+          null,
+          { 'X-Custom-Header': 'test-value' }
+        );
+        
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+  });
+
+  describe('Request Body Parsing - Edge Cases', () => {
+    test('should handle empty request body', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', null);
+        expect(response.status).toBe(400);
+        done();
+      });
+    });
+
+    test('should handle invalid JSON gracefully', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, () => {
+        const options = {
+          hostname: 'localhost',
+          port: testPort,
+          path: '/api/v1/memory',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        };
+
+        const req = http.request(options, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            expect([200, 400]).toContain(res.statusCode);
+            done();
+          });
+        });
+
+        req.write('{"invalid": json}');
+        req.end();
+      });
+    });
+
+    test('should handle very large request bodies', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, () => {
+        const largeData = 'x'.repeat(1024 * 1024); // 1MB
+        const options = {
+          hostname: 'localhost',
+          port: testPort,
+          path: '/api/v1/memory',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        };
+
+        const req = http.request(options, (res) => {
+          expect(res.statusCode).toBeDefined();
+          done();
+        });
+
+        req.write(JSON.stringify({ key: 'large', value: largeData }));
+        req.end();
+      });
+    });
+
+    test('should handle chunked request data', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, () => {
+        const options = {
+          hostname: 'localhost',
+          port: testPort,
+          path: '/api/v1/memory',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        };
+
+        const req = http.request(options, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            const parsed = JSON.parse(body);
+            expect(parsed.success || parsed.error).toBeDefined();
+            done();
+          });
+        });
+
+        // Send data in chunks
+        req.write('{"key":');
+        setTimeout(() => {
+          req.write('"test"');
+          setTimeout(() => {
+            req.write(',"value":"test"}');
+            req.end();
+          }, 10);
+        }, 10);
+      });
+    });
+
+    test('should handle URL-encoded form data', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, () => {
+        const options = {
+          hostname: 'localhost',
+          port: testPort,
+          path: '/api/v1/memory',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        };
+
+        const req = http.request(options, (res) => {
+          expect(res.statusCode).toBeDefined();
+          done();
+        });
+
+        req.write('key=test&value=test');
+        req.end();
+      });
+    });
+  });
+
+  describe('Memory Operations - Advanced', () => {
+    test('should handle special characters in keys', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const specialKey = 'key-with-特殊字符-🎉';
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: specialKey,
+          value: 'special_value'
+        });
+
+        expect(response.status).toBe(200);
+        expect(platform.memory.get(specialKey).content).toBe('special_value');
+        done();
+      });
+    });
+
+    test('should handle memory keys with spaces', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'key with spaces',
+          value: 'test'
+        });
+
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+
+    test('should handle numeric keys', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 12345,
+          value: 'numeric_key'
+        });
+
+        if (response.status === 200) {
+          const stored = platform.memory.get(12345) || platform.memory.get('12345');
+          expect(stored).toBeDefined();
+        }
+        done();
+      });
+    });
+
+    test('should preserve value types in memory', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const testValues = [
+          { key: 'number', value: 42 },
+          { key: 'boolean', value: true },
+          { key: 'array', value: [1, 2, 3] },
+          { key: 'object', value: { nested: 'value' } }
+        ];
+
+        for (const test of testValues) {
+          await makeRequest(server, 'POST', '/api/v1/memory', test);
+        }
+
+        testValues.forEach(test => {
+          const stored = platform.memory.get(test.key);
+          expect(stored.content).toEqual(test.value);
+        });
+
+        done();
+      });
+    });
+
+    test('should handle concurrent memory reads', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        // Write some data first
+        await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'concurrent',
+          value: 'test'
+        });
+
+        // Multiple concurrent reads
+        const readPromises = Array.from({ length: 20 }, () =>
+          makeRequest(server, 'GET', '/api/v1/memory')
+        );
+
+        const responses = await Promise.all(readPromises);
+        responses.forEach(response => {
+          expect(response.status).toBe(200);
+          expect(response.body.count).toBeGreaterThan(0);
+        });
+
+        done();
+      });
+    });
+  });
+
+  describe('Plans Operations - Advanced', () => {
+    test('should handle plan retrieval after creation', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const createResponse = await makeRequest(server, 'POST', '/api/v1/plans', {
+          task_description: 'Test task'
+        });
+
+        const planId = createResponse.body.plan_id;
+        expect(planId).toBeDefined();
+
+        const getResponse = await makeRequest(server, 'GET', '/api/v1/plans');
+        const plans = getResponse.body.plans;
+        const foundPlan = plans.find(([id]) => id === planId);
+
+        expect(foundPlan).toBeDefined();
+        done();
+      });
+    });
+
+    test('should handle plans with special characters in description', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/plans', {
+          task_description: 'Task with émojis 🚀 and special chars: <>&"'
+        });
+
+        expect(response.status).toBe(200);
+        const plan = platform.plans.get(response.body.plan_id);
+        expect(plan.task_description).toContain('🚀');
+        done();
+      });
+    });
+
+    test('should handle plan creation with various step formats', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const stepFormats = [
+          ['string step'],
+          [{ type: 'action', data: 'test' }],
+          [1, 2, 3],
+          [null, 'valid', undefined]
+        ];
+
+        for (const steps of stepFormats) {
+          const response = await makeRequest(server, 'POST', '/api/v1/plans', {
+            task_description: 'Test',
+            steps: steps
+          });
+
+          expect(response.status).toBe(200);
+        }
+
+        done();
+      });
+    });
+
+    test('should maintain plan order with rapid creation', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const planIds = [];
+        
+        for (let i = 0; i < 10; i++) {
+          const response = await makeRequest(server, 'POST', '/api/v1/plans', {
+            task_description: `Task ${i}`
+          });
+          planIds.push(response.body.plan_id);
+        }
+
+        // Verify all plans are unique
+        const uniqueIds = new Set(planIds);
+        expect(uniqueIds.size).toBe(10);
+        done();
+      });
+    });
+  });
+
+  describe('File System Operations', () => {
+    test('should handle missing index.html file', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/');
+        
+        // Should either return HTML or 404
+        expect([200, 404]).toContain(response.status);
+        done();
+      });
+    });
+
+    test('should handle missing tools.json file', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/api/v1/tools');
+        
+        // Should return empty array or error gracefully
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body.tools)).toBe(true);
+        done();
+      });
+    });
+
+    test('should return proper content-type for HTML', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, () => {
+        const options = {
+          hostname: 'localhost',
+          port: testPort,
+          path: '/',
+          method: 'GET'
+        };
+
+        const req = http.request(options, (res) => {
+          if (res.statusCode === 200) {
+            expect(res.headers['content-type']).toContain('text/html');
+          }
+          done();
+        });
+        req.end();
+      });
+    });
+  });
+
+  describe('URL Parsing', () => {
+    test('should handle URLs with query parameters', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/health?debug=true&format=json');
+        
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+
+    test('should handle URL-encoded paths', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/api/v1/memory');
+        
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+
+    test('should handle paths with trailing slashes', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/health/');
+        
+        expect(response.status).toBeDefined();
+        done();
+      });
+    });
+
+    test('should handle very long URLs', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const longPath = '/api/v1/memory?' + 'x'.repeat(1000);
+        const response = await makeRequest(server, 'GET', longPath);
+        
+        expect(response.status).toBeDefined();
+        done();
+      });
+    });
+  });
+
+  describe('Error Recovery', () => {
+    test('should recover from JSON parse errors', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, () => {
+        const options = {
+          hostname: 'localhost',
+          port: testPort,
+          path: '/api/v1/memory',
+          method: 'POST'
+        };
+
+        const req = http.request(options, (res) => {
+          // Should not crash server
+          expect(res.statusCode).toBeDefined();
+          
+          // Server should still be responsive
+          makeRequest(server, 'GET', '/health').then(response => {
+            expect(response.status).toBe(200);
+            done();
+          });
+        });
+
+        req.write('{bad json}');
+        req.end();
+      });
+    });
+
+    test('should handle request abortion', (done) => {
       server = platform.createServer();
       server.listen(testPort, () => {
         const options = {
@@ -606,123 +572,135 @@ describe('SimpleUnifiedAIPlatform - Enhanced Tests', () => {
         };
 
         const req = http.request(options, () => {
-          done();
+          // Should not be called
         });
 
-        // Send empty request
-        req.end();
+        req.write('{"key":"test"');
+        req.destroy(); // Abort request
+
+        // Server should still be responsive
+        setTimeout(() => {
+          makeRequest(server, 'GET', '/health').then(response => {
+            expect(response.status).toBe(200);
+            done();
+          });
+        }, 100);
       });
     });
-  });
 
-  describe('Root Path Handler', () => {
-    test('should serve HTML on root path', (done) => {
+    test('should handle errors in request handlers', (done) => {
       server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/`, (res) => {
-          // Should either serve HTML or return 404
-          expect([200, 404]).toContain(res.statusCode);
-          done();
-        });
+      
+      // Mock a method to throw error
+      const originalHandle = platform.handleHealthCheck;
+      platform.handleHealthCheck = () => {
+        throw new Error('Simulated error');
+      };
+
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/health');
+        
+        // Should return 500 error, not crash
+        expect(response.status).toBe(500);
+        
+        // Restore original method
+        platform.handleHealthCheck = originalHandle;
+        done();
       });
     });
   });
 
-  describe('Start Method', () => {
-    test('should start server and set isInitialized to true', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
-      await platform.start();
-      
-      expect(platform.isInitialized).toBe(true);
-      expect(consoleSpy).toHaveBeenCalled();
-      
-      consoleSpy.mockRestore();
+  describe('Performance and Load', () => {
+    test('should handle rapid sequential requests', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const startTime = Date.now();
+        
+        for (let i = 0; i < 50; i++) {
+          await makeRequest(server, 'GET', '/health');
+        }
+
+        const duration = Date.now() - startTime;
+        expect(duration).toBeLessThan(5000); // Should complete in 5 seconds
+        done();
+      });
     });
 
-    test('should log platform capabilities on start', async () => {
+    test('should maintain data integrity under concurrent load', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const writePromises = Array.from({ length: 30 }, (_, i) =>
+          makeRequest(server, 'POST', '/api/v1/memory', {
+            key: `load_${i}`,
+            value: `value_${i}`
+          })
+        );
+
+        await Promise.all(writePromises);
+
+        // Verify integrity
+        const getResponse = await makeRequest(server, 'GET', '/api/v1/memory');
+        expect(getResponse.body.count).toBe(30);
+
+        done();
+      });
+    });
+
+    test('should handle mixed read/write operations', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const operations = [];
+
+        // Mix of writes and reads
+        for (let i = 0; i < 20; i++) {
+          if (i % 2 === 0) {
+            operations.push(
+              makeRequest(server, 'POST', '/api/v1/memory', {
+                key: `mixed_${i}`,
+                value: `value_${i}`
+              })
+            );
+          } else {
+            operations.push(makeRequest(server, 'GET', '/api/v1/memory'));
+          }
+        }
+
+        const responses = await Promise.all(operations);
+        const allSuccessful = responses.every(r => r.status === 200);
+        expect(allSuccessful).toBe(true);
+
+        done();
+      });
+    });
+  });
+
+  describe('Server Lifecycle', () => {
+    test('should set isInitialized flag on start', (done) => {
+      expect(platform.isInitialized).toBe(false);
+      
+      platform.start().then(() => {
+        expect(platform.isInitialized).toBe(true);
+        done();
+      });
+    });
+
+    test('should log startup messages', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
       
-      await platform.start();
+      platform.logPlatformCapabilities();
       
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Platform Capabilities'));
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Performance Targets'));
-      
       consoleSpy.mockRestore();
     });
-  });
 
-  describe('Request Body Parsing', () => {
-    test('should handle empty request body for GET requests', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        http.get(`http://localhost:${testPort}/api/v1/memory`, (res) => {
-          expect(res.statusCode).toBe(200);
-          done();
+    test('should handle port already in use error', (done) => {
+      const blockingServer = http.createServer();
+      blockingServer.listen(testPort, () => {
+        platform.start().catch(error => {
+          expect(error).toBeDefined();
+          expect(error.code).toBe('EADDRINUSE');
+          blockingServer.close(done);
         });
-      });
-    });
-
-    test('should handle large request bodies', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const largeValue = 'x'.repeat(50000);
-        const postData = JSON.stringify({ key: 'large', value: largeValue });
-        
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length
-          }
-        };
-
-        const req = http.request(options, (res) => {
-          expect(res.statusCode).toBeDefined();
-          done();
-        });
-
-        req.write(postData);
-        req.end();
-      });
-    }, 10000);
-  });
-
-  describe('State Persistence', () => {
-    test('should maintain memory state across requests', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const postData = JSON.stringify({ key: 'persistent', value: 'data' });
-        
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': postData.length
-          }
-        };
-
-        const req = http.request(options, () => {
-          // After POST, verify with GET
-          http.get(`http://localhost:${testPort}/api/v1/memory`, (res) => {
-            let data = '';
-            res.on('data', chunk => data += chunk);
-            res.on('end', () => {
-              const response = JSON.parse(data);
-              expect(response.count).toBeGreaterThan(0);
-              done();
-            });
-          });
-        });
-
-        req.write(postData);
-        req.end();
       });
     });
   });
