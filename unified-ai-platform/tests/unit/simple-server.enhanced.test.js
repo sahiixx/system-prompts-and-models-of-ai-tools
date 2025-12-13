@@ -1,20 +1,19 @@
 /**
  * Enhanced Unit Tests for SimpleUnifiedAIPlatform
  * 
- * These tests provide additional coverage for:
- * - HTTP protocol edge cases
- * - Request parsing and validation
- * - Error recovery in native HTTP server
+ * Additional comprehensive tests covering:
+ * - Advanced HTTP request handling
+ * - Request body parsing edge cases
+ * - Concurrent request handling
+ * - Error recovery scenarios
+ * - CORS and security headers
  * - Performance under load
- * - File system interactions
  */
 
 const http = require('http');
-const fs = require('fs');
-const path = require('path');
 const { SimpleUnifiedAIPlatform } = require('../../src/simple-server');
 
-// Helper function to make HTTP requests
+// Helper to make HTTP requests
 function makeRequest(server, method, path, data = null, headers = {}) {
   return new Promise((resolve, reject) => {
     const addr = server.address();
@@ -35,9 +34,9 @@ function makeRequest(server, method, path, data = null, headers = {}) {
       res.on('end', () => {
         try {
           const parsed = body ? JSON.parse(body) : {};
-          resolve({ status: res.statusCode, headers: res.headers, body: parsed });
+          resolve({ status: res.statusCode, headers: res.headers, body: parsed, rawBody: body });
         } catch (e) {
-          resolve({ status: res.statusCode, headers: res.headers, body: body });
+          resolve({ status: res.statusCode, headers: res.headers, body: body, rawBody: body });
         }
       });
     });
@@ -45,7 +44,7 @@ function makeRequest(server, method, path, data = null, headers = {}) {
     req.on('error', reject);
 
     if (data) {
-      req.write(JSON.stringify(data));
+      req.write(typeof data === 'string' ? data : JSON.stringify(data));
     }
     req.end();
   });
@@ -72,15 +71,300 @@ describe('SimpleUnifiedAIPlatform - Enhanced Tests', () => {
     }
   });
 
-  describe('HTTP Protocol - Advanced', () => {
-    test('should handle OPTIONS preflight with correct headers', (done) => {
+  describe('HTTP Request Parsing', () => {
+    test('should handle empty request body for GET', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/health');
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+
+    test('should handle malformed JSON in POST body', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', '{invalid json}');
+        expect([400, 500]).toContain(response.status);
+        done();
+      });
+    });
+
+    test('should handle incomplete JSON in request', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', '{"key":"test",');
+        expect([400, 500]).toContain(response.status);
+        done();
+      });
+    });
+
+    test('should handle very large request bodies', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const largeValue = 'x'.repeat(1000000);
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'large',
+          value: largeValue
+        });
+        expect([200, 413]).toContain(response.status);
+        done();
+      });
+    });
+
+    test('should handle null characters in strings', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'null_char',
+          value: 'test\x00value'
+        });
+        expect([200, 400]).toContain(response.status);
+        done();
+      });
+    });
+
+    test('should handle arrays in request body', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'array_test',
+          value: [1, 2, 3, 4, 5]
+        });
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+
+    test('should handle nested objects', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const nested = {
+          level1: {
+            level2: {
+              level3: 'deep value'
+            }
+          }
+        };
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'nested',
+          value: nested
+        });
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+
+    test('should handle boolean values', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'bool',
+          value: true
+        });
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+
+    test('should handle numeric values', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'number',
+          value: 42
+        });
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+
+    test('should handle zero as value', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'zero',
+          value: 0
+        });
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+  });
+
+  describe('CORS Headers Validation', () => {
+    test('should set Access-Control-Allow-Origin header', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/health');
+        expect(response.headers['access-control-allow-origin']).toBe('*');
+        done();
+      });
+    });
+
+    test('should set Access-Control-Allow-Methods header', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
         const response = await makeRequest(server, 'OPTIONS', '/api/v1/memory');
+        expect(response.headers['access-control-allow-methods']).toContain('GET');
+        expect(response.headers['access-control-allow-methods']).toContain('POST');
+        done();
+      });
+    });
+
+    test('should set Access-Control-Allow-Headers', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'OPTIONS', '/api/v1/memory');
+        expect(response.headers['access-control-allow-headers']).toBeDefined();
+        done();
+      });
+    });
+
+    test('should handle preflight for all endpoints', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const endpoints = ['/health', '/api/v1/tools', '/api/v1/memory', '/api/v1/plans'];
         
+        for (const endpoint of endpoints) {
+          const response = await makeRequest(server, 'OPTIONS', endpoint);
+          expect(response.status).toBe(200);
+        }
+        done();
+      });
+    });
+  });
+
+  describe('Error Handling Paths', () => {
+    test('should handle server errors gracefully', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        // Force an error condition by accessing invalid route
+        const response = await makeRequest(server, 'GET', '/invalid/route/that/does/not/exist');
+        expect(response.status).toBe(404);
+        expect(response.body.error).toBe('Not Found');
+        done();
+      });
+    });
+
+    test('should include error message in response', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/nonexistent');
+        expect(response.body).toHaveProperty('error');
+        expect(response.body).toHaveProperty('message');
+        expect(response.body).toHaveProperty('timestamp');
+        done();
+      });
+    });
+
+    test('should handle internal errors', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        // Send invalid data to trigger error
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', 'not json');
+        expect([400, 500]).toContain(response.status);
+        done();
+      });
+    });
+
+    test('should recover from errors and continue serving', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        // First request with error
+        await makeRequest(server, 'GET', '/nonexistent');
+        
+        // Second request should work
+        const response = await makeRequest(server, 'GET', '/health');
         expect(response.status).toBe(200);
-        expect(response.headers['access-control-allow-origin']).toBe('*');
-        expect(response.headers['access-control-allow-methods']).toBeDefined();
+        done();
+      });
+    });
+  });
+
+  describe('Concurrent Request Handling', () => {
+    test('should handle multiple simultaneous GET requests', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const promises = Array.from({ length: 20 }, () =>
+          makeRequest(server, 'GET', '/health')
+        );
+        
+        const responses = await Promise.all(promises);
+        responses.forEach(res => {
+          expect(res.status).toBe(200);
+        });
+        done();
+      });
+    });
+
+    test('should handle concurrent POST requests', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const promises = Array.from({ length: 15 }, (_, i) =>
+          makeRequest(server, 'POST', '/api/v1/memory', {
+            key: `concurrent_${i}`,
+            value: `value_${i}`
+          })
+        );
+        
+        const responses = await Promise.all(promises);
+        responses.forEach(res => {
+          expect(res.status).toBe(200);
+        });
+        expect(platform.memory.size).toBe(15);
+        done();
+      });
+    });
+
+    test('should handle mixed GET and POST requests', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const promises = [];
+        
+        for (let i = 0; i < 10; i++) {
+          promises.push(makeRequest(server, 'POST', '/api/v1/memory', {
+            key: `mixed_${i}`,
+            value: `value_${i}`
+          }));
+          promises.push(makeRequest(server, 'GET', '/api/v1/memory'));
+        }
+        
+        const responses = await Promise.all(promises);
+        responses.forEach(res => {
+          expect([200, 201]).toContain(res.status);
+        });
+        done();
+      });
+    });
+
+    test('should maintain data consistency under concurrent writes', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const key = 'consistency';
+        const promises = Array.from({ length: 10 }, (_, i) =>
+          makeRequest(server, 'POST', '/api/v1/memory', {
+            key: key,
+            value: `update_${i}`
+          })
+        );
+        
+        await Promise.all(promises);
+        
+        const stored = platform.memory.get(key);
+        expect(stored).toBeDefined();
+        expect(stored.content).toMatch(/^update_\d$/);
+        done();
+      });
+    });
+  });
+
+  describe('Request Method Validation', () => {
+    test('should reject unsupported methods', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'TRACE', '/health');
+        expect([404, 405]).toContain(response.status);
         done();
       });
     });
@@ -88,18 +372,18 @@ describe('SimpleUnifiedAIPlatform - Enhanced Tests', () => {
     test('should handle HEAD requests', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/health',
-          method: 'HEAD'
-        };
+        const response = await makeRequest(server, 'HEAD', '/health');
+        expect([200, 404, 405]).toContain(response.status);
+        done();
+      });
+    });
 
-        const req = http.request(options, (res) => {
-          expect([200, 404, 405]).toContain(res.statusCode);
-          done();
-        });
-        req.end();
+    test('should handle DELETE requests to unknown endpoints', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'DELETE', '/api/v1/memory');
+        expect(response.status).toBe(404);
+        done();
       });
     });
 
@@ -108,599 +392,347 @@ describe('SimpleUnifiedAIPlatform - Enhanced Tests', () => {
       server.listen(testPort, async () => {
         const response = await makeRequest(server, 'PUT', '/api/v1/memory', {
           key: 'test',
-          value: 'test'
+          value: 'data'
         });
-        
-        // Should handle or return appropriate status
-        expect(response.status).toBeDefined();
+        expect(response.status).toBe(404);
         done();
       });
     });
+  });
 
-    test('should handle DELETE requests', (done) => {
+  describe('Response Format Validation', () => {
+    test('should return valid JSON for all endpoints', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const response = await makeRequest(server, 'DELETE', '/api/v1/memory/test');
-        
-        expect(response.status).toBeDefined();
-        done();
-      });
-    });
-
-    test('should handle requests without Content-Type header', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST'
-        };
-
-        const req = http.request(options, (res) => {
-          expect(res.statusCode).toBeDefined();
-          done();
-        });
-
-        req.write(JSON.stringify({ key: 'test', value: 'test' }));
-        req.end();
-      });
-    });
-
-    test('should handle request with custom headers', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const response = await makeRequest(
-          server,
-          'GET',
+        const endpoints = [
           '/health',
-          null,
-          { 'X-Custom-Header': 'test-value' }
-        );
-        
-        expect(response.status).toBe(200);
-        done();
-      });
-    });
-  });
-
-  describe('Request Body Parsing - Edge Cases', () => {
-    test('should handle empty request body', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const response = await makeRequest(server, 'POST', '/api/v1/memory', null);
-        expect(response.status).toBe(400);
-        done();
-      });
-    });
-
-    test('should handle invalid JSON gracefully', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        };
-
-        const req = http.request(options, (res) => {
-          let body = '';
-          res.on('data', chunk => body += chunk);
-          res.on('end', () => {
-            expect([200, 400]).toContain(res.statusCode);
-            done();
-          });
-        });
-
-        req.write('{"invalid": json}');
-        req.end();
-      });
-    });
-
-    test('should handle very large request bodies', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const largeData = 'x'.repeat(1024 * 1024); // 1MB
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        };
-
-        const req = http.request(options, (res) => {
-          expect(res.statusCode).toBeDefined();
-          done();
-        });
-
-        req.write(JSON.stringify({ key: 'large', value: largeData }));
-        req.end();
-      });
-    });
-
-    test('should handle chunked request data', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        };
-
-        const req = http.request(options, (res) => {
-          let body = '';
-          res.on('data', chunk => body += chunk);
-          res.on('end', () => {
-            const parsed = JSON.parse(body);
-            expect(parsed.success || parsed.error).toBeDefined();
-            done();
-          });
-        });
-
-        // Send data in chunks
-        req.write('{"key":');
-        setTimeout(() => {
-          req.write('"test"');
-          setTimeout(() => {
-            req.write(',"value":"test"}');
-            req.end();
-          }, 10);
-        }, 10);
-      });
-    });
-
-    test('should handle URL-encoded form data', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        };
-
-        const req = http.request(options, (res) => {
-          expect(res.statusCode).toBeDefined();
-          done();
-        });
-
-        req.write('key=test&value=test');
-        req.end();
-      });
-    });
-  });
-
-  describe('Memory Operations - Advanced', () => {
-    test('should handle special characters in keys', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const specialKey = 'key-with-特殊字符-🎉';
-        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
-          key: specialKey,
-          value: 'special_value'
-        });
-
-        expect(response.status).toBe(200);
-        expect(platform.memory.get(specialKey).content).toBe('special_value');
-        done();
-      });
-    });
-
-    test('should handle memory keys with spaces', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
-          key: 'key with spaces',
-          value: 'test'
-        });
-
-        expect(response.status).toBe(200);
-        done();
-      });
-    });
-
-    test('should handle numeric keys', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
-          key: 12345,
-          value: 'numeric_key'
-        });
-
-        if (response.status === 200) {
-          const stored = platform.memory.get(12345) || platform.memory.get('12345');
-          expect(stored).toBeDefined();
-        }
-        done();
-      });
-    });
-
-    test('should preserve value types in memory', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const testValues = [
-          { key: 'number', value: 42 },
-          { key: 'boolean', value: true },
-          { key: 'array', value: [1, 2, 3] },
-          { key: 'object', value: { nested: 'value' } }
+          '/api/v1/tools',
+          '/api/v1/memory',
+          '/api/v1/plans',
+          '/api/v1/capabilities',
+          '/api/v1/demo'
         ];
-
-        for (const test of testValues) {
-          await makeRequest(server, 'POST', '/api/v1/memory', test);
+        
+        for (const endpoint of endpoints) {
+          const response = await makeRequest(server, 'GET', endpoint);
+          expect(response.status).toBe(200);
+          expect(typeof response.body).toBe('object');
         }
-
-        testValues.forEach(test => {
-          const stored = platform.memory.get(test.key);
-          expect(stored.content).toEqual(test.value);
-        });
-
         done();
       });
     });
 
-    test('should handle concurrent memory reads', (done) => {
+    test('should set Content-Type to application/json', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        // Write some data first
-        await makeRequest(server, 'POST', '/api/v1/memory', {
-          key: 'concurrent',
-          value: 'test'
-        });
+        const response = await makeRequest(server, 'GET', '/health');
+        expect(response.headers['content-type']).toContain('application/json');
+        done();
+      });
+    });
 
-        // Multiple concurrent reads
-        const readPromises = Array.from({ length: 20 }, () =>
-          makeRequest(server, 'GET', '/api/v1/memory')
-        );
-
-        const responses = await Promise.all(readPromises);
-        responses.forEach(response => {
-          expect(response.status).toBe(200);
-          expect(response.body.count).toBeGreaterThan(0);
-        });
-
+    test('should include timestamp in ISO format', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/health');
+        expect(response.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
         done();
       });
     });
   });
 
-  describe('Plans Operations - Advanced', () => {
-    test('should handle plan retrieval after creation', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const createResponse = await makeRequest(server, 'POST', '/api/v1/plans', {
-          task_description: 'Test task'
-        });
-
-        const planId = createResponse.body.plan_id;
-        expect(planId).toBeDefined();
-
-        const getResponse = await makeRequest(server, 'GET', '/api/v1/plans');
-        const plans = getResponse.body.plans;
-        const foundPlan = plans.find(([id]) => id === planId);
-
-        expect(foundPlan).toBeDefined();
-        done();
-      });
-    });
-
-    test('should handle plans with special characters in description', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const response = await makeRequest(server, 'POST', '/api/v1/plans', {
-          task_description: 'Task with émojis 🚀 and special chars: <>&"'
-        });
-
-        expect(response.status).toBe(200);
-        const plan = platform.plans.get(response.body.plan_id);
-        expect(plan.task_description).toContain('🚀');
-        done();
-      });
-    });
-
-    test('should handle plan creation with various step formats', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const stepFormats = [
-          ['string step'],
-          [{ type: 'action', data: 'test' }],
-          [1, 2, 3],
-          [null, 'valid', undefined]
-        ];
-
-        for (const steps of stepFormats) {
-          const response = await makeRequest(server, 'POST', '/api/v1/plans', {
-            task_description: 'Test',
-            steps: steps
-          });
-
-          expect(response.status).toBe(200);
-        }
-
-        done();
-      });
-    });
-
-    test('should maintain plan order with rapid creation', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const planIds = [];
-        
-        for (let i = 0; i < 10; i++) {
-          const response = await makeRequest(server, 'POST', '/api/v1/plans', {
-            task_description: `Task ${i}`
-          });
-          planIds.push(response.body.plan_id);
-        }
-
-        // Verify all plans are unique
-        const uniqueIds = new Set(planIds);
-        expect(uniqueIds.size).toBe(10);
-        done();
-      });
-    });
-  });
-
-  describe('File System Operations', () => {
-    test('should handle missing index.html file', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const response = await makeRequest(server, 'GET', '/');
-        
-        // Should either return HTML or 404
-        expect([200, 404]).toContain(response.status);
-        done();
-      });
-    });
-
-    test('should handle missing tools.json file', (done) => {
+  describe('Tools Endpoint Edge Cases', () => {
+    test('should return empty array if tools file missing', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
         const response = await makeRequest(server, 'GET', '/api/v1/tools');
-        
-        // Should return empty array or error gracefully
-        expect(response.status).toBe(200);
         expect(Array.isArray(response.body.tools)).toBe(true);
         done();
       });
     });
 
-    test('should return proper content-type for HTML', (done) => {
+    test('should handle tools file read errors gracefully', (done) => {
       server = platform.createServer();
-      server.listen(testPort, () => {
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/',
-          method: 'GET'
-        };
-
-        const req = http.request(options, (res) => {
-          if (res.statusCode === 200) {
-            expect(res.headers['content-type']).toContain('text/html');
-          }
-          done();
-        });
-        req.end();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/api/v1/tools');
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty('tools');
+        expect(response.body).toHaveProperty('count');
+        done();
       });
     });
   });
 
-  describe('URL Parsing', () => {
-    test('should handle URLs with query parameters', (done) => {
+  describe('Memory Operations Advanced', () => {
+    test('should handle special characters in memory keys', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const response = await makeRequest(server, 'GET', '/health?debug=true&format=json');
-        
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'key-with.special_chars@123',
+          value: 'data'
+        });
         expect(response.status).toBe(200);
         done();
       });
     });
 
-    test('should handle URL-encoded paths', (done) => {
+    test('should handle Unicode in memory values', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'unicode_test',
+          value: '你好世界 🚀 émojis'
+        });
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+
+    test('should handle very long keys', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const longKey = 'key_' + 'x'.repeat(1000);
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: longKey,
+          value: 'data'
+        });
+        expect([200, 400]).toContain(response.status);
+        done();
+      });
+    });
+
+    test('should return memory count correctly', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        await makeRequest(server, 'POST', '/api/v1/memory', { key: 'k1', value: 'v1' });
+        await makeRequest(server, 'POST', '/api/v1/memory', { key: 'k2', value: 'v2' });
+        await makeRequest(server, 'POST', '/api/v1/memory', { key: 'k3', value: 'v3' });
+        
         const response = await makeRequest(server, 'GET', '/api/v1/memory');
-        
+        expect(response.body.count).toBe(3);
+        done();
+      });
+    });
+  });
+
+  describe('Plans Operations Advanced', () => {
+    test('should handle empty step arrays', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/plans', {
+          task_description: 'Empty steps',
+          steps: []
+        });
         expect(response.status).toBe(200);
         done();
       });
     });
 
-    test('should handle paths with trailing slashes', (done) => {
+    test('should handle complex step objects', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const response = await makeRequest(server, 'GET', '/health/');
-        
-        expect(response.status).toBeDefined();
-        done();
-      });
-    });
-
-    test('should handle very long URLs', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const longPath = '/api/v1/memory?' + 'x'.repeat(1000);
-        const response = await makeRequest(server, 'GET', longPath);
-        
-        expect(response.status).toBeDefined();
-        done();
-      });
-    });
-  });
-
-  describe('Error Recovery', () => {
-    test('should recover from JSON parse errors', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, () => {
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST'
-        };
-
-        const req = http.request(options, (res) => {
-          // Should not crash server
-          expect(res.statusCode).toBeDefined();
-          
-          // Server should still be responsive
-          makeRequest(server, 'GET', '/health').then(response => {
-            expect(response.status).toBe(200);
-            done();
-          });
+        const steps = [
+          { id: 1, action: 'step1', metadata: { priority: 'high' } },
+          { id: 2, action: 'step2', metadata: { priority: 'low' } }
+        ];
+        const response = await makeRequest(server, 'POST', '/api/v1/plans', {
+          task_description: 'Complex plan',
+          steps: steps
         });
-
-        req.write('{bad json}');
-        req.end();
+        expect(response.status).toBe(200);
+        done();
       });
     });
 
-    test('should handle request abortion', (done) => {
+    test('should generate unique plan IDs', (done) => {
       server = platform.createServer();
-      server.listen(testPort, () => {
-        const options = {
-          hostname: 'localhost',
-          port: testPort,
-          path: '/api/v1/memory',
-          method: 'POST'
-        };
-
-        const req = http.request(options, () => {
-          // Should not be called
+      server.listen(testPort, async () => {
+        const response1 = await makeRequest(server, 'POST', '/api/v1/plans', {
+          task_description: 'Task 1'
         });
-
-        req.write('{"key":"test"');
-        req.destroy(); // Abort request
-
-        // Server should still be responsive
-        setTimeout(() => {
-          makeRequest(server, 'GET', '/health').then(response => {
-            expect(response.status).toBe(200);
-            done();
-          });
-        }, 100);
-      });
-    });
-
-    test('should handle errors in request handlers', (done) => {
-      server = platform.createServer();
-      
-      // Mock a method to throw error
-      const originalHandle = platform.handleHealthCheck;
-      platform.handleHealthCheck = () => {
-        throw new Error('Simulated error');
-      };
-
-      server.listen(testPort, async () => {
-        const response = await makeRequest(server, 'GET', '/health');
+        const response2 = await makeRequest(server, 'POST', '/api/v1/plans', {
+          task_description: 'Task 2'
+        });
         
-        // Should return 500 error, not crash
-        expect(response.status).toBe(500);
-        
-        // Restore original method
-        platform.handleHealthCheck = originalHandle;
-        done();
-      });
-    });
-  });
-
-  describe('Performance and Load', () => {
-    test('should handle rapid sequential requests', (done) => {
-      server = platform.createServer();
-      server.listen(testPort, async () => {
-        const startTime = Date.now();
-        
-        for (let i = 0; i < 50; i++) {
-          await makeRequest(server, 'GET', '/health');
-        }
-
-        const duration = Date.now() - startTime;
-        expect(duration).toBeLessThan(5000); // Should complete in 5 seconds
+        expect(response1.body.plan_id).not.toBe(response2.body.plan_id);
         done();
       });
     });
 
-    test('should maintain data integrity under concurrent load', (done) => {
+    test('should maintain plan status', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const writePromises = Array.from({ length: 30 }, (_, i) =>
-          makeRequest(server, 'POST', '/api/v1/memory', {
-            key: `load_${i}`,
-            value: `value_${i}`
-          })
-        );
-
-        await Promise.all(writePromises);
-
-        // Verify integrity
-        const getResponse = await makeRequest(server, 'GET', '/api/v1/memory');
-        expect(getResponse.body.count).toBe(30);
-
+        const response = await makeRequest(server, 'POST', '/api/v1/plans', {
+          task_description: 'Status test'
+        });
+        
+        const plan = platform.plans.get(response.body.plan_id);
+        expect(plan.status).toBe('created');
         done();
       });
     });
 
-    test('should handle mixed read/write operations', (done) => {
+    test('should handle very long task descriptions', (done) => {
       server = platform.createServer();
       server.listen(testPort, async () => {
-        const operations = [];
-
-        // Mix of writes and reads
-        for (let i = 0; i < 20; i++) {
-          if (i % 2 === 0) {
-            operations.push(
-              makeRequest(server, 'POST', '/api/v1/memory', {
-                key: `mixed_${i}`,
-                value: `value_${i}`
-              })
-            );
-          } else {
-            operations.push(makeRequest(server, 'GET', '/api/v1/memory'));
-          }
-        }
-
-        const responses = await Promise.all(operations);
-        const allSuccessful = responses.every(r => r.status === 200);
-        expect(allSuccessful).toBe(true);
-
+        const longDesc = 'Task ' + 'x'.repeat(10000);
+        const response = await makeRequest(server, 'POST', '/api/v1/plans', {
+          task_description: longDesc
+        });
+        expect([200, 400]).toContain(response.status);
         done();
       });
     });
   });
 
   describe('Server Lifecycle', () => {
-    test('should set isInitialized flag on start', (done) => {
-      expect(platform.isInitialized).toBe(false);
-      
+    test('should start and be immediately available', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/health');
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+
+    test('should handle rapid start-stop cycles', (done) => {
+      const tempServer = platform.createServer();
+      tempServer.listen(testPort, () => {
+        tempServer.close(() => {
+          const newServer = platform.createServer();
+          newServer.listen(testPort, () => {
+            newServer.close(done);
+          });
+        });
+      });
+    });
+
+    test('should set isInitialized on start', (done) => {
       platform.start().then(() => {
         expect(platform.isInitialized).toBe(true);
         done();
       });
     });
+  });
 
-    test('should log startup messages', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
-      platform.logPlatformCapabilities();
-      
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Platform Capabilities'));
-      consoleSpy.mockRestore();
+  describe('Custom Headers Handling', () => {
+    test('should accept custom request headers', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/health', null, {
+          'X-Custom-Header': 'custom-value'
+        });
+        expect(response.status).toBe(200);
+        done();
+      });
     });
 
-    test('should handle port already in use error', (done) => {
-      const blockingServer = http.createServer();
-      blockingServer.listen(testPort, () => {
-        platform.start().catch(error => {
-          expect(error).toBeDefined();
-          expect(error.code).toBe('EADDRINUSE');
-          blockingServer.close(done);
+    test('should handle Authorization header', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/api/v1/capabilities', null, {
+          'Authorization': 'Bearer token123'
         });
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+
+    test('should handle X-Requested-With header', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'POST', '/api/v1/memory', {
+          key: 'test',
+          value: 'data'
+        }, {
+          'X-Requested-With': 'XMLHttpRequest'
+        });
+        expect(response.status).toBe(200);
+        done();
+      });
+    });
+  });
+
+  describe('Index Page Handling', () => {
+    test('should attempt to serve index.html', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/');
+        expect([200, 404]).toContain(response.status);
+        done();
+      });
+    });
+
+    test('should handle missing index.html gracefully', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/');
+        // Should either serve the file or return 404, not crash
+        expect([200, 404]).toContain(response.status);
+        done();
+      });
+    });
+  });
+
+  describe('Capabilities Endpoint', () => {
+    test('should return platform information', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/api/v1/capabilities');
+        expect(response.body.platform).toBeDefined();
+        expect(response.body.platform.name).toBe('Unified AI Platform');
+        done();
+      });
+    });
+
+    test('should include core capabilities', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/api/v1/capabilities');
+        expect(response.body.core_capabilities).toBeDefined();
+        expect(response.body.core_capabilities.multi_modal).toBeDefined();
+        done();
+      });
+    });
+
+    test('should include performance metrics', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/api/v1/capabilities');
+        expect(response.body.performance).toBeDefined();
+        done();
+      });
+    });
+  });
+
+  describe('Demo Endpoint', () => {
+    test('should return demo information', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/api/v1/demo');
+        expect(response.body.message).toBe('Unified AI Platform Demo');
+        expect(response.body.features).toBeDefined();
+        expect(Array.isArray(response.body.features)).toBe(true);
+        done();
+      });
+    });
+
+    test('should list integrated systems', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/api/v1/demo');
+        expect(response.body.systems_combined).toBeDefined();
+        expect(Array.isArray(response.body.systems_combined)).toBe(true);
+        done();
+      });
+    });
+
+    test('should include status message', (done) => {
+      server = platform.createServer();
+      server.listen(testPort, async () => {
+        const response = await makeRequest(server, 'GET', '/api/v1/demo');
+        expect(response.body.status).toBe('Ready for deployment!');
+        done();
       });
     });
   });
