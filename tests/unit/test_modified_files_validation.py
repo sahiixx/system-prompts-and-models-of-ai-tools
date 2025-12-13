@@ -13,7 +13,12 @@ class TestModifiedPromptFiles:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Resolve the repository root directory.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_lovable_agent_prompt_exists(self, repo_root):
@@ -99,7 +104,11 @@ class TestModifiedPromptFiles:
             "Same.dev should mention its Docker/Ubuntu environment"
     
     def test_orchids_system_prompt_exists(self, repo_root):
-        """Test that Orchids.app System Prompt.txt exists and is valid."""
+        """
+        Verify that Orchids.app/System Prompt.txt is present and contains non-empty UTF-8 text.
+        
+        Asserts the file exists at Orchids.app/System Prompt.txt relative to the repository root and that reading it as UTF-8 yields content with length greater than zero.
+        """
         prompt_file = repo_root / "Orchids.app" / "System Prompt.txt"
         assert prompt_file.exists(), f"Orchids.app System Prompt.txt not found"
         
@@ -166,7 +175,12 @@ class TestModifiedJSONFiles:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Resolve the repository root directory.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_lovable_agent_tools_json_valid(self, repo_root):
@@ -254,7 +268,12 @@ class TestFundingConfiguration:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Resolve the repository root directory.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_funding_yml_exists(self, repo_root):
@@ -292,7 +311,12 @@ class TestSpawnPrompt:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Resolve the repository root directory.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_spawn_directory_exists(self, repo_root):
@@ -326,7 +350,12 @@ class TestReadmeIntegrity:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Resolve the repository root directory.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_readme_exists(self, repo_root):
@@ -362,11 +391,20 @@ class TestV0PromptFile:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Resolve the repository root directory.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_v0_directory_exists(self, repo_root):
-        """Test that v0 Prompts and Tools directory exists."""
+        """
+        Assert the repository contains the "v0 Prompts and Tools" directory.
+        
+        The test fails if the directory does not exist at the repository root.
+        """
         v0_dir = repo_root / "v0 Prompts and Tools"
         assert v0_dir.exists(), f"v0 Prompts and Tools directory not found"
     
@@ -387,12 +425,25 @@ class TestPromptFileEncodings:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Resolve the repository root directory.
+        
+        Returns:
+            Path: Path object pointing to the repository root directory.
+        """
         return Path(__file__).parent.parent.parent
     
     @pytest.fixture
     def modified_text_files(self, repo_root):
-        """Get list of all modified text files."""
+        """
+        Return the list of repository text files that should be validated by the tests.
+        
+        Parameters:
+            repo_root (pathlib.Path): Path to the repository root directory.
+        
+        Returns:
+            list[pathlib.Path]: Paths to prompt, configuration, and README files to check.
+        """
         return [
             repo_root / "Lovable" / "Agent Prompt.txt",
             repo_root / "Lovable" / "Prompt.txt",
