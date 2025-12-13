@@ -1,9 +1,10 @@
 ---
 name: Feature Request
 about: Suggest an idea for this repository
-title: '[FEATURE] '
+title: "[FEATURE] "
 labels: enhancement
 assignees: ''
+
 ---
 
 ## 💡 Feature Description
