@@ -13,11 +13,20 @@ class TestModifiedPromptFiles:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory.
+        
+        Returns:
+            Path: A pathlib.Path pointing to the repository root.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_lovable_agent_prompt_exists(self, repo_root):
-        """Test that Lovable Agent Prompt.txt exists and is readable."""
+        """
+        Verify the Lovable Agent Prompt file exists, is a regular file, and contains substantive content.
+        
+        Asserts that "Lovable/Agent Prompt.txt" is present at the repository root, is a file, is not empty, and has more than 100 characters.
+        """
         prompt_file = repo_root / "Lovable" / "Agent Prompt.txt"
         assert prompt_file.exists(), f"Lovable Agent Prompt.txt not found at {prompt_file}"
         assert prompt_file.is_file(), "Lovable Agent Prompt.txt is not a file"
@@ -99,7 +108,9 @@ class TestModifiedPromptFiles:
             "Same.dev should mention its Docker/Ubuntu environment"
     
     def test_orchids_system_prompt_exists(self, repo_root):
-        """Test that Orchids.app System Prompt.txt exists and is valid."""
+        """
+        Check that Orchids.app/System Prompt.txt exists and contains non-empty UTF-8 text.
+        """
         prompt_file = repo_root / "Orchids.app" / "System Prompt.txt"
         assert prompt_file.exists(), f"Orchids.app System Prompt.txt not found"
         
@@ -134,7 +145,11 @@ class TestModifiedPromptFiles:
             assert tag in closing_tags, f"Opening tag <{tag}> has no closing tag </{tag}>"
     
     def test_orchids_decision_making_prompt_exists(self, repo_root):
-        """Test that Orchids.app Decision-making prompt.txt exists."""
+        """
+        Verify that Orchids.app/Decision-making prompt.txt exists and is non-empty.
+        
+        Asserts the file is present under the repository root and that its UTF-8 decoded content has length greater than zero.
+        """
         prompt_file = repo_root / "Orchids.app" / "Decision-making prompt.txt"
         assert prompt_file.exists(), f"Orchids Decision-making prompt not found"
         
@@ -166,7 +181,12 @@ class TestModifiedJSONFiles:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory.
+        
+        Returns:
+            Path: A pathlib.Path pointing to the repository root.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_lovable_agent_tools_json_valid(self, repo_root):
@@ -254,7 +274,12 @@ class TestFundingConfiguration:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory.
+        
+        Returns:
+            Path: A pathlib.Path pointing to the repository root.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_funding_yml_exists(self, repo_root):
@@ -292,11 +317,20 @@ class TestSpawnPrompt:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory.
+        
+        Returns:
+            Path: A pathlib.Path pointing to the repository root.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_spawn_directory_exists(self, repo_root):
-        """Test that -Spawn directory exists (note the dash prefix)."""
+        """
+        Verify a directory named "-Spawn" exists at the repository root.
+        
+        The test fails if the path does not exist or is not a directory.
+        """
         spawn_dir = repo_root / "-Spawn"
         assert spawn_dir.exists(), f"-Spawn directory not found at {spawn_dir}"
         assert spawn_dir.is_dir(), "-Spawn is not a directory"
@@ -326,7 +360,12 @@ class TestReadmeIntegrity:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory.
+        
+        Returns:
+            Path: A pathlib.Path pointing to the repository root.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_readme_exists(self, repo_root):
@@ -362,7 +401,12 @@ class TestV0PromptFile:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory.
+        
+        Returns:
+            Path: A pathlib.Path pointing to the repository root.
+        """
         return Path(__file__).parent.parent.parent
     
     def test_v0_directory_exists(self, repo_root):
@@ -387,12 +431,25 @@ class TestPromptFileEncodings:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory.
+        
+        Returns:
+            Path: A pathlib.Path pointing to the repository root.
+        """
         return Path(__file__).parent.parent.parent
     
     @pytest.fixture
     def modified_text_files(self, repo_root):
-        """Get list of all modified text files."""
+        """
+        List key modified text file paths used by the tests.
+        
+        Parameters:
+        	repo_root (pathlib.Path): Repository root directory used to resolve each file path.
+        
+        Returns:
+        	list[pathlib.Path]: Paths to prompt, configuration, and README files that should be validated.
+        """
         return [
             repo_root / "Lovable" / "Agent Prompt.txt",
             repo_root / "Lovable" / "Prompt.txt",
