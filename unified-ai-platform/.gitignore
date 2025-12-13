@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Test coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Jest cache
+.jest/
+
+# Test results
+test-results/
+junit.xml
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
