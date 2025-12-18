@@ -9,6 +9,197 @@ const { UnifiedAIPlatform } = require('../../src/index');
 const { SimpleUnifiedAIPlatform } = require('../../src/simple-server');
 const http = require('http');
 
+jest.mock('../../config/system-config.json', () => ({
+  platform: { name: 'Unified AI Platform', version: '1.0.0' },
+  core_capabilities: {
+    multi_modal: { enabled: true },
+    memory_system: { enabled: true },
+    tool_system: { enabled: true },
+    planning_system: { enabled: true },
+    security: { enabled: true }
+  },
+  operating_modes: { development: { debug: true }, production: { debug: false } },
+  performance: {
+    response_time: { target_ms: 1000, max_ms: 5000 },
+    memory_usage: { max_mb: 512 },
+    concurrent_operations: { max_parallel: 10, queue_size: 100 }
+  }
+}));
+
+jest.mock('../../config/tools.json', () => ([
+  { type: 'function', function: { name: 'read_file', description: 'Read file' } },
+  { type: 'function', function: { name: 'write_file', description: 'Write file' } },
+  { type: 'function', function: { name: 'execute_command', description: 'Execute' } }
+]));
+
+describe('Integration Tests - Complete Workflows', () => {
+  let platform;
+
+  beforeEach(() => {
+    platform = new UnifiedAIPlatform();
+  });
+
+  afterEach(() => {
+    platform.memory.clear();
+    platform.plans.clear();
+  });
+
+  describe('Memory and Planning Integration', () => {
+    test('should use memory to inform plan creation', async () => {
+      // Step 1: Store user preferences
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'user_language', value: 'Python' })
+        .expect(200);
+
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'user_framework', value: 'Django' })
+        .expect(200);
+
+      // Step 2: Create plan that could reference memory
+      const planResponse = await request(platform.app)
+        .post('/api/v1/plans')
+        .send({
+          task_description: 'Build web application',
+          steps: [
+            'Set up Python environment',
+            'Install Django',
+            'Create project structure'
+          ]
+        })
+        .expect(200);
+
+      // Step 3: Verify both systems have data
+      const memoryResponse = await request(platform.app)
+        .get('/api/v1/memory')
+        .expect(200);
+
+      const plansResponse = await request(platform.app)
+        .get('/api/v1/plans')
+        .expect(200);
+
+      expect(memoryResponse.body.count).toBe(2);
+      expect(plansResponse.body.count).toBe(1);
+
+      // Verify plan exists
+      const plan = platform.plans.get(planResponse.body.plan_id);
+      expect(plan.steps).toHaveLength(3);
+    });
+
+    test('should maintain state across multiple operations', async () => {
+      // Simulate a complete workflow
+      const workflow = [
+        { type: 'memory', key: 'project_name', value: 'MyApp' },
+        { type: 'memory', key: 'project_type', value: 'API' },
+        { type: 'plan', description: 'Design MyApp API', steps: ['Define endpoints', 'Design schema'] },
+        { type: 'memory', key: 'design_complete', value: 'true' },
+        { type: 'plan', description: 'Implement MyApp API', steps: ['Code endpoints', 'Write tests'] }
+      ];
+
+      for (const item of workflow) {
+        if (item.type === 'memory') {
+          await request(platform.app)
+            .post('/api/v1/memory')
+            .send({ key: item.key, value: item.value })
+            .expect(200);
+        } else if (item.type === 'plan') {
+          await request(platform.app)
+            .post('/api/v1/plans')
+            .send({ task_description: item.description, steps: item.steps })
+            .expect(200);
+        }
+      }
+
+      // Verify final state
+      expect(platform.memory.size).toBe(3);
+      expect(platform.plans.size).toBe(2);
+
+      const designComplete = platform.memory.get('design_complete');
+      expect(designComplete.content).toBe('true');
+    });
+
+    test('should handle complex multi-phase workflow', async () => {
+      // Phase 1: Requirements gathering
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'requirements', value: ['Auth', 'CRUD', 'Search'] })
+        .expect(200);
+
+      const phase1Plan = await request(platform.app)
+        .post('/api/v1/plans')
+        .send({
+          task_description: 'Requirements Analysis',
+          steps: ['Review requirements', 'Create user stories']
+        })
+        .expect(200);
+
+      // Phase 2: Design
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'architecture', value: 'Microservices' })
+        .expect(200);
+
+      const phase2Plan = await request(platform.app)
+        .post('/api/v1/plans')
+        .send({
+          task_description: 'System Design',
+          steps: ['Design architecture', 'Create API specs']
+        })
+        .expect(200);
+
+      // Phase 3: Implementation
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'tech_stack', value: 'Node.js + PostgreSQL' })
+        .expect(200);
+
+      const phase3Plan = await request(platform.app)
+        .post('/api/v1/plans')
+        .send({
+          task_description: 'Implementation',
+          steps: ['Set up services', 'Implement APIs', 'Write tests']
+        })
+        .expect(200);
+
+      // Verify all phases are captured
+      expect(platform.memory.size).toBe(3);
+      expect(platform.plans.size).toBe(3);
+
+      // Verify plan IDs are unique
+      const planIds = [phase1Plan.body.plan_id, phase2Plan.body.plan_id, phase3Plan.body.plan_id];
+      const uniqueIds = new Set(planIds);
+      expect(uniqueIds.size).toBe(3);
+    });
+  });
+
+  describe('Tool Discovery and Usage Workflow', () => {
+    test('should discover tools then create plan using them', async () => {
+      // Step 1: Discover available tools
+      const toolsResponse = await request(platform.app)
+        .get('/api/v1/tools')
+        .expect(200);
+
+      expect(toolsResponse.body.tools).toBeDefined();
+      const toolNames = toolsResponse.body.tools.map(t => t.function.name);
+
+      // Step 2: Store tool preferences
+      await request(platform.app)
+        .post('/api/v1/memory')
+        .send({ key: 'preferred_tools', value: toolNames })
+        .expect(200);
+
+      // Step 3: Create plan that references tools
+      await request(platform.app)
+        .post('/api/v1/plans')
+        .send({
+          task_description: 'Use tools to complete task',
+          steps: toolNames.map(name => `Execute ${name}`)
+        })
+        .expect(200);
+
+      expect(platform.plans.size).toBe(1);
+
 describe('Integration Tests', () => {
   describe('Express vs Simple Server Compatibility', () => {
     let expressPlatform;
@@ -220,7 +411,10 @@ describe('Integration Tests', () => {
         })
         .expect(200);
 
-      const planId = planResponse.body.plan_id;
+      // Memory should have increased by 1, plans should be unchanged
+      expect(platform.memory.size).toBe(initialMemorySize + 1);
+      expect(platform.plans.size).toBe(initialPlansSize);
+    });
 
       // 5. Retrieve the plan
       const plansResponse = await request(platform.app)
@@ -335,6 +529,7 @@ describe('Integration Tests', () => {
     beforeEach(() => {
       platform = new UnifiedAIPlatform();
     });
+  });
 
     test('data should flow correctly from input to storage', async () => {
       const testData = {
@@ -414,6 +609,7 @@ describe('Integration Tests', () => {
       expect(response.body.count).toBe(response.body.tools.length);
     });
   });
+});
 
   describe('State Management Integration', () => {
     let platform;
@@ -421,6 +617,7 @@ describe('Integration Tests', () => {
     beforeEach(() => {
       platform = new UnifiedAIPlatform();
     });
+  }
 
     test('memory and plans should be independent', async () => {
       // Add memories

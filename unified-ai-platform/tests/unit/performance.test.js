@@ -127,6 +127,7 @@ describe('Performance Tests', () => {
       const responseTime = Date.now() - startTime;
       expect(responseTime).toBeLessThan(200); // Should still be reasonably fast
     });
+  });
 
     test('should handle large memory values', async () => {
       const largeValue = 'X'.repeat(100000); // 100KB string
@@ -192,7 +193,6 @@ describe('Performance Tests', () => {
       const responseTime = Date.now() - startTime;
       expect(responseTime).toBeLessThan(200);
     });
-  });
 
   describe('Concurrent Operations Tests', () => {
     test('should handle concurrent reads efficiently', async () => {
@@ -303,7 +303,6 @@ describe('Performance Tests', () => {
       expect(platform.memory.size).toBe(0);
       expect(clearTime).toBeLessThan(10); // Should be very fast
     });
-  });
 
   describe('Stress Tests', () => {
     test('should survive rapid fire requests', async () => {
