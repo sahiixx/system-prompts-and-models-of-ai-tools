@@ -2,7 +2,7 @@
 
 ---
 
-# Tired of buiding trash games with generic AI tools?
+# Tired of building trash games with generic AI tools?
 <a href="https://spawn.co" target="_blank" rel="noopener noreferrer">
   <img width="200" height="200" alt="Spawn.co Logo" src="https://github.com/user-attachments/assets/669cef9b-eec1-4add-9a02-fb7e12602126" align="right" />
 </a>
