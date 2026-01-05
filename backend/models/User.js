@@ -35,20 +35,32 @@ const UserSchema = new mongoose.Schema({
     enum: ['user', 'admin', 'moderator'],
     default: 'user'
   },
-  oauthProvider: {
+  username: {
     type: String,
-    enum: ['google', 'github', null],
-    default: null
+    trim: true,
+    maxlength: [30, 'Username cannot be more than 30 characters']
   },
-  oauthId: {
-    type: String,
-    default: null
+  profile: {
+    displayName: String,
+    avatar: String,
+    bio: String
   },
-  isVerified: {
+  oauth: {
+    google: {
+      id: String,
+      email: String
+    },
+    github: {
+      id: String,
+      username: String
+    }
+  },
+  emailVerified: {
     type: Boolean,
     default: false
   },
   verificationToken: String,
+  verificationExpire: Date,
   resetPasswordToken: String,
   resetPasswordExpire: Date,
   lastLogin: {
