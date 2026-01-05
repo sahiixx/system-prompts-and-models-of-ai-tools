@@ -25,6 +25,7 @@
     "bcryptjs": "^2.4.3",
     "express-validator": "^7.0.1",
     "express-rate-limit": "^7.1.5",
+    "rate-limit-redis": "^4.2.0",
     "helmet": "^7.1.0",
     "morgan": "^1.10.0",
     "compression": "^1.7.4",
@@ -33,11 +34,13 @@
     "passport-jwt": "^4.0.1",
     "passport-google-oauth20": "^2.0.0",
     "passport-github2": "^0.1.12",
-    "nodemailer": "^6.9.7",
+    "nodemailer": "^7.0.12",
+    "multer": "^2.0.2",
     "redis": "^4.6.11",
     "winston": "^3.11.0",
     "joi": "^17.11.0",
-    "node-cache": "^5.1.2"
+    "node-cache": "^5.1.2",
+    "json2csv": "^6.0.0-alpha.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",

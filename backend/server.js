@@ -10,15 +10,21 @@ require('dotenv').config();
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const oauthRoutes = require('./routes/oauth');
+const emailRoutes = require('./routes/email');
 const toolsRoutes = require('./routes/tools');
 const usersRoutes = require('./routes/users');
 const favoritesRoutes = require('./routes/favorites');
 const reviewsRoutes = require('./routes/reviews');
 const collectionsRoutes = require('./routes/collections');
 const analyticsRoutes = require('./routes/analytics');
+const adminRoutes = require('./routes/admin');
+const exportRoutes = require('./routes/export');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
+const { cache, getCacheStats } = require('./middleware/redisCache');
+const { apiLimiter, tieredRateLimit } = require('./middleware/rateLimiter');
 const logger = require('./utils/logger');
 
 // Import database connection
@@ -50,7 +56,8 @@ const limiter = rateLimit({
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   message: 'Too many requests from this IP, please try again later.'
 });
-app.use('/api/', limiter);
+// Use API limiter from middleware instead of local limiter
+app.use('/api/', apiLimiter);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -72,14 +79,27 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Cache stats endpoint
+app.get('/api/cache/stats', async (req, res) => {
+  const stats = await getCacheStats();
+  res.json({
+    success: true,
+    data: stats
+  });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/tools', toolsRoutes);
+app.use('/api/oauth', oauthRoutes);
+app.use('/api/email', emailRoutes);
+app.use('/api/tools', cache(300), toolsRoutes); // Cache for 5 minutes
 app.use('/api/users', usersRoutes);
 app.use('/api/favorites', favoritesRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/collections', collectionsRoutes);
-app.use('/api/analytics', analyticsRoutes);
+app.use('/api/analytics', cache(600), analyticsRoutes); // Cache for 10 minutes
+app.use('/api/admin', adminRoutes);
+app.use('/api/export', exportRoutes);
 
 // WebSocket for real-time features
 io.on('connection', (socket) => {
