@@ -20,6 +20,9 @@ console.log('✓ All routes loaded');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const comparisonRoutes = require('./routes/comparison');
+const advancedAnalyticsRoutes = require('./routes/advanced-analytics');
+const { initializeWebSocketHandlers } = require('./utils/websocket');
 
 console.log('🔧 Setting up middleware...');
 // Middleware
@@ -54,6 +57,8 @@ app.use('/api/reviews', reviewsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/comparison', comparisonRoutes);
+app.use('/api/advanced-analytics', advancedAnalyticsRoutes);
 console.log('✓ Routes registered');
 
 // 404 handler
