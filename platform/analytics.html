@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics & AI Recommendations - AI Tools Hub</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00f0ff;
+            --secondary: #ff00ff;
+            --accent: #7b2ff7;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --danger: #ff3366;
+            --dark: #0a0e27;
+            --darker: #060920;
+            --light: #ffffff;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--darker);
+            color: var(--light);
+        }
+
+        /* Navigation */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 1rem 2rem;
+        }
+
+        .nav-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--light);
+            text-decoration: none;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 3rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .page-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.7;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 240, 255, 0.2);
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        .stat-change {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .stat-change.positive {
+            color: var(--success);
+        }
+
+        .stat-change.negative {
+            color: var(--danger);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .chart-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .chart-filters {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: var(--light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--primary);
+            color: var(--dark);
+            border-color: var(--primary);
+        }
+
+        /* AI Recommendations */
+        .recommendations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .recommendation-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .recommendation-card::before {
+            content: '🤖 AI Recommended';
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 0.7rem;
+            padding: 0.3rem 0.8rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: var(--dark);
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .recommendation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 240, 255, 0.3);
+            border-color: var(--primary);
+        }
+
+        .recommendation-score {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .recommendation-reason {
+            text-align: center;
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .tool-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .tool-description {
+            opacity: 0.7;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .tool-features {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .feature-tag {
+            padding: 0.3rem 0.8rem;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            font-size: 0.7rem;
+        }
+
+        /* Usage Analytics */
+        .usage-table {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: rgba(0, 240, 255, 0.05);
+        }
+
+        th, td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(0, 240, 255, 0.05);
+        }
+
+        /* Heatmap */
+        .heatmap {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 5px;
+            background: var(--glass);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            transition: all 0.3s ease;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.1);
+        }
+
+        .heatmap-cell.low { background: rgba(0, 240, 255, 0.1); }
+        .heatmap-cell.medium { background: rgba(0, 240, 255, 0.3); }
+        .heatmap-cell.high { background: rgba(0, 240, 255, 0.6); }
+        .heatmap-cell.very-high { background: rgba(0, 240, 255, 0.9); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .recommendations-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <div class="logo">⚡ AI Tools Hub</div>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="explore.html">Explore</a>
+                <a href="dashboard-enhanced.html">Dashboard</a>
+                <a href="profile.html">Profile</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Container -->
+    <div class="container">
+        <!-- Header -->
+        <div class="page-header">
+            <h1 class="page-title">Analytics & AI Insights</h1>
+            <p class="page-subtitle">Powered by machine learning and usage patterns</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value" id="totalViews">0</div>
+                <div class="stat-label">Total Tool Views</div>
+                <div class="stat-change positive">+12% from last week</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-value" id="avgRating">4.5</div>
+                <div class="stat-label">Average Rating</div>
+                <div class="stat-change positive">+0.3 this month</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">💖</div>
+                <div class="stat-value" id="totalFavorites">0</div>
+                <div class="stat-label">Total Favorites</div>
+                <div class="stat-change positive">+8% growth</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">🔥</div>
+                <div class="stat-value" id="trendingCount">0</div>
+                <div class="stat-label">Trending Tools</div>
+                <div class="stat-change positive">Top performers</div>
+            </div>
+        </div>
+
+        <!-- AI Recommendations -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2 class="chart-title">🤖 AI-Powered Recommendations</h2>
+                <div class="chart-filters">
+                    <button class="filter-btn active">For You</button>
+                    <button class="filter-btn">Trending</button>
+                    <button class="filter-btn">Similar Users</button>
+                </div>
+            </div>
+            <div class="recommendations-grid" id="recommendationsGrid">
+                <!-- AI Recommendations will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Usage Heatmap -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2 class="chart-title">📅 Activity Heatmap</h2>
+            </div>
+            <div class="heatmap" id="heatmap">
+                <!-- Heatmap will be generated -->
+            </div>
+        </div>
+
+        <!-- Usage Trends -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2 class="chart-title">📈 Usage Trends</h2>
+            </div>
+            <canvas id="trendsChart" style="max-height: 400px;"></canvas>
+        </div>
+
+        <!-- Popular Tools Table -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2 class="chart-title">🔝 Most Popular Tools</h2>
+            </div>
+            <div class="usage-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Tool</th>
+                            <th>Views</th>
+                            <th>Favorites</th>
+                            <th>Rating</th>
+                            <th>Trend</th>
+                        </tr>
+                    </thead>
+                    <tbody id="popularToolsTable">
+                        <!-- Table rows will be populated -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Category Distribution -->
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2 class="chart-title">📊 Category Distribution</h2>
+            </div>
+            <canvas id="categoryChart" style="max-height: 300px;"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://sahiixx.github.io/system-prompts-and-models-of-ai-tools/api';
+        let allTools = [];
+        let userPreferences = {};
+
+        // Initialize
+        window.onload = async function() {
+            await loadData();
+            loadUserPreferences();
+            generateRecommendations();
+            generateHeatmap();
+            renderCharts();
+            populatePopularTools();
+            updateStats();
+        };
+
+        // Load data
+        async function loadData() {
+            try {
+                const response = await fetch(`${API_BASE}/index.json`);
+                const data = await response.json();
+                allTools = data.tools;
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        // Load user preferences
+        function loadUserPreferences() {
+            const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+            const reviews = JSON.parse(localStorage.getItem('reviews') || '[]');
+            const views = JSON.parse(localStorage.getItem('toolViews') || '{}');
+
+            userPreferences = {
+                favorites,
+                reviews,
+                views,
+                preferredTypes: extractPreferredTypes(favorites, reviews),
+                preferredFeatures: extractPreferredFeatures(favorites)
+            };
+        }
+
+        // Extract preferred types
+        function extractPreferredTypes(favorites, reviews) {
+            const types = {};
+            [...favorites, ...reviews.map(r => r.toolSlug)].forEach(slug => {
+                const tool = allTools.find(t => t.slug === slug);
+                if (tool && tool.type) {
+                    types[tool.type] = (types[tool.type] || 0) + 1;
+                }
+            });
+            return Object.keys(types).sort((a, b) => types[b] - types[a]);
+        }
+
+        // Extract preferred features
+        function extractPreferredFeatures(favorites) {
+            // Simulated feature extraction
+            return ['code-completion', 'chat-interface', 'multi-file-edit'];
+        }
+
+        // Generate AI recommendations
+        function generateRecommendations() {
+            const grid = document.getElementById('recommendationsGrid');
+            
+            // AI recommendation algorithm
+            const recommendations = allTools
+                .filter(tool => !userPreferences.favorites.includes(tool.slug))
+                .map(tool => {
+                    let score = 0;
+                    
+                    // Score based on type preference
+                    if (userPreferences.preferredTypes.includes(tool.type)) {
+                        score += 40;
+                    }
+                    
+                    // Score based on popularity (simulated)
+                    score += Math.random() * 30;
+                    
+                    // Score based on status
+                    if (tool.status === 'active') score += 20;
+                    
+                    // Add random factor for discovery
+                    score += Math.random() * 10;
+                    
+                    return { ...tool, score: Math.round(score) };
+                })
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 6);
+
+            grid.innerHTML = recommendations.map(tool => `
+                <div class="recommendation-card">
+                    <div class="recommendation-score">${tool.score}%</div>
+                    <div class="recommendation-reason">
+                        ${getRecommendationReason(tool)}
+                    </div>
+                    <div class="tool-name">${tool.name}</div>
+                    <div class="tool-description">${tool.description || 'No description available'}</div>
+                    <div class="tool-features">
+                        <span class="feature-tag">${tool.type}</span>
+                        <span class="feature-tag">${tool.status}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Get recommendation reason
+        function getRecommendationReason(tool) {
+            if (userPreferences.preferredTypes.includes(tool.type)) {
+                return `Matches your ${tool.type} preference`;
+            }
+            return 'Popular among similar users';
+        }
+
+        // Generate heatmap
+        function generateHeatmap() {
+            const heatmap = document.getElementById('heatmap');
+            const days = 28;
+            
+            for (let i = 0; i < days; i++) {
+                const activity = Math.random();
+                let level = 'low';
+                if (activity > 0.7) level = 'very-high';
+                else if (activity > 0.5) level = 'high';
+                else if (activity > 0.3) level = 'medium';
+                
+                const cell = document.createElement('div');
+                cell.className = `heatmap-cell ${level}`;
+                cell.title = `Day ${i + 1}: ${Math.round(activity * 100)} views`;
+                heatmap.appendChild(cell);
+            }
+        }
+
+        // Render charts
+        function renderCharts() {
+            // Trends chart
+            const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+            new Chart(trendsCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Tool Views',
+                        data: [120, 190, 150, 280, 250, 180, 220],
+                        borderColor: '#00f0ff',
+                        backgroundColor: 'rgba(0, 240, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // Category chart
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            const categories = {};
+            allTools.forEach(tool => {
+                categories[tool.type] = (categories[tool.type] || 0) + 1;
+            });
+
+            new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(categories),
+                    datasets: [{
+                        data: Object.values(categories),
+                        backgroundColor: [
+                            'rgba(0, 240, 255, 0.5)',
+                            'rgba(255, 0, 255, 0.5)',
+                            'rgba(123, 47, 247, 0.5)',
+                            'rgba(0, 255, 136, 0.5)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // Populate popular tools
+        function populatePopularTools() {
+            const table = document.getElementById('popularToolsTable');
+            const popularTools = allTools
+                .slice(0, 10)
+                .map((tool, index) => ({
+                    ...tool,
+                    views: Math.floor(Math.random() * 10000) + 1000,
+                    favorites: Math.floor(Math.random() * 1000) + 100,
+                    rating: (Math.random() * 2 + 3).toFixed(1)
+                }));
+
+            table.innerHTML = popularTools.map((tool, index) => `
+                <tr>
+                    <td><strong>${index + 1}</strong></td>
+                    <td>${tool.name}</td>
+                    <td>${tool.views.toLocaleString()}</td>
+                    <td>${tool.favorites.toLocaleString()}</td>
+                    <td>⭐ ${tool.rating}</td>
+                    <td style="color: var(--success);">↗ +${Math.floor(Math.random() * 20) + 5}%</td>
+                </tr>
+            `).join('');
+        }
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('totalViews').textContent = '24.5K';
+            document.getElementById('totalFavorites').textContent = userPreferences.favorites.length;
+            document.getElementById('trendingCount').textContent = Math.floor(allTools.length * 0.2);
+        }
+    </script>
+</body>
+</html>
