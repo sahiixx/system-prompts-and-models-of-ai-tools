@@ -40,7 +40,9 @@
     "winston": "^3.11.0",
     "joi": "^17.11.0",
     "node-cache": "^5.1.2",
-    "json2csv": "^6.0.0-alpha.2"
+    "json2csv": "^6.0.0-alpha.2",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",

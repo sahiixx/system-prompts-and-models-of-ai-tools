@@ -20,6 +20,10 @@ const collectionsRoutes = require('./routes/collections');
 const analyticsRoutes = require('./routes/analytics');
 const adminRoutes = require('./routes/admin');
 const exportRoutes = require('./routes/export');
+const healthRoutes = require('./routes/health');
+
+// Import Swagger documentation
+const { swaggerUi, swaggerSpec } = require('./config/swagger');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -88,6 +92,18 @@ app.get('/api/cache/stats', async (req, res) => {
   });
 });
 
+// API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'AI Tools Hub API Documentation'
+}));
+
+// API documentation JSON
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/oauth', oauthRoutes);
@@ -100,6 +116,7 @@ app.use('/api/collections', collectionsRoutes);
 app.use('/api/analytics', cache(600), analyticsRoutes); // Cache for 10 minutes
 app.use('/api/admin', adminRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/health', healthRoutes);
 
 // WebSocket for real-time features
 io.on('connection', (socket) => {
@@ -142,8 +159,10 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
   logger.info(`📡 WebSocket server is ready`);
+  logger.info(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+  logger.info(`🏥 Health Check: http://localhost:${PORT}/api/health/detailed`);
   console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📖 API Documentation: http://localhost:${PORT}/api/docs`);
+  console.log(`📖 API Documentation: http://localhost:${PORT}/api-docs`);
 });
 
 // Handle unhandled promise rejections
