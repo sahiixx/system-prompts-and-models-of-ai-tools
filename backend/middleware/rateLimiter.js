@@ -146,7 +146,7 @@ const userRateLimit = (maxRequests = 1000, windowMs = 60 * 60 * 1000) => {
 };
 
 // Tiered rate limiting based on user role
-const tierbasedRateLimit = () => {
+const tieredRateLimit = () => {
   return async (req, res, next) => {
     if (!req.user || !req.user.id) {
       return next();

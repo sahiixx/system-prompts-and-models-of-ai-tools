@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { authLimiter, registerLimiter } = require('../middleware/rateLimiter');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -15,7 +15,7 @@ const generateToken = (userId) => {
 // @route   POST /api/auth/register
 // @desc    Register new user
 // @access  Public
-router.post('/register', registerLimiter, async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { username, email, password, name } = req.body;
 
@@ -124,7 +124,7 @@ router.post('/login', authLimiter, async (req, res) => {
 // @route   GET /api/auth/me
 // @desc    Get current user
 // @access  Private
-router.get('/me', require('../middleware/auth').auth, async (req, res) => {
+router.get('/me', require('../middleware/auth').authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
       .select('-password')
@@ -144,7 +144,7 @@ router.get('/me', require('../middleware/auth').auth, async (req, res) => {
 // @route   PUT /api/auth/profile
 // @desc    Update user profile
 // @access  Private
-router.put('/profile', require('../middleware/auth').auth, async (req, res) => {
+router.put('/profile', require('../middleware/auth').authenticate, async (req, res) => {
   try {
     const { name, bio, avatar } = req.body;
     

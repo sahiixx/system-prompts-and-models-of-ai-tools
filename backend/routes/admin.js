@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, isAdmin, authorize } = require('../middleware/auth');
 const Tool = require('../models/Tool');
 const User = require('../models/User');
 const Review = require('../models/Review');

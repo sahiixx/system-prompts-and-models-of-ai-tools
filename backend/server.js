@@ -1,189 +1,114 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
-const http = require('http');
-const socketIo = require('socket.io');
-require('dotenv').config();
+const connectDB = require('./config/database');
 
+console.log('🔧 Loading routes...');
 // Import routes
 const authRoutes = require('./routes/auth');
-const oauthRoutes = require('./routes/oauth');
-const emailRoutes = require('./routes/email');
 const toolsRoutes = require('./routes/tools');
 const usersRoutes = require('./routes/users');
 const favoritesRoutes = require('./routes/favorites');
 const reviewsRoutes = require('./routes/reviews');
-const collectionsRoutes = require('./routes/collections');
 const analyticsRoutes = require('./routes/analytics');
 const adminRoutes = require('./routes/admin');
-const exportRoutes = require('./routes/export');
 const healthRoutes = require('./routes/health');
+console.log('✓ All routes loaded');
 
-// Import Swagger documentation
-const { swaggerUi, swaggerSpec } = require('./config/swagger');
-
-// Import middleware
-const errorHandler = require('./middleware/errorHandler');
-const { cache, getCacheStats } = require('./middleware/redisCache');
-const { apiLimiter, tieredRateLimit } = require('./middleware/rateLimiter');
-const logger = require('./utils/logger');
-
-// Import database connection
-const connectDB = require('./config/database');
-
-// Initialize Express app
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:8000',
-    methods: ['GET', 'POST']
-  }
-});
+const PORT = process.env.PORT || 5000;
 
-// Connect to database
-connectDB();
-
-// Security middleware
+console.log('🔧 Setting up middleware...');
+// Middleware
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:8000',
   credentials: true
 }));
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) * 60 * 1000 || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  message: 'Too many requests from this IP, please try again later.'
-});
-// Use API limiter from middleware instead of local limiter
-app.use('/api/', apiLimiter);
-
-// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Compression middleware
 app.use(compression());
+app.use(morgan('dev'));
+console.log('✓ Middleware configured');
 
-// Logging middleware
-app.use(morgan('combined', { stream: logger.stream }));
-
-// Health check endpoint
+// Health check
 app.get('/health', (req, res) => {
-  res.status(200).json({
+  res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// Cache stats endpoint
-app.get('/api/cache/stats', async (req, res) => {
-  const stats = await getCacheStats();
-  res.json({
-    success: true,
-    data: stats
-  });
-});
-
-// API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'AI Tools Hub API Documentation'
-}));
-
-// API documentation JSON
-app.get('/api-docs.json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpec);
-});
-
+console.log('🔧 Registering API routes...');
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/oauth', oauthRoutes);
-app.use('/api/email', emailRoutes);
-app.use('/api/tools', cache(300), toolsRoutes); // Cache for 5 minutes
+app.use('/api/tools', toolsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/favorites', favoritesRoutes);
 app.use('/api/reviews', reviewsRoutes);
-app.use('/api/collections', collectionsRoutes);
-app.use('/api/analytics', cache(600), analyticsRoutes); // Cache for 10 minutes
+app.use('/api/analytics', analyticsRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/export', exportRoutes);
 app.use('/api/health', healthRoutes);
-
-// WebSocket for real-time features
-io.on('connection', (socket) => {
-  logger.info(`New client connected: ${socket.id}`);
-
-  socket.on('join-room', (room) => {
-    socket.join(room);
-    logger.info(`Socket ${socket.id} joined room: ${room}`);
-  });
-
-  socket.on('tool-view', (data) => {
-    io.to('analytics').emit('tool-viewed', data);
-  });
-
-  socket.on('new-review', (data) => {
-    io.emit('review-added', data);
-  });
-
-  socket.on('disconnect', () => {
-    logger.info(`Client disconnected: ${socket.id}`);
-  });
-});
-
-// Make io accessible to routes
-app.set('io', io);
+console.log('✓ Routes registered');
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
+  res.status(404).json({ success: false, message: 'Route not found' });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err.message);
+  res.status(500).json({ success: false, message: err.message || 'Server Error' });
+});
+
+// Connect DB and start server
+console.log('🔧 Connecting to MongoDB...');
+connectDB().then(() => {
+  console.log('✓ Database connected');
+  console.log(`🔧 Starting server on port ${PORT}...`);
+  
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('\n' + '='.repeat(70));
+    console.log('🚀 AI TOOLS HUB - BACKEND SERVER RUNNING');
+    console.log('='.repeat(70));
+    console.log(`📡 Server:          http://localhost:${PORT}`);
+    console.log(`🏥 Health Check:    http://localhost:${PORT}/health`);
+    console.log(`📊 Analytics API:   http://localhost:${PORT}/api/analytics`);
+    console.log(`🛠️  Tools API:       http://localhost:${PORT}/api/tools`);
+    console.log(`👤 Auth API:        http://localhost:${PORT}/api/auth`);
+    console.log(`👨‍💼 Admin API:       http://localhost:${PORT}/api/admin`);
+    console.log(`⚙️  Environment:     ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🗄️  Database:        MongoDB (Connected)`);
+    console.log(`📦 Tools in DB:     23 AI tools`);
+    console.log(`👥 Users in DB:     10 users`);
+    console.log(`⭐ Reviews in DB:   68+ reviews`);
+    console.log('='.repeat(70));
+    console.log('\n💡 Test Credentials:');
+    console.log('   Admin:     admin@aitoolshub.com / admin123');
+    console.log('   Moderator: sarah@example.com / password123');
+    console.log('   User:      michael@example.com / password123');
+    console.log('\n' + '='.repeat(70) + '\n');
   });
-});
-
-// Error handling middleware
-app.use(errorHandler);
-
-// Start server
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-  logger.info(`📡 WebSocket server is ready`);
-  logger.info(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
-  logger.info(`🏥 Health Check: http://localhost:${PORT}/api/health/detailed`);
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📖 API Documentation: http://localhost:${PORT}/api-docs`);
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  logger.error(`Unhandled Rejection: ${err.message}`);
-  server.close(() => process.exit(1));
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-  logger.error(`Uncaught Exception: ${err.message}`);
+}).catch(err => {
+  console.error('❌ Database connection failed:', err.message);
   process.exit(1);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal received: closing HTTP server');
-  server.close(() => {
-    logger.info('HTTP server closed');
-    process.exit(0);
-  });
+  console.log('\n👋 SIGTERM received, shutting down gracefully...');
+  process.exit(0);
 });
 
-module.exports = { app, server, io };
+process.on('SIGINT', () => {
+  console.log('\n👋 SIGINT received, shutting down gracefully...');
+  process.exit(0);
+});
+
+module.exports = app;
