@@ -122,7 +122,6 @@ const ToolSchema = new mongoose.Schema({
 
 // Index for search
 ToolSchema.index({ name: 'text', description: 'text', tags: 'text' });
-ToolSchema.index({ slug: 1 });
 ToolSchema.index({ type: 1, status: 1 });
 ToolSchema.index({ 'metrics.views': -1, 'metrics.trending': -1 });
 

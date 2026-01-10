@@ -3,7 +3,7 @@ const router = express.Router();
 const Tool = require('../models/Tool');
 const Review = require('../models/Review');
 const Favorite = require('../models/Favorite');
-const { auth, optionalAuth } = require('../middleware/auth');
+const { protect, optional } = require('../middleware/auth');
 
 // @route   GET /api/analytics/overview
 // @desc    Get overall platform analytics
@@ -184,7 +184,7 @@ router.get('/trends', async (req, res) => {
 // @route   GET /api/analytics/recommendations
 // @desc    Get AI-powered tool recommendations
 // @access  Private (optional)
-router.get('/recommendations', optionalAuth, async (req, res) => {
+router.get('/recommendations', optional, async (req, res) => {
   try {
     let recommendations = [];
 
@@ -250,7 +250,7 @@ router.get('/recommendations', optionalAuth, async (req, res) => {
 // @route   POST /api/analytics/event
 // @desc    Track analytics event
 // @access  Private (optional)
-router.post('/event', optionalAuth, async (req, res) => {
+router.post('/event', optional, async (req, res) => {
   try {
     const { type, toolId, metadata } = req.body;
     
