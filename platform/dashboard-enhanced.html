@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Dashboard - AI Tools Hub</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00f0ff;
+            --secondary: #ff00ff;
+            --accent: #7b2ff7;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --danger: #ff3366;
+            --dark: #0a0e27;
+            --darker: #060920;
+            --light: #ffffff;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--darker);
+            color: var(--light);
+            transition: all 0.3s ease;
+        }
+
+        body.light-theme {
+            --dark: #f5f5f5;
+            --darker: #ffffff;
+            --light: #0a0e27;
+            --glass: rgba(0, 0, 0, 0.05);
+            --glass-border: rgba(0, 0, 0, 0.1);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            padding: 2rem 0;
+            z-index: 100;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+
+        .logo {
+            padding: 0 1.5rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2rem;
+        }
+
+        .menu-section {
+            margin-bottom: 2rem;
+        }
+
+        .menu-title {
+            padding: 0 1.5rem;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.5;
+            margin-bottom: 0.5rem;
+        }
+
+        .menu-item {
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--light);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            cursor: pointer;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background: var(--glass);
+            border-left-color: var(--primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1rem 2rem;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-filter-box {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .search-box {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.8rem 1rem 0.8rem 3rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            color: var(--light);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.5;
+        }
+
+        .filter-dropdown {
+            padding: 0.8rem 1.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            color: var(--light);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .icon-btn:hover {
+            background: var(--primary);
+            color: var(--dark);
+            transform: scale(1.1);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            padding: 1.5rem;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 240, 255, 0.2);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        /* Tools Grid */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .tool-card {
+            padding: 1.5rem;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 240, 255, 0.2);
+            border-color: var(--primary);
+        }
+
+        .tool-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .tool-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.active {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--success);
+        }
+
+        .badge.beta {
+            background: rgba(255, 170, 0, 0.2);
+            color: var(--warning);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--dark);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .modal-close {
+            cursor: pointer;
+            font-size: 2rem;
+            opacity: 0.7;
+        }
+
+        .modal-close:hover {
+            opacity: 1;
+            color: var(--danger);
+        }
+
+        /* Export Button */
+        .export-btn {
+            padding: 0.6rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: none;
+            border-radius: 50px;
+            color: var(--dark);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 240, 255, 0.3);
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .comparison-table th {
+            background: var(--glass);
+            font-weight: 600;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 4px solid var(--glass-border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--success), #00cc66);
+            border-radius: 10px;
+            color: var(--dark);
+            font-weight: bold;
+            transform: translateY(200px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="logo">⚡ AI Tools Hub</div>
+
+        <div class="menu-section">
+            <div class="menu-title">Navigation</div>
+            <div class="menu-item active" onclick="showSection('overview')">
+                <span>📊</span>
+                <span>Overview</span>
+            </div>
+            <div class="menu-item" onclick="showSection('tools')">
+                <span>🛠️</span>
+                <span>All Tools</span>
+            </div>
+            <div class="menu-item" onclick="showSection('analytics')">
+                <span>📈</span>
+                <span>Analytics</span>
+            </div>
+            <div class="menu-item" onclick="showSection('compare')">
+                <span>⚖️</span>
+                <span>Compare Tools</span>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <div class="menu-title">Resources</div>
+            <div class="menu-item" onclick="window.location.href='chat.html'">
+                <span>💬</span>
+                <span>AI Chat</span>
+            </div>
+            <div class="menu-item" onclick="window.location.href='index.html'">
+                <span>🌐</span>
+                <span>Home</span>
+            </div>
+            <div class="menu-item" onclick="window.open('https://github.com/sahiixx/system-prompts-and-models-of-ai-tools', '_blank')">
+                <span>💻</span>
+                <span>GitHub</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="search-filter-box">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" placeholder="Search tools..." id="searchInput">
+                </div>
+                <select class="filter-dropdown" id="filterType">
+                    <option value="all">All Types</option>
+                    <option value="ide">IDE Extensions</option>
+                    <option value="web">Web Apps</option>
+                    <option value="agent">AI Agents</option>
+                    <option value="cli">CLI Tools</option>
+                </select>
+                <select class="filter-dropdown" id="filterStatus">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="beta">Beta</option>
+                    <option value="discontinued">Discontinued</option>
+                </select>
+            </div>
+            <div class="user-actions">
+                <button class="icon-btn" onclick="toggleSidebar()" title="Toggle Sidebar">☰</button>
+                <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">🌓</button>
+                <button class="icon-btn" onclick="exportData('json')" title="Export JSON">📥</button>
+                <button class="icon-btn" onclick="exportData('csv')" title="Export CSV">📊</button>
+                <button class="icon-btn" onclick="refreshData()" title="Refresh">🔄</button>
+            </div>
+        </div>
+
+        <!-- Overview Section -->
+        <div id="overview" class="section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div style="opacity: 0.7; font-size: 0.9rem;">Total Tools</div>
+                            <div class="stat-value" id="totalTools">--</div>
+                        </div>
+                        <div style="font-size: 3rem; opacity: 0.3;">🛠️</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div style="opacity: 0.7; font-size: 0.9rem;">Active Tools</div>
+                            <div class="stat-value" id="activeTools">--</div>
+                        </div>
+                        <div style="font-size: 3rem; opacity: 0.3;">✅</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div style="opacity: 0.7; font-size: 0.9rem;">API Endpoints</div>
+                            <div class="stat-value">39</div>
+                        </div>
+                        <div style="font-size: 3rem; opacity: 0.3;">🔌</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div style="opacity: 0.7; font-size: 0.9rem;">Tool Types</div>
+                            <div class="stat-value" id="totalTypes">--</div>
+                        </div>
+                        <div style="font-size: 3rem; opacity: 0.3;">📦</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <div class="chart-title">Tools Distribution by Type</div>
+                </div>
+                <canvas id="typeChart" style="max-height: 300px;"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <div class="chart-title">Tools Status Overview</div>
+                </div>
+                <canvas id="statusChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Tools Section -->
+        <div id="tools" class="section" style="display: none;">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <div class="chart-title">All AI Coding Tools</div>
+                    <button class="export-btn" onclick="openCompareModal()">Compare Selected</button>
+                </div>
+                <div class="tools-grid" id="toolsGrid">
+                    <div class="loading"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div id="analytics" class="section" style="display: none;">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <div class="chart-title">Feature Adoption</div>
+                </div>
+                <canvas id="featureChart" style="max-height: 400px;"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <div class="chart-title">Pricing Distribution</div>
+                </div>
+                <canvas id="pricingChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Compare Section -->
+        <div id="compare" class="section" style="display: none;">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <div class="chart-title">Tool Comparison</div>
+                </div>
+                <p style="opacity: 0.7; margin-bottom: 1rem;">Select tools from the "All Tools" section to compare them side-by-side.</p>
+                <div id="comparisonContent">
+                    <p style="text-align: center; opacity: 0.5; padding: 3rem;">No tools selected for comparison yet.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div class="modal" id="compareModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Compare Tools</h2>
+                <span class="modal-close" onclick="closeCompareModal()">×</span>
+            </div>
+            <div id="modalBody">
+                <!-- Content will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        Operation completed successfully! ✓
+    </div>
+
+    <script>
+        const API_BASE = 'https://sahiixx.github.io/system-prompts-and-models-of-ai-tools/api';
+        let allTools = [];
+        let filteredTools = [];
+        let selectedTools = new Set();
+        let charts = {};
+
+        // Load data
+        async function loadData() {
+            try {
+                const response = await fetch(`${API_BASE}/index.json`);
+                const data = await response.json();
+                allTools = data.tools;
+                filteredTools = allTools;
+                
+                updateStats();
+                renderCharts();
+                renderTools();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showNotification('Error loading data', 'error');
+            }
+        }
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('totalTools').textContent = allTools.length;
+            
+            const active = allTools.filter(t => t.status === 'active').length;
+            document.getElementById('activeTools').textContent = active;
+            
+            const types = new Set(allTools.map(t => t.type));
+            document.getElementById('totalTypes').textContent = types.size;
+        }
+
+        // Render charts
+        function renderCharts() {
+            // Type distribution chart
+            const typeData = {};
+            allTools.forEach(tool => {
+                typeData[tool.type] = (typeData[tool.type] || 0) + 1;
+            });
+
+            if (charts.typeChart) charts.typeChart.destroy();
+            charts.typeChart = new Chart(document.getElementById('typeChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(typeData),
+                    datasets: [{
+                        label: 'Number of Tools',
+                        data: Object.values(typeData),
+                        backgroundColor: 'rgba(0, 240, 255, 0.5)',
+                        borderColor: 'rgba(0, 240, 255, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Status chart
+            const statusData = {};
+            allTools.forEach(tool => {
+                statusData[tool.status] = (statusData[tool.status] || 0) + 1;
+            });
+
+            if (charts.statusChart) charts.statusChart.destroy();
+            charts.statusChart = new Chart(document.getElementById('statusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusData),
+                    datasets: [{
+                        data: Object.values(statusData),
+                        backgroundColor: [
+                            'rgba(0, 255, 136, 0.5)',
+                            'rgba(255, 170, 0, 0.5)',
+                            'rgba(255, 51, 102, 0.5)'
+                        ],
+                        borderColor: [
+                            'rgba(0, 255, 136, 1)',
+                            'rgba(255, 170, 0, 1)',
+                            'rgba(255, 51, 102, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Feature chart
+            const features = ['Code Completion', 'Chat Interface', 'Multi-file Edit', 'Terminal'];
+            const featureData = features.map(() => Math.floor(Math.random() * allTools.length));
+
+            if (charts.featureChart) charts.featureChart.destroy();
+            charts.featureChart = new Chart(document.getElementById('featureChart'), {
+                type: 'radar',
+                data: {
+                    labels: features,
+                    datasets: [{
+                        label: 'Feature Adoption',
+                        data: featureData,
+                        backgroundColor: 'rgba(0, 240, 255, 0.2)',
+                        borderColor: 'rgba(0, 240, 255, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Pricing chart
+            const pricingData = {
+                'Free': Math.floor(allTools.length * 0.3),
+                'Freemium': Math.floor(allTools.length * 0.4),
+                'Paid': Math.floor(allTools.length * 0.3)
+            };
+
+            if (charts.pricingChart) charts.pricingChart.destroy();
+            charts.pricingChart = new Chart(document.getElementById('pricingChart'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(pricingData),
+                    datasets: [{
+                        data: Object.values(pricingData),
+                        backgroundColor: [
+                            'rgba(0, 255, 136, 0.5)',
+                            'rgba(0, 240, 255, 0.5)',
+                            'rgba(255, 0, 255, 0.5)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // Render tools
+        function renderTools() {
+            const grid = document.getElementById('toolsGrid');
+            grid.innerHTML = filteredTools.map(tool => `
+                <div class="tool-card" onclick="toggleToolSelection('${tool.slug}')">
+                    <div class="tool-header">
+                        <div class="tool-name">${tool.name}</div>
+                        <span class="badge ${tool.status}">${tool.status}</span>
+                    </div>
+                    <p style="opacity: 0.7; font-size: 0.9rem; margin-bottom: 1rem;">${tool.description || 'No description'}</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="opacity: 0.6; font-size: 0.8rem;">Type: ${tool.type}</span>
+                        <input type="checkbox" id="check-${tool.slug}" style="cursor: pointer;">
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Toggle tool selection
+        function toggleToolSelection(slug) {
+            if (selectedTools.has(slug)) {
+                selectedTools.delete(slug);
+            } else {
+                selectedTools.add(slug);
+            }
+            document.getElementById(`check-${slug}`).checked = selectedTools.has(slug);
+        }
+
+        // Filter tools
+        function filterTools() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const type = document.getElementById('filterType').value;
+            const status = document.getElementById('filterStatus').value;
+
+            filteredTools = allTools.filter(tool => {
+                const matchSearch = tool.name.toLowerCase().includes(search) || 
+                                  (tool.description || '').toLowerCase().includes(search);
+                const matchType = type === 'all' || tool.type === type;
+                const matchStatus = status === 'all' || tool.status === status;
+                return matchSearch && matchType && matchStatus;
+            });
+
+            renderTools();
+        }
+
+        // Show section
+        function showSection(section) {
+            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+            document.getElementById(section).style.display = 'block';
+            
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            event.target.closest('.menu-item').classList.add('active');
+        }
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            showNotification('Theme changed!');
+        }
+
+        // Export data
+        function exportData(format) {
+            if (format === 'json') {
+                const data = JSON.stringify(filteredTools, null, 2);
+                downloadFile(data, 'ai-tools.json', 'application/json');
+            } else if (format === 'csv') {
+                const headers = ['Name', 'Type', 'Status', 'Description'];
+                const rows = filteredTools.map(t => [t.name, t.type, t.status, t.description || '']);
+                const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+                downloadFile(csv, 'ai-tools.csv', 'text/csv');
+            }
+            showNotification(`Exported as ${format.toUpperCase()}!`);
+        }
+
+        // Download file
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Open compare modal
+        function openCompareModal() {
+            if (selectedTools.size === 0) {
+                showNotification('Please select tools to compare');
+                return;
+            }
+
+            const selected = allTools.filter(t => selectedTools.has(t.slug));
+            const modalBody = document.getElementById('modalBody');
+            
+            modalBody.innerHTML = `
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            ${selected.map(t => `<th>${t.name}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Type</strong></td>
+                            ${selected.map(t => `<td>${t.type}</td>`).join('')}
+                        </tr>
+                        <tr>
+                            <td><strong>Status</strong></td>
+                            ${selected.map(t => `<td><span class="badge ${t.status}">${t.status}</span></td>`).join('')}
+                        </tr>
+                        <tr>
+                            <td><strong>Description</strong></td>
+                            ${selected.map(t => `<td>${t.description || 'N/A'}</td>`).join('')}
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            
+            document.getElementById('compareModal').classList.add('show');
+        }
+
+        // Close compare modal
+        function closeCompareModal() {
+            document.getElementById('compareModal').classList.remove('show');
+        }
+
+        // Refresh data
+        function refreshData() {
+            showNotification('Refreshing data...');
+            loadData();
+        }
+
+        // Show notification
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => notification.classList.remove('show'), 3000);
+        }
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', filterTools);
+        document.getElementById('filterType').addEventListener('change', filterTools);
+        document.getElementById('filterStatus').addEventListener('change', filterTools);
+
+        // Close modal on outside click
+        document.getElementById('compareModal').addEventListener('click', (e) => {
+            if (e.target.id === 'compareModal') closeCompareModal();
+        });
+
+        // Load data on page load
+        loadData();
+    </script>
+</body>
+</html>

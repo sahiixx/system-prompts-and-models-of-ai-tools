@@ -1,0 +1,85 @@
+{
+  "version": {
+    "current": "1.0",
+    "lastUpdated": "2025-01-02",
+    "history": [
+      {
+        "version": "1.0",
+        "date": "2025-01-02",
+        "changes": "Version tracked"
+      }
+    ]
+  },
+  "generated": "2025-10-12T06:10:47.549633",
+  "name": "Cluely",
+  "slug": "cluely",
+  "type": "IDE Plugin",
+  "status": "active",
+  "description": "AI coding assistant - Cluely",
+  "pricing": {
+    "model": "unknown",
+    "tiers": []
+  },
+  "models": {
+    "primary": "Unknown",
+    "supported": [],
+    "customizable": false
+  },
+  "features": {
+    "codeGeneration": true,
+    "codeCompletion": false,
+    "chatInterface": false,
+    "agentMode": false,
+    "parallelExecution": false,
+    "memorySystem": false,
+    "todoTracking": false,
+    "gitIntegration": false,
+    "multiFileEditing": false,
+    "testGeneration": false,
+    "refactoring": false,
+    "debugging": false
+  },
+  "platforms": {
+    "vscode": false,
+    "jetbrains": false,
+    "web": false,
+    "cli": false,
+    "standalone": false
+  },
+  "patterns": {
+    "conciseness": "medium",
+    "parallelTools": false,
+    "subAgents": false,
+    "verificationGates": true,
+    "todoSystem": false,
+    "memoryContext": false,
+    "agentsFile": false
+  },
+  "documentation": {
+    "folder": "Cluely",
+    "files": {
+      "systemPrompt": "Default Prompt.txt",
+      "tools": null,
+      "readme": null
+    },
+    "hasMultipleVersions": false,
+    "versions": [
+      "1.0"
+    ]
+  },
+  "links": {
+    "website": null,
+    "docs": null,
+    "github": null,
+    "pricing": null
+  },
+  "tags": [
+    "IDE Plugin",
+    "AI Coding"
+  ],
+  "metrics": {
+    "promptTokens": 891.8000000000001,
+    "securityRules": 0,
+    "concisenessScore": 45
+  }
+}

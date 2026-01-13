@@ -1,0 +1,73 @@
+{
+  "version": "1.0",
+  "generated": "2025-10-12T06:10:47.544391",
+  "total_tools": 37,
+  "by_type": {
+    "IDE Plugin": 30,
+    "Web Platform": 4,
+    "Autonomous Agent": 3
+  },
+  "by_pricing": {
+    "unknown": 35,
+    "freemium": 2
+  },
+  "feature_adoption": {
+    "codeGeneration": 29,
+    "chatInterface": 20,
+    "agentMode": 16,
+    "memorySystem": 23,
+    "testGeneration": 22,
+    "debugging": 16,
+    "parallelExecution": 13,
+    "todoTracking": 11,
+    "multiFileEditing": 7,
+    "refactoring": 8,
+    "codeCompletion": 7,
+    "gitIntegration": 13,
+    "composerMode": 1,
+    "prReviews": 1,
+    "commitMessages": 1
+  },
+  "most_common_features": [
+    [
+      "codeGeneration",
+      29
+    ],
+    [
+      "memorySystem",
+      23
+    ],
+    [
+      "testGeneration",
+      22
+    ],
+    [
+      "chatInterface",
+      20
+    ],
+    [
+      "agentMode",
+      16
+    ],
+    [
+      "debugging",
+      16
+    ],
+    [
+      "parallelExecution",
+      13
+    ],
+    [
+      "gitIntegration",
+      13
+    ],
+    [
+      "todoTracking",
+      11
+    ],
+    [
+      "refactoring",
+      8
+    ]
+  ]
+}

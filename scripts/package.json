@@ -1,0 +1,21 @@
+{
+    "name": "repository-scripts",
+    "version": "1.0.0",
+    "description": "Automation scripts for AI coding tools repository",
+    "scripts": {
+        "validate": "node scripts/validate.js",
+        "analyze": "node scripts/analyze.js",
+        "check-duplicates": "node scripts/check-duplicates.js",
+        "test": "node --test scripts/*.test.js",
+        "test:python": "python3 -m unittest discover -s scripts -p 'test_*.py'",
+        "test:all": "npm test && npm run test:python",
+        "all": "npm run validate && npm run analyze && npm run check-duplicates"
+    },
+    "keywords": [
+        "ai",
+        "prompts",
+        "automation"
+    ],
+    "author": "sahiixx",
+    "license": "GPL-3.0"
+}

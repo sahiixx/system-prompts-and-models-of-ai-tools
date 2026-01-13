@@ -78,3 +78,16 @@ This platform is designed to be extensible. See [CONTRIBUTING.md](./CONTRIBUTING
 ## 📄 License
 
 MIT License - see [LICENSE](./LICENSE) for details.
+- System Architecture (coming soon)
+- Tool Development (coming soon)
+- Memory Management (coming soon)
+- Module Development (coming soon)
+- API Reference (coming soon)
+
+## 🤝 Contributing
+
+This platform is designed to be extensible. Contribution guidelines will be provided soon.
+
+## 📄 License
+
+MIT License - see [LICENSE](../LICENSE.md) for details.
