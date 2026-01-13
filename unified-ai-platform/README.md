@@ -65,6 +65,19 @@ The platform uses JSON-based configuration for all components, making it easy to
 
 ## 📚 Documentation
 
+- [System Architecture](./docs/architecture.md)
+- [Tool Development](./docs/tools.md)
+- [Memory Management](./docs/memory.md)
+- [Module Development](./docs/modules.md)
+- [API Reference](./docs/api.md)
+
+## 🤝 Contributing
+
+This platform is designed to be extensible. See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+## 📄 License
+
+MIT License - see [LICENSE](./LICENSE) for details.
 - System Architecture (coming soon)
 - Tool Development (coming soon)
 - Memory Management (coming soon)

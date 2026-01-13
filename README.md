@@ -1,5 +1,6 @@
 # Execute Agent
 
+
 An interactive execute agent with a simple planning loop, tool registry, built-in tools (shell, filesystem, http, python eval), and pluggable model providers (echo, OpenAI, Ollama). Supports streaming and an optional web UI over Server-Sent Events (SSE).
 
 ## Install
