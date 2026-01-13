@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - AI Tools Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00f0ff;
+            --secondary: #ff00ff;
+            --accent: #7b2ff7;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --danger: #ff3366;
+            --dark: #0a0e27;
+            --darker: #060920;
+            --light: #ffffff;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--darker);
+            color: var(--light);
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 1rem 2rem;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--light);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Profile Header */
+        .profile-header {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        .profile-info {
+            flex: 1;
+        }
+
+        .profile-name {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .profile-email {
+            opacity: 0.7;
+            margin-bottom: 1rem;
+        }
+
+        .profile-stats {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: var(--dark);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 240, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--glass);
+            border: 2px solid var(--glass-border);
+            color: var(--light);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 0.8rem 1.5rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover, .tab.active {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: var(--dark);
+            border-color: var(--primary);
+        }
+
+        /* Content Sections */
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Tools Grid */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .tool-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 240, 255, 0.2);
+            border-color: var(--primary);
+        }
+
+        .tool-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .tool-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .tool-description {
+            opacity: 0.8;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .tool-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.active {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--success);
+        }
+
+        .favorite-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .favorite-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .favorite-btn.favorited {
+            color: var(--danger);
+        }
+
+        /* Rating */
+        .rating {
+            display: flex;
+            gap: 0.3rem;
+            margin: 1rem 0;
+        }
+
+        .star {
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .star.filled {
+            color: var(--warning);
+        }
+
+        .star.empty {
+            color: var(--glass-border);
+        }
+
+        .star:hover {
+            transform: scale(1.2);
+        }
+
+        /* Reviews */
+        .review-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .review-author {
+            font-weight: bold;
+        }
+
+        .review-date {
+            opacity: 0.5;
+            font-size: 0.8rem;
+        }
+
+        .review-text {
+            opacity: 0.8;
+            line-height: 1.6;
+        }
+
+        /* Collections */
+        .collection-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .collection-card:hover {
+            border-color: var(--primary);
+            transform: translateX(5px);
+        }
+
+        .collection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .collection-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .collection-count {
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        .collection-tools {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .collection-tool-badge {
+            padding: 0.3rem 0.8rem;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            opacity: 0.5;
+        }
+
+        .empty-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--dark);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .modal-close {
+            cursor: pointer;
+            font-size: 2rem;
+            opacity: 0.7;
+        }
+
+        .modal-close:hover {
+            opacity: 1;
+            color: var(--danger);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: var(--light);
+            font-size: 1rem;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--success), #00cc66);
+            border-radius: 10px;
+            color: var(--dark);
+            font-weight: bold;
+            transform: translateY(200px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <div class="logo">⚡ AI Tools Hub</div>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="explore.html">Explore</a>
+                <a href="dashboard-enhanced.html">Dashboard</a>
+            </div>
+            <div class="user-menu" onclick="showUserMenu()">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <span id="userName">User</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Container -->
+    <div class="container">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="profile-avatar" id="profileAvatar">U</div>
+            <div class="profile-info">
+                <div class="profile-name" id="profileName">User Name</div>
+                <div class="profile-email" id="profileEmail">user@example.com</div>
+                <div class="profile-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="favoriteCount">0</div>
+                        <div class="stat-label">Favorites</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="reviewCount">0</div>
+                        <div class="stat-label">Reviews</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="collectionCount">0</div>
+                        <div class="stat-label">Collections</div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="showSection('favorites')">💖 Favorites</button>
+            <button class="tab" onclick="showSection('reviews')">⭐ My Reviews</button>
+            <button class="tab" onclick="showSection('collections')">📁 Collections</button>
+            <button class="tab" onclick="showSection('settings')">⚙️ Settings</button>
+        </div>
+
+        <!-- Favorites Section -->
+        <div class="content-section active" id="favorites">
+            <div class="tools-grid" id="favoritesGrid">
+                <div class="empty-state">
+                    <div class="empty-icon">💖</div>
+                    <h2>No Favorites Yet</h2>
+                    <p>Start exploring tools and add your favorites!</p>
+                    <a href="explore.html" class="btn btn-primary" style="margin-top: 1rem;">Explore Tools</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reviews Section -->
+        <div class="content-section" id="reviews">
+            <button class="btn btn-primary" onclick="openReviewModal()" style="margin-bottom: 1.5rem;">✍️ Write Review</button>
+            <div id="reviewsList">
+                <div class="empty-state">
+                    <div class="empty-icon">⭐</div>
+                    <h2>No Reviews Yet</h2>
+                    <p>Share your experience with the tools you've used!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collections Section -->
+        <div class="content-section" id="collections">
+            <button class="btn btn-primary" onclick="openCollectionModal()" style="margin-bottom: 1.5rem;">➕ Create Collection</button>
+            <div id="collectionsList">
+                <div class="empty-state">
+                    <div class="empty-icon">📁</div>
+                    <h2>No Collections Yet</h2>
+                    <p>Organize your favorite tools into collections!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="content-section" id="settings">
+            <div class="review-card">
+                <h3>Account Settings</h3>
+                <div class="form-group">
+                    <label class="form-label">Email Notifications</label>
+                    <input type="checkbox" id="emailNotifs" checked> Receive updates and newsletters
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Theme Preference</label>
+                    <select class="form-input">
+                        <option>Dark Mode</option>
+                        <option>Light Mode</option>
+                        <option>Auto</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Modal -->
+    <div class="modal" id="reviewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Write a Review</h2>
+                <span class="modal-close" onclick="closeReviewModal()">×</span>
+            </div>
+            <form onsubmit="submitReview(event)">
+                <div class="form-group">
+                    <label class="form-label">Select Tool</label>
+                    <select class="form-input" id="reviewTool" required>
+                        <option value="">Choose a tool...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Rating</label>
+                    <div class="rating" id="reviewRating">
+                        <span class="star empty" onclick="setRating(1)">★</span>
+                        <span class="star empty" onclick="setRating(2)">★</span>
+                        <span class="star empty" onclick="setRating(3)">★</span>
+                        <span class="star empty" onclick="setRating(4)">★</span>
+                        <span class="star empty" onclick="setRating(5)">★</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Your Review</label>
+                    <textarea class="form-textarea" id="reviewText" placeholder="Share your experience..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Review</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Collection Modal -->
+    <div class="modal" id="collectionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Collection</h2>
+                <span class="modal-close" onclick="closeCollectionModal()">×</span>
+            </div>
+            <form onsubmit="submitCollection(event)">
+                <div class="form-group">
+                    <label class="form-label">Collection Name</label>
+                    <input type="text" class="form-input" placeholder="e.g., Best AI Code Assistants" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" placeholder="Describe your collection..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Collection</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">Action completed!</div>
+
+    <script>
+        const API_BASE = 'https://sahiixx.github.io/system-prompts-and-models-of-ai-tools/api';
+        let currentRating = 0;
+        let allTools = [];
+
+        // Initialize
+        window.onload = async function() {
+            // Check if logged in
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!user.loggedIn) {
+                window.location.href = 'auth.html';
+                return;
+            }
+
+            // Load user data
+            loadUserData(user);
+
+            // Load tools
+            await loadTools();
+
+            // Load favorites
+            loadFavorites();
+
+            // Load reviews
+            loadReviews();
+
+            // Load collections
+            loadCollections();
+        };
+
+        // Load user data
+        function loadUserData(user) {
+            const avatar = user.name?.charAt(0).toUpperCase() || 'U';
+            document.getElementById('userAvatar').textContent = avatar;
+            document.getElementById('profileAvatar').textContent = avatar;
+            document.getElementById('userName').textContent = user.name || 'User';
+            document.getElementById('profileName').textContent = user.name || 'User Name';
+            document.getElementById('profileEmail').textContent = user.email || 'user@example.com';
+        }
+
+        // Load tools
+        async function loadTools() {
+            try {
+                const response = await fetch(`${API_BASE}/index.json`);
+                const data = await response.json();
+                allTools = data.tools;
+
+                // Populate review tool dropdown
+                const select = document.getElementById('reviewTool');
+                allTools.forEach(tool => {
+                    const option = document.createElement('option');
+                    option.value = tool.slug;
+                    option.textContent = tool.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading tools:', error);
+            }
+        }
+
+        // Load favorites
+        function loadFavorites() {
+            const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+            document.getElementById('favoriteCount').textContent = favorites.length;
+
+            if (favorites.length === 0) return;
+
+            const grid = document.getElementById('favoritesGrid');
+            grid.innerHTML = favorites.map(toolSlug => {
+                const tool = allTools.find(t => t.slug === toolSlug) || { name: toolSlug, slug: toolSlug };
+                return `
+                    <div class="tool-card">
+                        <div class="tool-icon">${tool.name?.charAt(0) || '?'}</div>
+                        <div class="tool-name">${tool.name || 'Unknown Tool'}</div>
+                        <div class="tool-description">${tool.description || 'No description available'}</div>
+                        <div class="tool-meta">
+                            <span class="badge active">${tool.status || 'active'}</span>
+                            <button class="favorite-btn favorited" onclick="toggleFavorite('${tool.slug}')">❤️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Toggle favorite
+        function toggleFavorite(slug) {
+            let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+            const index = favorites.indexOf(slug);
+            
+            if (index > -1) {
+                favorites.splice(index, 1);
+                showNotification('Removed from favorites');
+            } else {
+                favorites.push(slug);
+                showNotification('Added to favorites');
+            }
+            
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+            loadFavorites();
+        }
+
+        // Load reviews
+        function loadReviews() {
+            const reviews = JSON.parse(localStorage.getItem('reviews') || '[]');
+            document.getElementById('reviewCount').textContent = reviews.length;
+
+            if (reviews.length === 0) return;
+
+            const list = document.getElementById('reviewsList');
+            list.innerHTML = reviews.map(review => `
+                <div class="review-card">
+                    <div class="review-header">
+                        <div>
+                            <div class="review-author">${review.toolName}</div>
+                            <div class="rating">
+                                ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
+                            </div>
+                        </div>
+                        <div class="review-date">${new Date(review.date).toLocaleDateString()}</div>
+                    </div>
+                    <div class="review-text">${review.text}</div>
+                </div>
+            `).join('');
+        }
+
+        // Load collections
+        function loadCollections() {
+            const collections = JSON.parse(localStorage.getItem('collections') || '[]');
+            document.getElementById('collectionCount').textContent = collections.length;
+
+            if (collections.length === 0) return;
+
+            const list = document.getElementById('collectionsList');
+            list.innerHTML = collections.map((collection, index) => `
+                <div class="collection-card">
+                    <div class="collection-header">
+                        <div class="collection-name">${collection.name}</div>
+                        <div class="collection-count">${collection.tools?.length || 0} tools</div>
+                    </div>
+                    <div class="collection-tools">
+                        ${(collection.tools || []).map(tool => `
+                            <span class="collection-tool-badge">${tool}</span>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Show section
+        function showSection(section) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(section).classList.add('active');
+        }
+
+        // Open review modal
+        function openReviewModal() {
+            document.getElementById('reviewModal').classList.add('show');
+        }
+
+        // Close review modal
+        function closeReviewModal() {
+            document.getElementById('reviewModal').classList.remove('show');
+        }
+
+        // Set rating
+        function setRating(rating) {
+            currentRating = rating;
+            const stars = document.querySelectorAll('#reviewRating .star');
+            stars.forEach((star, index) => {
+                star.className = index < rating ? 'star filled' : 'star empty';
+            });
+        }
+
+        // Submit review
+        function submitReview(e) {
+            e.preventDefault();
+            const toolSlug = document.getElementById('reviewTool').value;
+            const toolName = allTools.find(t => t.slug === toolSlug)?.name || toolSlug;
+            const text = document.getElementById('reviewText').value;
+
+            const reviews = JSON.parse(localStorage.getItem('reviews') || '[]');
+            reviews.push({
+                toolSlug,
+                toolName,
+                rating: currentRating,
+                text,
+                date: new Date().toISOString()
+            });
+
+            localStorage.setItem('reviews', JSON.stringify(reviews));
+            closeReviewModal();
+            loadReviews();
+            showNotification('Review submitted!');
+            e.target.reset();
+            currentRating = 0;
+        }
+
+        // Open collection modal
+        function openCollectionModal() {
+            document.getElementById('collectionModal').classList.add('show');
+        }
+
+        // Close collection modal
+        function closeCollectionModal() {
+            document.getElementById('collectionModal').classList.remove('show');
+        }
+
+        // Submit collection
+        function submitCollection(e) {
+            e.preventDefault();
+            const name = e.target.querySelector('input').value;
+            const description = e.target.querySelector('textarea').value;
+
+            const collections = JSON.parse(localStorage.getItem('collections') || '[]');
+            collections.push({
+                name,
+                description,
+                tools: [],
+                created: new Date().toISOString()
+            });
+
+            localStorage.setItem('collections', JSON.stringify(collections));
+            closeCollectionModal();
+            loadCollections();
+            showNotification('Collection created!');
+            e.target.reset();
+        }
+
+        // Show notification
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => notification.classList.remove('show'), 3000);
+        }
+
+        // Show user menu
+        function showUserMenu() {
+            if (confirm('View profile settings?')) {
+                showSection('settings');
+            }
+        }
+
+        // Logout
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('user');
+                window.location.href = 'auth.html';
+            }
+        }
+
+        // Close modals on outside click
+        document.getElementById('reviewModal').addEventListener('click', (e) => {
+            if (e.target.id === 'reviewModal') closeReviewModal();
+        });
+
+        document.getElementById('collectionModal').addEventListener('click', (e) => {
+            if (e.target.id === 'collectionModal') closeCollectionModal();
+        });
+    </script>
+</body>
+</html>
