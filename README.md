@@ -10,6 +10,7 @@ pip install -e .
 
 For OpenAI provider:
 
+It's not marketing fluff, it's just a better way to build.
 ```bash
 pip install -e .[openai]
 export OPENAI_API_KEY=... 
