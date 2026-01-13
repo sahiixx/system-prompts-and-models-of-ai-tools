@@ -1,0 +1,70 @@
+{
+  "name": "AI Tools Hub",
+  "short_name": "AI Tools",
+  "description": "Comprehensive platform for discovering and comparing AI coding tools",
+  "start_url": "/platform/index.html",
+  "display": "standalone",
+  "background_color": "#060920",
+  "theme_color": "#00f0ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/platform/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/platform/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/platform/screenshot1.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    },
+    {
+      "src": "/platform/screenshot2.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["productivity", "development", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Explore Tools",
+      "short_name": "Explore",
+      "description": "Browse all AI coding tools",
+      "url": "/platform/explore.html",
+      "icons": [{ "src": "/platform/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View analytics and insights",
+      "url": "/platform/dashboard-enhanced.html",
+      "icons": [{ "src": "/platform/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Profile",
+      "short_name": "Profile",
+      "description": "Manage favorites and collections",
+      "url": "/platform/profile.html",
+      "icons": [{ "src": "/platform/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "share_target": {
+    "action": "/platform/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "prefer_related_applications": false
+}

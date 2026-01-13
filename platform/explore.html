@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore Tools - AI Tools Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00f0ff;
+            --secondary: #ff00ff;
+            --accent: #7b2ff7;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --danger: #ff3366;
+            --dark: #0a0e27;
+            --darker: #060920;
+            --light: #ffffff;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--darker);
+            color: var(--light);
+            min-height: 100vh;
+        }
+
+        body.light-theme {
+            --dark: #f5f5f5;
+            --darker: #ffffff;
+            --light: #0a0e27;
+            --glass: rgba(0, 0, 0, 0.05);
+            --glass-border: rgba(0, 0, 0, 0.1);
+        }
+
+        /* Background Animation */
+        .animated-bg {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(45deg, var(--darker) 0%, var(--dark) 50%, var(--darker) 100%);
+        }
+
+        /* Navigation */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 1rem 2rem;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--light);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            opacity: 0.7;
+        }
+
+        /* Search & Filter Section */
+        .search-filter-container {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 1rem 1.5rem 1rem 3.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--glass-border);
+            border-radius: 50px;
+            color: var(--light);
+            font-size: 1.1rem;
+            outline: none;
+            transition: all 0.3s ease;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .search-bar:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.3);
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1.5rem;
+            top: 1.2rem;
+            font-size: 1.5rem;
+            opacity: 0.5;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            opacity: 0.7;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: var(--light);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .filter-tags {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .filter-tag {
+            padding: 0.5rem 1rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-tag:hover, .filter-tag.active {
+            background: var(--primary);
+            color: var(--dark);
+            border-color: var(--primary);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: var(--dark);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 240, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--glass);
+            border: 2px solid var(--glass-border);
+            color: var(--light);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+        }
+
+        /* Results Section */
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .results-count {
+            font-size: 1.2rem;
+            opacity: 0.7;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .view-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .view-btn:hover, .view-btn.active {
+            background: var(--primary);
+            color: var(--dark);
+        }
+
+        /* Tools Grid */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .tool-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .tool-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0, 240, 255, 0.3);
+            border-color: var(--primary);
+        }
+
+        .tool-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .tool-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .tool-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .tool-type {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            margin-bottom: 1rem;
+        }
+
+        .tool-description {
+            opacity: 0.8;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .tool-meta {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.active {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--success);
+        }
+
+        .badge.beta {
+            background: rgba(255, 170, 0, 0.2);
+            color: var(--warning);
+        }
+
+        .badge.discontinued {
+            background: rgba(255, 51, 102, 0.2);
+            color: var(--danger);
+        }
+
+        /* List View */
+        .tools-list {
+            display: none;
+        }
+
+        .tools-list.active {
+            display: block;
+        }
+
+        .tool-list-item {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .tool-list-item:hover {
+            border-color: var(--primary);
+            transform: translateX(10px);
+        }
+
+        .tool-list-content {
+            flex: 1;
+        }
+
+        .tool-list-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 3rem 0;
+        }
+
+        .page-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-btn:hover, .page-btn.active {
+            background: var(--primary);
+            color: var(--dark);
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            opacity: 0.7;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 5rem 2rem;
+        }
+
+        .empty-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="animated-bg"></div>
+
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <div class="logo">⚡ AI Tools Hub</div>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="explore.html">Explore</a>
+                <a href="dashboard-enhanced.html">Dashboard</a>
+                <a href="chat.html">Chat</a>
+            </div>
+            <button class="btn btn-secondary" onclick="toggleTheme()">🌓 Theme</button>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Hero -->
+        <div class="hero">
+            <h1>Explore AI Coding Tools</h1>
+            <p>Discover and compare 32+ AI-powered development assistants</p>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="search-filter-container">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input 
+                    type="text" 
+                    class="search-bar" 
+                    placeholder="Search by name, description, or features..." 
+                    id="searchInput"
+                >
+            </div>
+
+            <div class="filters">
+                <div class="filter-group">
+                    <label class="filter-label">Type</label>
+                    <select class="filter-select" id="filterType">
+                        <option value="all">All Types</option>
+                        <option value="ide">IDE Extension</option>
+                        <option value="web">Web Application</option>
+                        <option value="agent">AI Agent</option>
+                        <option value="cli">CLI Tool</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Status</label>
+                    <select class="filter-select" id="filterStatus">
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="beta">Beta</option>
+                        <option value="discontinued">Discontinued</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Pricing</label>
+                    <select class="filter-select" id="filterPricing">
+                        <option value="all">All Pricing</option>
+                        <option value="free">Free</option>
+                        <option value="freemium">Freemium</option>
+                        <option value="paid">Paid</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Sort By</label>
+                    <select class="filter-select" id="sortBy">
+                        <option value="name">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                        <option value="type">Type</option>
+                        <option value="status">Status</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-tags">
+                <div class="filter-tag" onclick="toggleTag('code-completion')">Code Completion</div>
+                <div class="filter-tag" onclick="toggleTag('chat')">Chat Interface</div>
+                <div class="filter-tag" onclick="toggleTag('multi-file')">Multi-file Edit</div>
+                <div class="filter-tag" onclick="toggleTag('terminal')">Terminal</div>
+                <div class="filter-tag" onclick="toggleTag('debugging')">Debugging</div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="applyFilters()">🔍 Apply Filters</button>
+                <button class="btn btn-secondary" onclick="resetFilters()">🔄 Reset</button>
+                <button class="btn btn-secondary" onclick="exportResults()">📥 Export</button>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="results-header">
+            <div class="results-count" id="resultsCount">Loading tools...</div>
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="setView('grid')" id="gridView">▦</button>
+                <button class="view-btn" onclick="setView('list')" id="listView">☰</button>
+            </div>
+        </div>
+
+        <!-- Tools Grid -->
+        <div class="tools-grid" id="toolsGrid">
+            <div class="loading">Loading tools...</div>
+        </div>
+
+        <!-- Tools List -->
+        <div class="tools-list" id="toolsList">
+            <!-- List items will be populated here -->
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination">
+            <!-- Pagination will be generated dynamically -->
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://sahiixx.github.io/system-prompts-and-models-of-ai-tools/api';
+        let allTools = [];
+        let filteredTools = [];
+        let currentView = 'grid';
+        let currentPage = 1;
+        const itemsPerPage = 12;
+        let activeTags = new Set();
+
+        // Load tools
+        async function loadTools() {
+            try {
+                const response = await fetch(`${API_BASE}/index.json`);
+                const data = await response.json();
+                allTools = data.tools;
+                filteredTools = allTools;
+                applyFilters();
+            } catch (error) {
+                console.error('Error loading tools:', error);
+                document.getElementById('toolsGrid').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Error loading tools. Please try again.</p></div>';
+            }
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const type = document.getElementById('filterType').value;
+            const status = document.getElementById('filterStatus').value;
+            const pricing = document.getElementById('filterPricing').value;
+            const sort = document.getElementById('sortBy').value;
+
+            filteredTools = allTools.filter(tool => {
+                const matchSearch = tool.name.toLowerCase().includes(search) || 
+                                  (tool.description || '').toLowerCase().includes(search);
+                const matchType = type === 'all' || tool.type === type;
+                const matchStatus = status === 'all' || tool.status === status;
+                const matchPricing = pricing === 'all' || (tool.pricing || '').toLowerCase().includes(pricing);
+                
+                return matchSearch && matchType && matchStatus && matchPricing;
+            });
+
+            // Sort
+            if (sort === 'name') {
+                filteredTools.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (sort === 'name-desc') {
+                filteredTools.sort((a, b) => b.name.localeCompare(a.name));
+            } else if (sort === 'type') {
+                filteredTools.sort((a, b) => a.type.localeCompare(b.type));
+            } else if (sort === 'status') {
+                filteredTools.sort((a, b) => a.status.localeCompare(b.status));
+            }
+
+            currentPage = 1;
+            renderTools();
+            updateResultsCount();
+        }
+
+        // Render tools
+        function renderTools() {
+            const startIdx = (currentPage - 1) * itemsPerPage;
+            const endIdx = startIdx + itemsPerPage;
+            const pageTools = filteredTools.slice(startIdx, endIdx);
+
+            // Grid view
+            const grid = document.getElementById('toolsGrid');
+            if (pageTools.length === 0) {
+                grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><h2>No tools found</h2><p>Try adjusting your filters</p></div>';
+            } else {
+                grid.innerHTML = pageTools.map(tool => `
+                    <div class="tool-card" onclick="viewTool('${tool.slug}')">
+                        <div class="tool-icon">${tool.name.charAt(0)}</div>
+                        <div class="tool-header">
+                            <div>
+                                <div class="tool-name">${tool.name}</div>
+                                <div class="tool-type">${tool.type}</div>
+                            </div>
+                        </div>
+                        <div class="tool-description">${tool.description || 'No description available'}</div>
+                        <div class="tool-meta">
+                            <span class="badge ${tool.status}">${tool.status}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // List view
+            const list = document.getElementById('toolsList');
+            list.innerHTML = pageTools.map(tool => `
+                <div class="tool-list-item">
+                    <div class="tool-list-content">
+                        <div class="tool-name">${tool.name}</div>
+                        <div class="tool-type">${tool.type}</div>
+                        <div style="opacity: 0.7; margin-top: 0.5rem;">${tool.description || 'No description'}</div>
+                    </div>
+                    <div class="tool-list-actions">
+                        <span class="badge ${tool.status}">${tool.status}</span>
+                        <button class="btn btn-primary" onclick="viewTool('${tool.slug}')">View</button>
+                    </div>
+                </div>
+            `).join('');
+
+            renderPagination();
+        }
+
+        // Render pagination
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredTools.length / itemsPerPage);
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            if (currentPage > 1) {
+                html += `<div class="page-btn" onclick="changePage(${currentPage - 1})">←</div>`;
+            }
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    html += `<div class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</div>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    html += `<div class="page-btn">...</div>`;
+                }
+            }
+
+            if (currentPage < totalPages) {
+                html += `<div class="page-btn" onclick="changePage(${currentPage + 1})">→</div>`;
+            }
+
+            pagination.innerHTML = html;
+        }
+
+        // Change page
+        function changePage(page) {
+            currentPage = page;
+            renderTools();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Update results count
+        function updateResultsCount() {
+            const count = document.getElementById('resultsCount');
+            count.textContent = `${filteredTools.length} tool${filteredTools.length !== 1 ? 's' : ''} found`;
+        }
+
+        // Set view
+        function setView(view) {
+            currentView = view;
+            document.getElementById('gridView').classList.toggle('active', view === 'grid');
+            document.getElementById('listView').classList.toggle('active', view === 'list');
+            document.getElementById('toolsGrid').style.display = view === 'grid' ? 'grid' : 'none';
+            document.getElementById('toolsList').classList.toggle('active', view === 'list');
+        }
+
+        // Toggle tag
+        function toggleTag(tag) {
+            event.target.classList.toggle('active');
+            if (activeTags.has(tag)) {
+                activeTags.delete(tag);
+            } else {
+                activeTags.add(tag);
+            }
+        }
+
+        // Reset filters
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterType').value = 'all';
+            document.getElementById('filterStatus').value = 'all';
+            document.getElementById('filterPricing').value = 'all';
+            document.getElementById('sortBy').value = 'name';
+            document.querySelectorAll('.filter-tag').forEach(tag => tag.classList.remove('active'));
+            activeTags.clear();
+            applyFilters();
+        }
+
+        // Export results
+        function exportResults() {
+            const data = JSON.stringify(filteredTools, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ai-tools-export.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // View tool
+        function viewTool(slug) {
+            window.open(`${API_BASE}/tools/${slug}.json`, '_blank');
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+        }
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('filterType').addEventListener('change', applyFilters);
+        document.getElementById('filterStatus').addEventListener('change', applyFilters);
+        document.getElementById('filterPricing').addEventListener('change', applyFilters);
+        document.getElementById('sortBy').addEventListener('change', applyFilters);
+
+        // Load tools on page load
+        loadTools();
+    </script>
+</body>
+</html>
