@@ -1,0 +1,133 @@
+{
+  "name": "Cursor Prompts",
+  "slug": "cursor-prompts",
+  "type": "IDE Plugin",
+  "status": "active",
+  "description": "AI coding assistant - Cursor Prompts",
+  "version": {
+    "current": "2025-08-07",
+    "lastUpdated": "2025-01-02",
+    "history": [
+      {
+        "version": "v1.0",
+        "date": "2025-01-02",
+        "changes": "Version tracked"
+      },
+      {
+        "version": "agent",
+        "date": "2025-01-02",
+        "changes": "Version tracked"
+      },
+      {
+        "version": "agent",
+        "date": "2025-01-02",
+        "changes": "Version tracked"
+      },
+      {
+        "version": "2025-09-03",
+        "date": "2025-01-02",
+        "changes": "Version tracked"
+      },
+      {
+        "version": "agent",
+        "date": "2025-01-02",
+        "changes": "Version tracked"
+      },
+      {
+        "version": "v1.2",
+        "date": "2025-01-02",
+        "changes": "Version tracked"
+      },
+      {
+        "version": "agent",
+        "date": "2025-01-02",
+        "changes": "Version tracked"
+      },
+      {
+        "version": "agent",
+        "date": "2025-01-02",
+        "changes": "Version tracked"
+      },
+      {
+        "version": "2025-08-07",
+        "date": "2025-01-02",
+        "changes": "Version tracked"
+      }
+    ]
+  },
+  "pricing": {
+    "model": "unknown",
+    "tiers": []
+  },
+  "models": {
+    "primary": "Unknown",
+    "supported": [],
+    "customizable": false
+  },
+  "features": {
+    "codeGeneration": true,
+    "codeCompletion": false,
+    "chatInterface": true,
+    "agentMode": false,
+    "parallelExecution": false,
+    "memorySystem": true,
+    "todoTracking": false,
+    "gitIntegration": false,
+    "multiFileEditing": false,
+    "testGeneration": true,
+    "refactoring": true,
+    "debugging": true
+  },
+  "platforms": {
+    "vscode": true,
+    "jetbrains": false,
+    "web": false,
+    "cli": false,
+    "standalone": false
+  },
+  "patterns": {
+    "conciseness": "low",
+    "parallelTools": false,
+    "subAgents": false,
+    "verificationGates": true,
+    "todoSystem": false,
+    "memoryContext": true,
+    "agentsFile": false
+  },
+  "documentation": {
+    "folder": "Cursor Prompts",
+    "files": {
+      "systemPrompt": "Memory Prompt.txt",
+      "tools": "Agent Tools v1.0.json",
+      "readme": "README.md"
+    },
+    "hasMultipleVersions": true,
+    "versions": [
+      "v1.0",
+      "agent",
+      "agent",
+      "2025-09-03",
+      "agent",
+      "v1.2",
+      "agent",
+      "agent",
+      "2025-08-07"
+    ]
+  },
+  "links": {
+    "website": null,
+    "docs": null,
+    "github": null,
+    "pricing": null
+  },
+  "tags": [
+    "IDE Plugin",
+    "AI Coding"
+  ],
+  "metrics": {
+    "promptTokens": 1001.0,
+    "securityRules": 0,
+    "concisenessScore": 50,
+    "toolsCount": 13
+  }
+}

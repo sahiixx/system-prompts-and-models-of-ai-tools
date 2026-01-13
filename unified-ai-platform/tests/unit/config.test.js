@@ -652,6 +652,92 @@ describe('Configuration Files', () => {
   describe('Tools and Config Integration Tests', () => {
     let config;
     let tools;
+});
+  describe('Configuration Schema Validation', () => {
+    let config;
+
+    beforeAll(() => {
+      const configPath = path.join(__dirname, '../../config/system-config.json');
+      const configData = fs.readFileSync(configPath, 'utf8');
+      config = JSON.parse(configData);
+    });
+
+    test('should have all required top-level keys', () => {
+      const requiredKeys = ['platform', 'core_capabilities', 'performance'];
+      requiredKeys.forEach(key => {
+        expect(config).toHaveProperty(key);
+        expect(config[key]).not.toBeNull();
+        expect(config[key]).not.toBeUndefined();
+      });
+    });
+
+    test('platform should have semantic version format', () => {
+      const versionRegex = /^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$/;
+      expect(config.platform.version).toMatch(versionRegex);
+    });
+
+    test('all capability flags should be boolean', () => {
+      const capabilities = config.core_capabilities;
+      Object.values(capabilities).forEach(cap => {
+        if (cap.enabled !== undefined) {
+          expect(typeof cap.enabled).toBe('boolean');
+        }
+      });
+    });
+
+    test('performance targets should be positive numbers', () => {
+      const perf = config.performance;
+      expect(perf.response_time.target_ms).toBeGreaterThan(0);
+      expect(perf.response_time.max_ms).toBeGreaterThan(0);
+      expect(perf.memory_usage.max_mb).toBeGreaterThan(0);
+      expect(perf.concurrent_operations.max_parallel).toBeGreaterThan(0);
+    });
+
+    test('should not contain environment-specific secrets', () => {
+      const configString = JSON.stringify(config);
+      expect(configString).not.toMatch(/password/i);
+      expect(configString).not.toMatch(/api[_-]?key/i);
+      expect(configString).not.toMatch(/secret/i);
+      expect(configString).not.toMatch(/token(?!_ms)/i);
+    });
+  });
+
+  describe('Tools Configuration Deep Validation', () => {
+    let tools;
+
+    beforeAll(() => {
+      const toolsPath = path.join(__dirname, '../../config/tools.json');
+      const toolsData = fs.readFileSync(toolsPath, 'utf8');
+      tools = JSON.parse(toolsData);
+    });
+
+    test('all tools should have unique names', () => {
+      const names = tools.map(t => t.function.name);
+      const uniqueNames = new Set(names);
+      expect(names.length).toBe(uniqueNames.size);
+    });
+
+    test('all tool descriptions should be meaningful', () => {
+      tools.forEach(tool => {
+        expect(tool.function.description.length).toBeGreaterThan(10);
+        expect(tool.function.description).not.toMatch(/^(test|TODO|placeholder)/i);
+      });
+    });
+
+    test('required parameters should exist in properties', () => {
+      tools.forEach(tool => {
+        const params = tool.function.parameters;
+        if (params.required && params.required.length > 0) {
+          params.required.forEach(reqParam => {
+            expect(params.properties).toHaveProperty(reqParam);
+          });
+        }
+      });
+    });
+  });
+
+  describe('Security and Compliance', () => {
+    let config, tools;
 
     beforeAll(() => {
       const configPath = path.join(__dirname, '../../config/system-config.json');
@@ -708,3 +794,20 @@ describe('Configuration Files', () => {
     });
   });
 });
+    test('security capability should be enabled', () => {
+      expect(config.core_capabilities.security.enabled).toBe(true);
+    });
+
+    test('security features should be defined', () => {
+      const security = config.core_capabilities.security;
+      expect(Array.isArray(security.features)).toBe(true);
+      expect(security.features.length).toBeGreaterThan(0);
+    });
+
+    test('configuration should not expose internal paths', () => {
+      const configString = JSON.stringify(config);
+      expect(configString).not.toMatch(/\/home\//);
+      expect(configString).not.toMatch(/C:\\Users\\/);
+      expect(configString).not.toMatch(/\/root\//);
+    });
+  });

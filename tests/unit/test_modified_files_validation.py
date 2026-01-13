@@ -13,11 +13,23 @@ class TestModifiedPromptFiles:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory based on this file's location.
+        
+        Returns:
+            Path: Filesystem path pointing to the repository root (three levels up from this file).
+        """
         return Path(__file__).parent.parent.parent
     
     def test_lovable_agent_prompt_exists(self, repo_root):
-        """Test that Lovable Agent Prompt.txt exists and is readable."""
+        """
+        Verify the Lovable Agent prompt file is present, UTF-8 readable, and contains substantial content.
+        
+        Performs these checks:
+        - the file exists and is a regular file;
+        - the file decodes as UTF-8;
+        - the file is not empty and contains more than 100 characters.
+        """
         prompt_file = repo_root / "Lovable" / "Agent Prompt.txt"
         assert prompt_file.exists(), f"Lovable Agent Prompt.txt not found at {prompt_file}"
         assert prompt_file.is_file(), "Lovable Agent Prompt.txt is not a file"
@@ -91,7 +103,11 @@ class TestModifiedPromptFiles:
             assert section in content, f"Expected section '{section}' not found in Same.dev Prompt"
     
     def test_samedev_prompt_mentions_docker(self, repo_root):
-        """Test that Same.dev prompt mentions its Docker environment."""
+        """
+        Verify the Same.dev Prompt.txt mentions the runtime environment.
+        
+        Asserts that the prompt contains "Docker" or "Ubuntu", indicating the environment is referenced.
+        """
         prompt_file = repo_root / "Same.dev" / "Prompt.txt"
         content = prompt_file.read_text(encoding='utf-8')
         
@@ -134,7 +150,9 @@ class TestModifiedPromptFiles:
             assert tag in closing_tags, f"Opening tag <{tag}> has no closing tag </{tag}>"
     
     def test_orchids_decision_making_prompt_exists(self, repo_root):
-        """Test that Orchids.app Decision-making prompt.txt exists."""
+        """
+        Verify Orchids.app/Decision-making prompt.txt exists and is not empty.
+        """
         prompt_file = repo_root / "Orchids.app" / "Decision-making prompt.txt"
         assert prompt_file.exists(), f"Orchids Decision-making prompt not found"
         
@@ -166,7 +184,12 @@ class TestModifiedJSONFiles:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory based on this file's location.
+        
+        Returns:
+            Path: Filesystem path pointing to the repository root (three levels up from this file).
+        """
         return Path(__file__).parent.parent.parent
     
     def test_lovable_agent_tools_json_valid(self, repo_root):
@@ -208,7 +231,11 @@ class TestModifiedJSONFiles:
         assert len(tool_names) == len(set(tool_names)), "Duplicate tool names found"
     
     def test_lovable_tool_names_follow_convention(self, repo_root):
-        """Test that tool names follow a consistent naming convention."""
+        """
+        Ensure each tool name uses the project's naming convention.
+        
+        Asserts that each tool in Lovable/Agent Tools.json starts with the prefix "lov-" and consists of lowercase characters; hyphens are permitted.
+        """
         json_file = repo_root / "Lovable" / "Agent Tools.json"
         
         with open(json_file, 'r', encoding='utf-8') as f:
@@ -233,7 +260,11 @@ class TestModifiedJSONFiles:
                     f"Tool {tool['name']}, property {prop_name} should have an example or type"
     
     def test_lovable_required_parameters_exist(self, repo_root):
-        """Test that required parameters are defined in properties."""
+        """
+        Ensure each tool's declared required parameter names are present in the tool's `parameters.properties`.
+        
+        Reads Lovable/Agent Tools.json and for every tool that defines `parameters.required`, asserts each required parameter key exists in `parameters.properties`; failing assertions include the tool name and the missing parameter.
+        """
         json_file = repo_root / "Lovable" / "Agent Tools.json"
         
         with open(json_file, 'r', encoding='utf-8') as f:
@@ -254,7 +285,12 @@ class TestFundingConfiguration:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory based on this file's location.
+        
+        Returns:
+            Path: Filesystem path pointing to the repository root (three levels up from this file).
+        """
         return Path(__file__).parent.parent.parent
     
     def test_funding_yml_exists(self, repo_root):
@@ -292,7 +328,12 @@ class TestSpawnPrompt:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory based on this file's location.
+        
+        Returns:
+            Path: Filesystem path pointing to the repository root (three levels up from this file).
+        """
         return Path(__file__).parent.parent.parent
     
     def test_spawn_directory_exists(self, repo_root):
@@ -302,7 +343,9 @@ class TestSpawnPrompt:
         assert spawn_dir.is_dir(), "-Spawn is not a directory"
     
     def test_spawn_prompt_exists(self, repo_root):
-        """Test that -Spawn/Prompt.txt exists."""
+        """
+        Check that the repository contains the "-Spawn/Prompt.txt" file at the expected path.
+        """
         prompt_file = repo_root / "-Spawn" / "Prompt.txt"
         assert prompt_file.exists(), f"-Spawn/Prompt.txt not found at {prompt_file}"
     
@@ -326,7 +369,12 @@ class TestReadmeIntegrity:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory based on this file's location.
+        
+        Returns:
+            Path: Filesystem path pointing to the repository root (three levels up from this file).
+        """
         return Path(__file__).parent.parent.parent
     
     def test_readme_exists(self, repo_root):
@@ -362,7 +410,12 @@ class TestV0PromptFile:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory based on this file's location.
+        
+        Returns:
+            Path: Filesystem path pointing to the repository root (three levels up from this file).
+        """
         return Path(__file__).parent.parent.parent
     
     def test_v0_directory_exists(self, repo_root):
@@ -387,12 +440,25 @@ class TestPromptFileEncodings:
     
     @pytest.fixture
     def repo_root(self):
-        """Get repository root directory."""
+        """
+        Locate the repository root directory based on this file's location.
+        
+        Returns:
+            Path: Filesystem path pointing to the repository root (three levels up from this file).
+        """
         return Path(__file__).parent.parent.parent
     
     @pytest.fixture
     def modified_text_files(self, repo_root):
-        """Get list of all modified text files."""
+        """
+        List the repository text files that the tests consider modified.
+        
+        Parameters:
+            repo_root (Path): Root directory of the repository used to build each file path.
+        
+        Returns:
+            List[Path]: Paths to prompt, configuration, and README files that the test suite validates.
+        """
         return [
             repo_root / "Lovable" / "Agent Prompt.txt",
             repo_root / "Lovable" / "Prompt.txt",
@@ -414,7 +480,11 @@ class TestPromptFileEncodings:
                     pytest.fail(f"File {file_path} is not valid UTF-8")
     
     def test_files_have_no_null_bytes(self, modified_text_files):
-        """Test that text files don't contain null bytes."""
+        """
+        Verify that each existing file in the provided list contains no null (0x00) bytes.
+        
+        For every path in the `modified_text_files` iterable that exists on disk, read its raw bytes and fail the test if any null byte is present.
+        """
         for file_path in modified_text_files:
             if file_path.exists():
                 content = file_path.read_bytes()

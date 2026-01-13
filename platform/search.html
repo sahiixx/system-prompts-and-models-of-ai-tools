@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Search - AI Tools Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2em;
+            color: #667eea;
+        }
+
+        .back-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .search-section {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+        }
+
+        .filters-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .results-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-group {
+            margin-bottom: 25px;
+        }
+
+        .filter-group h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .filter-group input[type="text"],
+        .filter-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .range-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .range-group input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .clear-btn {
+            width: 100%;
+            padding: 12px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .clear-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        .search-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .results-count {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .sort-select {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .tool-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .tool-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .tool-description {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .tool-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .meta-badge {
+            padding: 5px 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .tool-stats {
+            display: flex;
+            gap: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 4px;
+            background: #e0e0e0;
+            font-size: 11px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+        }
+
+        @media (max-width: 968px) {
+            .search-section {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-panel {
+                position: relative;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔎 Advanced Search</h1>
+            <a href="dashboard.html" class="back-btn">← Back to Dashboard</a>
+        </header>
+
+        <div class="search-section">
+            <!-- Filters Panel -->
+            <div class="filters-panel">
+                <h2 style="margin-bottom: 20px;">Filters</h2>
+
+                <div class="filter-group">
+                    <h3>Tool Type</h3>
+                    <div class="checkbox-group" id="typeFilters">
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="web"> Web App
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="ide"> IDE/Editor
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="plugin"> Plugin
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="cli"> CLI Tool
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="agent"> Agent
+                        </label>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <h3>Pricing Model</h3>
+                    <div class="checkbox-group" id="pricingFilters">
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="free"> Free
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="freemium"> Freemium
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="paid"> Paid
+                        </label>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <h3>Category</h3>
+                    <select id="categoryFilter">
+                        <option value="">All Categories</option>
+                        <option value="Development">Development</option>
+                        <option value="Conversational AI">Conversational AI</option>
+                        <option value="Image Generation">Image Generation</option>
+                        <option value="Video Generation">Video Generation</option>
+                        <option value="Writing">Writing</option>
+                        <option value="Research">Research</option>
+                        <option value="Design">Design</option>
+                        <option value="Productivity">Productivity</option>
+                        <option value="Audio">Audio</option>
+                        <option value="Automation">Automation</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <h3>View Range</h3>
+                    <div class="range-group">
+                        <input type="number" id="minViews" placeholder="Min">
+                        <span>-</span>
+                        <input type="number" id="maxViews" placeholder="Max">
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <h3>Platform</h3>
+                    <div class="checkbox-group" id="platformFilters">
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="Web"> Web
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="iOS"> iOS
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="Android"> Android
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="Windows"> Windows
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="macOS"> macOS
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" value="Linux"> Linux
+                        </label>
+                    </div>
+                </div>
+
+                <button class="clear-btn" onclick="clearFilters()">Clear All Filters</button>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="results-panel">
+                <div class="search-bar">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search for AI tools...">
+                    <button class="search-btn" onclick="performSearch()">Search</button>
+                </div>
+
+                <div class="results-header">
+                    <div class="results-count" id="resultsCount">0 results found</div>
+                    <select class="sort-select" id="sortSelect" onchange="performSearch()">
+                        <option value="views">Most Popular</option>
+                        <option value="name">Name (A-Z)</option>
+                        <option value="createdAt">Newest First</option>
+                        <option value="favorites">Most Favorited</option>
+                    </select>
+                </div>
+
+                <div class="tool-grid" id="resultsGrid">
+                    <div class="loading">Search for AI tools to get started...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:5000/api'
+            : 'https://5000-ilotlay65mu40igjyvcvc-b32ec7bb.sandbox.novita.ai/api';
+
+        let currentResults = [];
+
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value;
+            const sort = document.getElementById('sortSelect').value;
+            
+            // Collect filter values
+            const types = Array.from(document.querySelectorAll('#typeFilters input:checked')).map(cb => cb.value);
+            const pricingModels = Array.from(document.querySelectorAll('#pricingFilters input:checked')).map(cb => cb.value);
+            const platforms = Array.from(document.querySelectorAll('#platformFilters input:checked')).map(cb => cb.value);
+            const category = document.getElementById('categoryFilter').value;
+            const minViews = document.getElementById('minViews').value;
+            const maxViews = document.getElementById('maxViews').value;
+
+            // Build query params
+            const params = new URLSearchParams();
+            if (query) params.append('q', query);
+            if (sort) params.append('sort', sort);
+            if (category) params.append('category', category);
+            if (types.length) params.append('type', types.join(','));
+            if (pricingModels.length) params.append('pricing', pricingModels.join(','));
+            if (platforms.length) params.append('platform', platforms.join(','));
+            if (minViews) params.append('minViews', minViews);
+            if (maxViews) params.append('maxViews', maxViews);
+            params.append('limit', '50');
+
+            const resultsGrid = document.getElementById('resultsGrid');
+            resultsGrid.innerHTML = '<div class="loading">Searching...</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/tools/search?${params}`);
+                const data = await response.json();
+                currentResults = data.data || [];
+                displayResults(currentResults);
+            } catch (error) {
+                console.error('Search error:', error);
+                resultsGrid.innerHTML = '<div class="no-results">Error loading results</div>';
+            }
+        }
+
+        function displayResults(tools) {
+            const resultsGrid = document.getElementById('resultsGrid');
+            const resultsCount = document.getElementById('resultsCount');
+            
+            resultsCount.textContent = `${tools.length} result${tools.length !== 1 ? 's' : ''} found`;
+
+            if (tools.length === 0) {
+                resultsGrid.innerHTML = '<div class="no-results">No tools found matching your criteria</div>';
+                return;
+            }
+
+            resultsGrid.innerHTML = tools.map(tool => `
+                <div class="tool-card" onclick="viewTool('${tool._id}')">
+                    <div class="tool-name">${tool.name}</div>
+                    <div class="tool-description">${tool.description}</div>
+                    <div class="tool-meta">
+                        <span class="meta-badge">${tool.type}</span>
+                        <span class="meta-badge">${tool.pricing?.model || 'N/A'}</span>
+                        ${tool.category?.slice(0, 2).map(cat => `<span class="meta-badge">${cat}</span>`).join('') || ''}
+                    </div>
+                    <div class="tool-stats">
+                        <span>👁️ ${(tool.metrics?.views || 0).toLocaleString()}</span>
+                        <span>❤️ ${(tool.metrics?.favorites || 0).toLocaleString()}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function clearFilters() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('minViews').value = '';
+            document.getElementById('maxViews').value = '';
+            document.getElementById('searchInput').value = '';
+            performSearch();
+        }
+
+        function viewTool(toolId) {
+            window.location.href = `explore.html?tool=${toolId}`;
+        }
+
+        // Add change listeners to filters
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', performSearch);
+        });
+
+        document.getElementById('categoryFilter').addEventListener('change', performSearch);
+
+        // Debounce for view range inputs
+        let viewsTimeout;
+        document.getElementById('minViews').addEventListener('input', () => {
+            clearTimeout(viewsTimeout);
+            viewsTimeout = setTimeout(performSearch, 500);
+        });
+        document.getElementById('maxViews').addEventListener('input', () => {
+            clearTimeout(viewsTimeout);
+            viewsTimeout = setTimeout(performSearch, 500);
+        });
+
+        // Search on Enter key
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        // Initial load
+        performSearch();
+    </script>
+</body>
+</html>
