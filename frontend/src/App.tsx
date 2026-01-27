@@ -21,6 +21,12 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Ensures user data is fetched when an authentication token is present, then renders the provided children.
+ *
+ * @param children - React nodes to render after initialization
+ * @returns The rendered `children`
+ */
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const { fetchUser, token } = useAuthStore();
 
@@ -33,6 +39,11 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Root application component that configures React Query, routing, authentication initialization, global toasts, and the application's public, protected, admin-only, and 404 routes.
+ *
+ * @returns The React element tree containing providers, route definitions, and the global Toaster.
+ */
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>

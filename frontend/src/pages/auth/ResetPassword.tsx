@@ -18,6 +18,13 @@ const resetPasswordSchema = z
 
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
+/**
+ * Render the password reset page that allows a user to set a new password using a token from the URL.
+ *
+ * The form validates password and confirmation, submits the new password with the URL token, shows success or error toasts, and navigates to the login page on success. If the token is missing, renders an "Invalid Reset Link" message with a link to request a new reset link.
+ *
+ * @returns The React element for the reset-password page or an invalid-link notice when the token is absent.
+ */
 export default function ResetPassword() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
