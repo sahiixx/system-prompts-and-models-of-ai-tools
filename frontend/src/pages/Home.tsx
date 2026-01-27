@@ -1,6 +1,13 @@
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 
+/**
+ * Renders the Home page, including the site header, hero content, and authentication-dependent navigation and calls to action.
+ *
+ * Shows a welcome message and Logout button when the user is authenticated; shows Login and Sign Up links plus Get Started/Sign In CTAs when not authenticated. If the user is authenticated but their email is not verified, displays an email verification reminder banner.
+ *
+ * @returns The Home page React element.
+ */
 export default function Home() {
   const { isAuthenticated, user, logout } = useAuthStore();
 

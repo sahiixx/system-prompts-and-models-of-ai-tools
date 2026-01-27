@@ -8,6 +8,18 @@ interface ProtectedRouteProps {
   allowedRoles?: Array<'user' | 'admin' | 'moderator'>;
 }
 
+/**
+ * Guards a route and conditionally renders content based on authentication state, email verification, and user role.
+ *
+ * When loading, displays a full-screen loading indicator. If the user is not authenticated, navigates to the login page
+ * while preserving the current location. If email verification is required and the user's email is unverified, shows an
+ * email verification notice. If allowed roles are provided and the user's role is not included, shows an access denied message.
+ *
+ * @param requireEmailVerified - If true, requires the authenticated user's email to be verified before granting access.
+ * @param allowedRoles - Optional list of roles allowed to access the route; when provided, users with roles not in this list are denied.
+ * @returns The element to render for the protected route: the `children` when access is granted, otherwise a loading view,
+ * an email verification notice, an access denied view, or a navigation to the login page.
+ */
 export default function ProtectedRoute({
   children,
   requireEmailVerified = false,

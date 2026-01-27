@@ -4,6 +4,14 @@ import { authService } from '@/services/auth';
 
 type VerificationStatus = 'verifying' | 'success' | 'error';
 
+/**
+ * Page component that verifies the email confirmation token from the route and displays the resulting UI.
+ *
+ * Shows a loading view while verifying, a success confirmation with a link to login if verification succeeds,
+ * or an error message with a link to login if the token is missing or verification fails.
+ *
+ * @returns The page UI element that shows a loading state while verifying, a success view on success, or an error view on failure.
+ */
 export default function VerifyEmail() {
   const { token } = useParams<{ token: string }>();
   const [status, setStatus] = useState<VerificationStatus>('verifying');

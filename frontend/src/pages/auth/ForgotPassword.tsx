@@ -12,6 +12,14 @@ const forgotPasswordSchema = z.object({
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
+/**
+ * Renders a "Forgot Password" page that lets users request a password reset by email.
+ *
+ * Submitting the form calls the authentication service to send a reset link, shows a loading state,
+ * displays success or error toasts, and shows a confirmation view after a successful request.
+ *
+ * @returns The page's JSX element — either the email submission form or the confirmation screen.
+ */
 export default function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
