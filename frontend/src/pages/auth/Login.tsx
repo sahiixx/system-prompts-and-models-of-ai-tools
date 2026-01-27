@@ -14,11 +14,9 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 /**
- * Render the sign-in page with email/password form, client-side validation, password visibility toggle, and social login links.
+ * Render the sign-in page with an email/password form, password visibility toggle, inline validation and errors, social login links, and post-login navigation.
  *
- * The form validates input using the `loginSchema` (email format and password length), submits credentials via the auth store's `login` action, clears prior errors before submitting, shows success or failure toasts, and navigates to the originating route on successful login. Validation errors and store errors are displayed inline; a "Show"/"Hide" control toggles password visibility. Social login buttons link to provider endpoints.
- *
- * @returns A React element representing the complete login page.
+ * @returns The React element representing the login page.
  */
 export default function Login() {
   const navigate = useNavigate();
