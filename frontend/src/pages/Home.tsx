@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
- * Renders the Home page, including the site header, hero content, and authentication-dependent navigation and calls to action.
+ * Renders the Home page with header, hero content, and authentication-dependent navigation and calls to action.
  *
- * Shows a welcome message and Logout button when the user is authenticated; shows Login and Sign Up links plus Get Started/Sign In CTAs when not authenticated. If the user is authenticated but their email is not verified, displays an email verification reminder banner.
+ * Shows a welcome message and a Logout button when the user is authenticated; shows Login and Sign Up links plus Get Started/Sign In CTAs when not authenticated. If the user is authenticated but their email is not verified, displays an email verification reminder banner.
  *
  * @returns The Home page React element.
  */
