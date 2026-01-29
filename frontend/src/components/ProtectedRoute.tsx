@@ -9,14 +9,11 @@ interface ProtectedRouteProps {
 }
 
 /**
- * Guard a route and render its children only when authentication and optional checks pass.
- *
- * Performs authentication, optional email verification, and optional role-based checks; when checks fail
- * it renders an appropriate alternative view (loading indicator, login redirect, verification notice, or access denied).
+ * Restricts rendering of its children to authenticated users, with optional email verification and role checks.
  *
  * @param requireEmailVerified - If true, requires the authenticated user's email to be verified before granting access.
  * @param allowedRoles - Optional list of roles allowed to access the route; users whose role is not in this list are denied.
- * @returns The element to render for the protected route: `children` when access is granted, otherwise a loading view, an email verification notice, an access denied view, or a navigation to the login page.
+ * @returns The element to render for the protected route: `children` when access is granted, otherwise a loading indicator, an email verification notice, an access denied view, or a navigation to the login page.
  */
 export default function ProtectedRoute({
   children,
