@@ -14,7 +14,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 /**
- * Render the sign-in page with an email/password form, password visibility toggle, inline validation and errors, social login links, and post-login navigation.
+ * Renders the sign-in page with an email/password form, password visibility toggle, inline validation and errors, social login links, and post-login navigation.
  *
  * @returns The React element representing the login page.
  */
