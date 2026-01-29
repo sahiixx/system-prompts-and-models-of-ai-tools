@@ -26,11 +26,11 @@ const registerSchema = z
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 /**
- * Render the registration page and handle the account creation flow.
+ * Render the registration page and handle user account creation.
  *
- * Displays a validated form for name, username, email, password, and confirm password; shows inline and banner errors; toggles password visibility; and exposes social OAuth and terms/privacy links. On successful submission it registers the user and navigates to the home page, while failures surface an error message.
+ * Presents a validated registration form, shows inline and banner errors, provides a password visibility toggle and social OAuth links, and navigates on successful registration.
  *
- * @returns A JSX element representing the registration page.
+ * @returns The JSX element for the registration page.
  */
 export default function Register() {
   const navigate = useNavigate();
