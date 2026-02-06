@@ -52,7 +52,7 @@ router.post('/compare', async (req, res) => {
         apiAvailable: tool.apiAvailable,
         status: tool.status
       })),
-      comparison Matrix: buildComparisonMatrix(tools),
+      comparisonMatrix: buildComparisonMatrix(tools),
       summary: generateComparisonSummary(tools)
     };
     
