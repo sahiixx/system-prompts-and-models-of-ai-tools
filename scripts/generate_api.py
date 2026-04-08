@@ -172,13 +172,13 @@ class APIGenerator:
                 _keywords.append(normalized)
                 _seen.add(normalized)
 
-            def add_term_with_variants(term: str, _add_kw=add_keyword) -> None:
+            def add_term_with_variants(term: str) -> None:
                 if not term:
                     return
                 lower = term.lower()
-                _add_kw(lower)
+                add_keyword(lower)
                 for part in filter(None, re.split(r'[\s\-_/]+', lower)):
-                    _add_kw(part)
+                    add_keyword(part)
 
             add_term_with_variants(tool.get('name', ''))
             add_term_with_variants(tool.get('slug', ''))

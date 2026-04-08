@@ -105,8 +105,6 @@ class CompatTools:
         query: str = args.get("query", "")
         if not query:
             return {"error": "query is required"}
-        include_globs = args.get("include_globs") or ["**/*"]  # noqa: F841
-        exclude_globs = set((args.get("exclude_globs") or []) + ["**/node_modules/**", "**/.git/**"])  # noqa: F841
         case_sensitive = bool(args.get("case_sensitive", False))
         # naive walk + regex
         flags = 0 if case_sensitive else re.IGNORECASE
