@@ -7,7 +7,7 @@ class EchoModel(ModelProvider):
     def __init__(self) -> None:
         super().__init__(name="echo")
 
-    def complete(self, messages: Iterable[ModelMessage], tools: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    def complete(self, messages: Iterable[ModelMessage], tools: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:  # noqa: ARG002
         # Simple echo: returns the last user message content.
         last_user = ""
         for m in messages:

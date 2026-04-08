@@ -5,7 +5,7 @@ import os
 
 try:
     import requests  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     requests = None
 
 from .base import ModelMessage, ModelProvider
@@ -25,7 +25,7 @@ class OllamaModel(ModelProvider):
     def complete(
         self,
         messages: Iterable[ModelMessage],
-        tools: Optional[List[Dict[str, Any]]] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,  # noqa: ARG002
     ) -> Dict[str, Any]:
         if requests is None:
             raise RuntimeError("requests package not installed. `pip install requests`.")

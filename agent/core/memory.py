@@ -42,7 +42,7 @@ class Memory:
             arr = json.loads(data)
             for item in arr:
                 mem.add(item.get("role", "user"), item.get("content", ""), item.get("tool_name"))
-        except Exception:
+        except (json.JSONDecodeError, KeyError, ValueError):
             pass
         return mem
 

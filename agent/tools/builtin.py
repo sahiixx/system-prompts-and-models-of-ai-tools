@@ -19,7 +19,7 @@ class CommandResult:
 
 
 def _run_shell(command: str, timeout: int = 30000, cwd: Optional[str] = None) -> CommandResult:
-    proc = subprocess.Popen(
+    proc = subprocess.Popen(  # noqa: S602
         command,
         cwd=cwd or os.getcwd(),
         shell=True,
@@ -40,10 +40,10 @@ def _run_shell(command: str, timeout: int = 30000, cwd: Optional[str] = None) ->
 def _http_fetch(url: str, method: str = "GET", headers: Optional[Dict[str, str]] = None, body: Optional[str] = None, timeout: int = 20000) -> Dict[str, Any]:
     import urllib.request
 
-    req = urllib.request.Request(url=url, method=method, data=body.encode("utf-8") if body else None)
+    req = urllib.request.Request(url=url, method=method, data=body.encode("utf-8") if body else None)  # noqa: S310
     for k, v in (headers or {}).items():
         req.add_header(k, v)
-    with urllib.request.urlopen(req, timeout=timeout / 1000) as resp:
+    with urllib.request.urlopen(req, timeout=timeout / 1000) as resp:  # noqa: S310
         content = resp.read().decode("utf-8", errors="replace")
         return {"status": resp.status, "headers": dict(resp.headers), "body": content}
 
@@ -188,9 +188,10 @@ class BuiltinTools:
         try:
             parsed = ast.parse(expr, mode="eval")
             result = _eval(parsed.body)  # type: ignore
-            return {"result": result}
-        except Exception as e:  # pragma: no cover
+        except Exception as e:  # pragma: no cover  # noqa: BLE001
             return {"error": str(e)}
+        else:
+            return {"result": result}
 
     def _tool_http_fetch(self, args: Dict[str, Any]) -> Dict[str, Any]:
         url = args.get("url")
@@ -202,9 +203,10 @@ class BuiltinTools:
         timeout_ms = int(args.get("timeout_ms", 20000))
         try:
             resp = _http_fetch(url=url, method=method, headers=headers, body=body, timeout=timeout_ms)
-            return resp
-        except Exception as e:  # pragma: no cover
+        except Exception as e:  # pragma: no cover  # noqa: BLE001
             return {"error": str(e)}
+        else:
+            return resp
 
     def _tool_web_get(self, args: Dict[str, Any]) -> Dict[str, Any]:
         url = args.get("url")
@@ -213,9 +215,11 @@ class BuiltinTools:
         headers = args.get("headers") or {}
         timeout_ms = int(args.get("timeout_ms", 20000))
         try:
-            return _http_fetch(url=url, method="GET", headers=headers, timeout=timeout_ms)
-        except Exception as e:  # pragma: no cover
+            result = _http_fetch(url=url, method="GET", headers=headers, timeout=timeout_ms)
+        except Exception as e:  # pragma: no cover  # noqa: BLE001
             return {"error": str(e)}
+        else:
+            return result
 
     def _tool_web_search(self, args: Dict[str, Any]) -> Dict[str, Any]:
         query = args.get("query", "")
@@ -229,7 +233,8 @@ class BuiltinTools:
         safe_globals: Dict[str, Any] = {"__builtins__": {"len": len, "sum": sum, "min": min, "max": max}}
         safe_locals: Dict[str, Any] = {}
         try:
-            result = eval(expr, safe_globals, safe_locals)
-            return {"result": result}
-        except Exception as e:  # pragma: no cover
+            result = eval(expr, safe_globals, safe_locals)  # noqa: S307
+        except Exception as e:  # pragma: no cover  # noqa: BLE001
             return {"error": str(e)}
+        else:
+            return {"result": result}

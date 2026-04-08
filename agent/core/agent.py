@@ -68,7 +68,7 @@ class Agent:
                     name = call.get("name")
                     try:
                         spec = self.tools.get_spec(name)
-                    except Exception:
+                    except KeyError:
                         spec = None
                     def run_call(name=name, call=call):
                         try:
@@ -76,14 +76,14 @@ class Agent:
                             if isinstance(args, str):
                                 try:
                                     args = json.loads(args)
-                                except Exception:
+                                except (json.JSONDecodeError, ValueError):
                                     args = {"input": args}
                             elif args is None:
                                 args = {}
                             if not isinstance(args, dict):
                                 args = {"input": args}
                             return name, self.tools.call(name, args)
-                        except Exception as e:  # pragma: no cover
+                        except Exception as e:  # pragma: no cover  # noqa: BLE001
                             return name, {"error": str(e)}
                     if self.config.allow_parallel_tools and spec and getattr(spec, "parallel_safe", True):
                         futures.append(executor.submit(run_call))
@@ -157,7 +157,7 @@ class Agent:
                     name = call.get("name")
                     try:
                         spec = self.tools.get_spec(name)
-                    except Exception:
+                    except KeyError:
                         spec = None
                     def run_call(name=name, call=call):
                         try:
@@ -165,14 +165,14 @@ class Agent:
                             if isinstance(args, str):
                                 try:
                                     args = json.loads(args)
-                                except Exception:
+                                except (json.JSONDecodeError, ValueError):
                                     args = {"input": args}
                             elif args is None:
                                 args = {}
                             if not isinstance(args, dict):
                                 args = {"input": args}
                             return name, self.tools.call(name, args)
-                        except Exception as e:  # pragma: no cover
+                        except Exception as e:  # pragma: no cover  # noqa: BLE001
                             return name, {"error": str(e)}
                     if self.config.allow_parallel_tools and spec and getattr(spec, "parallel_safe", True):
                         futures.append(executor.submit(run_call))

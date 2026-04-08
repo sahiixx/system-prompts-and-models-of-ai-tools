@@ -4,7 +4,7 @@ import os
 
 try:
     from anthropic import Anthropic  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     Anthropic = None  # type: ignore
 
 from .base import ModelMessage, ModelProvider
@@ -32,7 +32,7 @@ class AnthropicModel(ModelProvider):
         self._system_text = "\n\n".join(system_parts) if system_parts else None
         return formatted
 
-    def complete(self, messages: Iterable[ModelMessage], tools: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    def complete(self, messages: Iterable[ModelMessage], tools: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:  # noqa: ARG002
         if Anthropic is None:
             raise RuntimeError("anthropic package not installed. `pip install anthropic`.")
         if not self.api_key:
@@ -44,7 +44,7 @@ class AnthropicModel(ModelProvider):
         text = "".join([b.text for b in msg.content if getattr(b, "type", None) == "text"])  # type: ignore
         return {"role": "assistant", "content": text, "tool_calls": []}
 
-    def stream_complete(self, messages: Iterable[ModelMessage], tools: Optional[List[Dict[str, Any]]] = None):
+    def stream_complete(self, messages: Iterable[ModelMessage], tools: Optional[List[Dict[str, Any]]] = None):  # noqa: ARG002
         if Anthropic is None:
             raise RuntimeError("anthropic package not installed. `pip install anthropic`.")
         if not self.api_key:

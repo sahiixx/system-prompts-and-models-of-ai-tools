@@ -36,7 +36,7 @@ class MetadataGenerator:
         text = re.sub(r'[-\s]+', '-', text)
         return text.strip('-')
     
-    def detect_tool_type(self, tool_name: str, files: List[str]) -> str:
+    def detect_tool_type(self, tool_name: str, _files: List[str]) -> str:
         """Detect tool type from name and files"""
         name_lower = tool_name.lower()
         
@@ -53,9 +53,9 @@ class MetadataGenerator:
         """Analyze prompt file for patterns and features"""
         try:
             content = file_path.read_text(encoding='utf-8', errors='ignore')
-        except:
+        except OSError:
             return {}
-        
+
         content_lower = content.lower()
         
         # Detect patterns
@@ -158,10 +158,10 @@ class MetadataGenerator:
                 tools_count = len(data)
             elif isinstance(data, dict):
                 tools_count = len(data.get('functions', []))
-            
-            return {'toolsCount': tools_count}
-        except:
+        except (OSError, ValueError):
             return {'toolsCount': 0}
+        else:
+            return {'toolsCount': tools_count}
     
     def detect_versions(self, tool_dir: Path) -> List[str]:
         """Detect multiple versions of prompts"""
@@ -305,7 +305,7 @@ class MetadataGenerator:
                 print(f"🔍 Analyzing: {tool}")
                 metadata = self.generate_metadata(tool)
                 self.save_metadata(tool, metadata)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 print(f"❌ Error processing {tool}: {e}")
         
         print()

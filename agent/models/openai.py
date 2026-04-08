@@ -4,7 +4,7 @@ import os
 
 try:
     import openai  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     openai = None
 
 from .base import ModelMessage, ModelProvider

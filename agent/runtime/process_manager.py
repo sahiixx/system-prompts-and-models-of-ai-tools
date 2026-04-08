@@ -18,7 +18,7 @@ class ProcessManager:
         self._procs: Dict[int, ManagedProcess] = {}
 
     def launch(self, command: str, cwd: Optional[str] = None) -> int:
-        proc = subprocess.Popen(command, cwd=cwd or os.getcwd(), shell=True, executable="/bin/bash")
+        proc = subprocess.Popen(command, cwd=cwd or os.getcwd(), shell=True, executable="/bin/bash")  # noqa: S602
         self._procs[proc.pid] = ManagedProcess(pid=proc.pid, command=command, cwd=cwd or os.getcwd())
         return proc.pid
 
@@ -27,7 +27,7 @@ class ProcessManager:
             return False
         try:
             os.kill(pid, signal.SIGKILL)
-        except Exception:
+        except OSError:
             return False
         finally:
             self._procs.pop(pid, None)

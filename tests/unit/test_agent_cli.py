@@ -263,7 +263,7 @@ class TestBuildAgentEnhanced(unittest.TestCase):
         self.assertGreater(len(agent.memory.messages), 0)
 
     @patch('os.path.exists', return_value=True)
-    @patch('builtins.open', side_effect=Exception("Read error"))
+    @patch('builtins.open', side_effect=OSError("Read error"))
     def test_build_agent_session_path_handles_read_error(self, _mock_file, _mock_exists):
         """Test building agent handles session file read errors gracefully"""
         agent = build_agent(session_path="corrupt.json")

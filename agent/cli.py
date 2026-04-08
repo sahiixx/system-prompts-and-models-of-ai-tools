@@ -61,7 +61,7 @@ def build_agent(provider: str = "echo", model_name: Optional[str] = None, sessio
         try:
             with open(safe_session_path, "r", encoding="utf-8") as f:
                 memory = Memory.from_json(f.read(), max_messages=200)
-        except Exception:
+        except OSError:
             pass
     config = AgentConfig(model_name=model.name)
     if system_prompt:
@@ -110,7 +110,7 @@ def main() -> None:
             try:
                 with open(safe_session_path, "w", encoding="utf-8") as f:
                     f.write(agent.memory.to_json())
-            except Exception:
+            except OSError:
                 pass
         return
 
@@ -142,7 +142,7 @@ def main() -> None:
                 try:
                     with open(safe_session_path, "w", encoding="utf-8") as f:
                         f.write(agent.memory.to_json())
-                except Exception:
+                except OSError:
                     pass
 
 

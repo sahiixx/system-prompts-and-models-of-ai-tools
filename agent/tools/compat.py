@@ -105,8 +105,8 @@ class CompatTools:
         query: str = args.get("query", "")
         if not query:
             return {"error": "query is required"}
-        include_globs = args.get("include_globs") or ["**/*"]
-        exclude_globs = set((args.get("exclude_globs") or []) + ["**/node_modules/**", "**/.git/**"])  # basic excludes
+        include_globs = args.get("include_globs") or ["**/*"]  # noqa: F841
+        exclude_globs = set((args.get("exclude_globs") or []) + ["**/node_modules/**", "**/.git/**"])  # noqa: F841
         case_sensitive = bool(args.get("case_sensitive", False))
         # naive walk + regex
         flags = 0 if case_sensitive else re.IGNORECASE
@@ -120,7 +120,7 @@ class CompatTools:
                 try:
                     with open(path, "r", encoding="utf-8", errors="ignore") as f:
                         text = f.read()
-                except Exception:
+                except OSError:
                     continue
                 for m in re.finditer(query, text, flags):
                     start = max(0, m.start() - 80)
@@ -174,7 +174,7 @@ class CompatTools:
             if old not in segment:
                 return {"error": "old_str_1 not found in the specified range"}
             replaced = segment.replace(old, new, 1)
-            new_text = "\n".join(lines[: start_line - 1] + [replaced] + lines[end_line:])
+            new_text = "\n".join([*lines[: start_line - 1], replaced, *lines[end_line:]])
         with open(path, "w", encoding="utf-8") as f:
             f.write(new_text)
         return {"ok": True}
@@ -192,7 +192,7 @@ class CompatTools:
                 try:
                     os.rmdir(p)
                     removed.append(p)
-                except Exception:
+                except OSError:
                     pass
         return {"removed": removed}
 
@@ -202,9 +202,10 @@ class CompatTools:
             return {"error": "url is required"}
         try:
             webbrowser.open(url)
-            return {"ok": True}
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             return {"error": str(e)}
+        else:
+            return {"ok": True}
 
     def _web_search(self, args: Dict[str, Any]) -> Dict[str, Any]:
         query = args.get("query", "")
@@ -228,9 +229,9 @@ class CompatTools:
         if not query:
             return {"error": "information_request is required"}
         try:
-            completed = subprocess.run(["git", "log", "--pretty=format:%h %s"], capture_output=True, text=True, timeout=10)
+            completed = subprocess.run(["git", "log", "--pretty=format:%h %s"], capture_output=True, text=True, timeout=10)  # noqa: S607
             lines = completed.stdout.splitlines()
             matched = [ln for ln in lines if query.lower() in ln.lower()]
             return {"matches": matched[:50]}
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             return {"error": str(e)}

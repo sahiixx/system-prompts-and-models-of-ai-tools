@@ -1236,7 +1236,7 @@ class TestAPIGeneratorIntegration:
             try:
                 gen = generator
                 gen.generate_all()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 errors.append(e)
         
         generate()
@@ -1342,7 +1342,7 @@ class TestAPIGeneratorStress:
             try:
                 gen = APIGenerator(str(temp_repo))
                 gen.generate_all()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 errors.append(e)
         
         # Run multiple generators concurrently

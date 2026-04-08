@@ -81,7 +81,7 @@ class _Parser:
 
         return sequence if sequence is not None else mapping
 
-    def _parse_sequence_item(self, indent: int) -> Any:
+    def _parse_sequence_item(self, indent: int) -> Any:  # noqa: ARG002
         token = self._tokens[self._index]
         current_indent = token.indent
         content = token.text[2:].strip()

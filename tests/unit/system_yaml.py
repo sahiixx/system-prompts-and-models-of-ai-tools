@@ -8,8 +8,8 @@ import json
 
 def load_yaml_file(filepath):
     """Load YAML file using system PyYAML via subprocess to avoid import conflicts"""
-    result = subprocess.run(
-        ['python3', '-c', f'''
+    result = subprocess.run(  # noqa: S603
+        ['/usr/bin/python3', '-c', f'''
 import sys
 sys.path = [p for p in sys.path if not p.startswith("/home/jailuser/git")]
 import yaml
@@ -20,10 +20,10 @@ print(json.dumps(data))
 '''],
         capture_output=True,
         text=True,
-        cwd='/tmp'
+        cwd='/tmp'  # noqa: S108
     )
     
     if result.returncode != 0:
-        raise Exception(f"Failed to load YAML: {result.stderr}")
+        raise RuntimeError(f"Failed to load YAML: {result.stderr}")
     
     return json.loads(result.stdout)

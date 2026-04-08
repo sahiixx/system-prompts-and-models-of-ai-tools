@@ -28,7 +28,7 @@ class APIGenerator:
                 with open(file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     metadata.append(data)
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 print(f"Warning: Could not load {file}: {e}")
 
         return sorted(metadata, key=lambda item: (item.get('slug') or '').lower())
@@ -162,23 +162,23 @@ class APIGenerator:
         index = []
         
         for tool in metadata:
-            keywords = []
-            seen = set()
+            keywords: list = []
+            seen: set = set()
 
-            def add_keyword(value: str) -> None:
+            def add_keyword(value: str, _keywords: list = keywords, _seen: set = seen) -> None:
                 normalized = value.strip().lower()
-                if not normalized or normalized in seen:
+                if not normalized or normalized in _seen:
                     return
-                keywords.append(normalized)
-                seen.add(normalized)
+                _keywords.append(normalized)
+                _seen.add(normalized)
 
-            def add_term_with_variants(term: str) -> None:
+            def add_term_with_variants(term: str, _add_kw=add_keyword) -> None:
                 if not term:
                     return
                 lower = term.lower()
-                add_keyword(lower)
+                _add_kw(lower)
                 for part in filter(None, re.split(r'[\s\-_/]+', lower)):
-                    add_keyword(part)
+                    _add_kw(part)
 
             add_term_with_variants(tool.get('name', ''))
             add_term_with_variants(tool.get('slug', ''))

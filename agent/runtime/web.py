@@ -3,6 +3,7 @@ from typing import AsyncGenerator
 
 import asyncio
 import json
+import os
 
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -110,4 +111,4 @@ async def chat(payload: dict, x_api_key: str | None = Header(default=None)) -> d
 
 def main() -> None:
     import uvicorn
-    uvicorn.run("agent.runtime.web:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("agent.runtime.web:app", host="0.0.0.0", port=8000, reload=True)  # noqa: S104
