@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable, List, Sequence, Tuple
 
-__all__ = ["safe_load", "dump", "YAMLError"]
+__all__ = ["YAMLError", "dump", "safe_load"]
 
 
 class YAMLError(Exception):

@@ -81,7 +81,7 @@ def main():
     all_tools = api.get_all_tools()
     print(f"Total tools: {len(all_tools['tools'])}")
     print(f"Generated: {all_tools['generated']}")
-    print(f"\nFirst 3 tools:")
+    print("\nFirst 3 tools:")
     for tool in all_tools["tools"][:3]:
         # Note: index.json has minimal info; use get_tool() for full details
         print(f"  - {tool['name']} ({tool['type']}) - Status: {tool['status']}")
@@ -150,7 +150,7 @@ def main():
         print(f"\nMost common type: {most_common_type[0]} ({most_common_type[1]} tools)")
     
     # Top features
-    print(f"\nTop 5 features:")
+    print("\nTop 5 features:")
     for feature, count in stats.get("most_common_features", [])[:5]:
         adoption = (count / stats['total_tools']) * 100
         print(f"  - {feature}: {count} tools ({adoption:.1f}%)")

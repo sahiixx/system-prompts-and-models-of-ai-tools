@@ -334,7 +334,7 @@ def main():
         file2 = tool_dir / args.v2
         
         if not file1.exists() or not file2.exists():
-            print(f"Error: Files not found")
+            print("Error: Files not found")
             return
         
         if args.format == 'html':

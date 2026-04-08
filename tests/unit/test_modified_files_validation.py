@@ -117,7 +117,7 @@ class TestModifiedPromptFiles:
     def test_orchids_system_prompt_exists(self, repo_root):
         """Test that Orchids.app System Prompt.txt exists and is valid."""
         prompt_file = repo_root / "Orchids.app" / "System Prompt.txt"
-        assert prompt_file.exists(), f"Orchids.app System Prompt.txt not found"
+        assert prompt_file.exists(), "Orchids.app System Prompt.txt not found"
         
         content = prompt_file.read_text(encoding='utf-8')
         assert len(content) > 0, "Orchids.app System Prompt is empty"
@@ -154,7 +154,7 @@ class TestModifiedPromptFiles:
         Verify Orchids.app/Decision-making prompt.txt exists and is not empty.
         """
         prompt_file = repo_root / "Orchids.app" / "Decision-making prompt.txt"
-        assert prompt_file.exists(), f"Orchids Decision-making prompt not found"
+        assert prompt_file.exists(), "Orchids Decision-making prompt not found"
         
         content = prompt_file.read_text(encoding='utf-8')
         assert len(content) > 0, "Orchids Decision-making prompt is empty"
@@ -195,7 +195,7 @@ class TestModifiedJSONFiles:
     def test_lovable_agent_tools_json_valid(self, repo_root):
         """Test that Lovable Agent Tools.json is valid JSON."""
         json_file = repo_root / "Lovable" / "Agent Tools.json"
-        assert json_file.exists(), f"Lovable Agent Tools.json not found"
+        assert json_file.exists(), "Lovable Agent Tools.json not found"
         
         with open(json_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -421,7 +421,7 @@ class TestV0PromptFile:
     def test_v0_directory_exists(self, repo_root):
         """Test that v0 Prompts and Tools directory exists."""
         v0_dir = repo_root / "v0 Prompts and Tools"
-        assert v0_dir.exists(), f"v0 Prompts and Tools directory not found"
+        assert v0_dir.exists(), "v0 Prompts and Tools directory not found"
     
     def test_v0_prompt_exists(self, repo_root):
         """Test that v0 Prompts and Tools/Prompt.txt exists."""
