@@ -3,6 +3,7 @@ from typing import AsyncGenerator
 
 import asyncio
 import json
+import os
 
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -107,6 +108,28 @@ async def chat(payload: dict, x_api_key: str | None = Header(default=None)) -> d
     agent = build_agent(provider=provider, model_name=model, session_path=session, system_prompt=system)
     result = agent.ask(q)
     return {"role": "assistant", "content": result}
+
+
+@app.get("/plan_stream")
+async def plan_stream(provider: str = "echo", model: str | None = None, q: str = "", x_api_key: str | None = Header(default=None)) -> EventSourceResponse:
+    """Stream a plan-and-build session over SSE.
+
+    Each SSE message carries a JSON-encoded event dict.  Clients should inspect
+    the ``"event"`` field to update their UI (planning progress, plan display,
+    per-step progress, tool results, completion).
+    """
+    expected = os.getenv("AGENT_API_KEY")
+    if expected and x_api_key != expected:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    agent = build_agent(provider=provider, model_name=(model or None))
+
+    async def gen() -> AsyncGenerator[str, None]:
+        for chunk in agent.plan_and_build_stream(q):
+            yield json.dumps(chunk)
+            await asyncio.sleep(0)
+
+    return EventSourceResponse(gen())
+
 
 def main() -> None:
     import uvicorn
