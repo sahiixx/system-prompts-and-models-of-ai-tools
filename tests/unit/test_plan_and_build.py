@@ -247,7 +247,7 @@ class TestPlanAndBuildStreamWithTools(unittest.TestCase):
 # Web endpoint: /plan_stream
 # ---------------------------------------------------------------------------
 
-class TestPlanStreamEndpoint(unittest.TestCase):
+class TestPlanStreamEndpoint(unittest.IsolatedAsyncioTestCase):
 
     def test_plan_stream_route_exists(self):
         from agent.runtime.web import app

@@ -1,6 +1,5 @@
 from __future__ import annotations
 import json
-import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -295,32 +294,52 @@ class Agent:
             step_content = final_chunk.get("content") or "".join(content_parts)
             tool_calls = final_chunk.get("tool_calls") or []
 
-            # Handle tool calls within this step
+            # Handle tool calls within this step using the same parallel-safe
+            # dispatch pattern as ask_stream().
             sub_step = 0
             while tool_calls and sub_step < self.config.max_steps:
                 sub_step += 1
-                for call in tool_calls:
-                    name = call.get("name")
-                    try:
-                        args = call.get("arguments")
-                        if isinstance(args, str):
+                futures = []
+                with ThreadPoolExecutor(max_workers=len(tool_calls)) as executor:
+                    for call in tool_calls:
+                        name = call.get("name")
+                        try:
+                            spec = self.tools.get_spec(name)
+                        except Exception:
+                            spec = None
+                        def run_call(name=name, call=call):
                             try:
-                                args = json.loads(args)
-                            except Exception:
-                                args = {"input": args}
-                        elif args is None:
-                            args = {}
-                        if not isinstance(args, dict):
-                            args = {"input": args}
-                        result = self.tools.call(name, args)
-                    except Exception as e:  # pragma: no cover
-                        result = {"error": str(e)}
-                    self.memory.add(
-                        "tool",
-                        json.dumps({"name": name, "result": result}),
-                        tool_name=name,
-                    )
-                    yield {"event": "tool_result", "step": step_id, "name": name, "result": result}
+                                args = call.get("arguments")
+                                if isinstance(args, str):
+                                    try:
+                                        args = json.loads(args)
+                                    except Exception:
+                                        args = {"input": args}
+                                elif args is None:
+                                    args = {}
+                                if not isinstance(args, dict):
+                                    args = {"input": args}
+                                return name, self.tools.call(name, args)
+                            except Exception as e:  # pragma: no cover
+                                return name, {"error": str(e)}
+                        if self.config.allow_parallel_tools and spec and getattr(spec, "parallel_safe", True):
+                            futures.append(executor.submit(run_call))
+                        else:
+                            name_sync, result_sync = run_call()
+                            self.memory.add(
+                                "tool",
+                                json.dumps({"name": name_sync, "result": result_sync}),
+                                tool_name=name_sync,
+                            )
+                            yield {"event": "tool_result", "step": step_id, "name": name_sync, "result": result_sync}
+                    for fut in as_completed(futures):
+                        name_done, result_done = fut.result()
+                        self.memory.add(
+                            "tool",
+                            json.dumps({"name": name_done, "result": result_done}),
+                            tool_name=name_done,
+                        )
+                        yield {"event": "tool_result", "step": step_id, "name": name_done, "result": result_done}
 
                 messages = [
                     ModelMessage(role=m["role"], content=m["content"], name=m.get("tool_name"))
@@ -356,12 +375,11 @@ def _parse_plan(text: str, fallback_task: str) -> Tuple[List[Dict[str, Any]], st
     goal = fallback_task
     steps: List[Dict[str, Any]] = []
     try:
-        match = re.search(r"\{.*\}", text, re.DOTALL)
-        if match:
-            data = json.loads(match.group())
-            goal = data.get("goal", fallback_task)
-            steps = data.get("steps", [])
-    except Exception:
+        start = text.index("{")
+        data, _ = json.JSONDecoder().raw_decode(text, start)
+        goal = data.get("goal", fallback_task)
+        steps = data.get("steps", [])
+    except (ValueError, json.JSONDecodeError):
         pass
     if not steps:
         steps = [{"id": 1, "description": fallback_task}]
