@@ -103,7 +103,8 @@ async def query(request: Request) -> JSONResponse:
     question = body.get("question", "")
     if not question:
         return JSONResponse({"error": "question required"}, status_code=400)
-    answer = query_knowledge_base(question)
+    from starlette.concurrency import run_in_threadpool
+    answer = await run_in_threadpool(query_knowledge_base, question)
     return JSONResponse({"answer": answer, "question": question})
 
 
