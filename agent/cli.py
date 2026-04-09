@@ -70,6 +70,29 @@ def build_agent(provider: str = "echo", model_name: Optional[str] = None, sessio
     return Agent(model=model, tools=registry, memory=memory, config=config)
 
 
+def _render_plan_event(chunk: dict) -> None:
+    """Print a single plan_and_build_stream event to stdout."""
+    event = chunk.get("event")
+    if event == "planning" and chunk.get("delta"):
+        print(chunk["delta"], end="", flush=True)
+    elif event == "plan":
+        steps = chunk.get("steps", [])
+        print(f"\n\nPlan ({len(steps)} step{'s' if len(steps) != 1 else ''}):")
+        for s in steps:
+            print(f"  {s['id']}. {s['description']}")
+        print()
+    elif event == "step_start":
+        print(f"\n[Step {chunk['step']}] {chunk['description']}")
+    elif event == "step_progress" and chunk.get("delta"):
+        print(chunk["delta"], end="", flush=True)
+    elif event == "tool_result":
+        print(f"\n[tool {chunk['name']}] => {chunk['result']}")
+    elif event == "step_done":
+        print()
+    elif event == "done":
+        print("\nDone.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Interactive Execute Agent")
     parser.add_argument("prompt", nargs="*", help="One-shot message to the agent. If omitted, enters REPL mode.")
@@ -97,25 +120,7 @@ def main() -> None:
         text = " ".join(args.prompt)
         if args.plan:
             for chunk in agent.plan_and_build_stream(text):
-                event = chunk.get("event")
-                if event == "planning" and chunk.get("delta"):
-                    print(chunk["delta"], end="", flush=True)
-                elif event == "plan":
-                    steps = chunk.get("steps", [])
-                    print(f"\n\nPlan ({len(steps)} step{'s' if len(steps) != 1 else ''}):")
-                    for s in steps:
-                        print(f"  {s['id']}. {s['description']}")
-                    print()
-                elif event == "step_start":
-                    print(f"\n[Step {chunk['step']}] {chunk['description']}")
-                elif event == "step_progress" and chunk.get("delta"):
-                    print(chunk["delta"], end="", flush=True)
-                elif event == "tool_result":
-                    print(f"\n[tool {chunk['name']}] => {chunk['result']}")
-                elif event == "step_done":
-                    print()
-                elif event == "done":
-                    print("\nDone.")
+                _render_plan_event(chunk)
             print()
         elif args.stream:
             for chunk in agent.ask_stream(text):
@@ -150,25 +155,7 @@ def main() -> None:
             continue
         if args.plan:
             for chunk in agent.plan_and_build_stream(line):
-                event = chunk.get("event")
-                if event == "planning" and chunk.get("delta"):
-                    print(chunk["delta"], end="", flush=True)
-                elif event == "plan":
-                    steps = chunk.get("steps", [])
-                    print(f"\n\nPlan ({len(steps)} step{'s' if len(steps) != 1 else ''}):")
-                    for s in steps:
-                        print(f"  {s['id']}. {s['description']}")
-                    print()
-                elif event == "step_start":
-                    print(f"\n[Step {chunk['step']}] {chunk['description']}")
-                elif event == "step_progress" and chunk.get("delta"):
-                    print(chunk["delta"], end="", flush=True)
-                elif event == "tool_result":
-                    print(f"\n[tool {chunk['name']}] => {chunk['result']}")
-                elif event == "step_done":
-                    print()
-                elif event == "done":
-                    print("\nDone.")
+                _render_plan_event(chunk)
             print()
         elif args.stream:
             print("agent>", end=" ", flush=True)

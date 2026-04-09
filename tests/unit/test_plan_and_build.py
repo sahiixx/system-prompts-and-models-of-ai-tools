@@ -232,7 +232,7 @@ class TestPlanAndBuildStreamWithTools(unittest.TestCase):
         registry.register(ToolSpec(
             name="math.calc",
             description="Math",
-            fn=lambda args: {"result": eval(args.get("expression", "0"))},  # noqa: S307
+            fn=lambda args: {"result": int(args.get("expression", "0").replace("1+1", "2"))},
         ))
         agent = Agent(model=model, tools=registry, memory=Memory(), config=AgentConfig())
         events = list(agent.plan_and_build_stream("calculate 1+1"))
