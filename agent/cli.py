@@ -77,6 +77,7 @@ def main() -> None:
     parser.add_argument("--model", default=None, help="Model name for provider")
     parser.add_argument("--list-tools", action="store_true", help="List available tools and exit")
     parser.add_argument("--stream", action="store_true", help="Stream output (if provider supports)")
+    parser.add_argument("--plan", action="store_true", help="Plan-and-build mode: generate a plan then execute each step in real time")
     parser.add_argument("--session", default=None, help="Path to JSON file to persist conversation")
     parser.add_argument("--system", default=None, help="Override system prompt for the assistant")
     args = parser.parse_args()
@@ -94,7 +95,29 @@ def main() -> None:
 
     if args.prompt:
         text = " ".join(args.prompt)
-        if args.stream:
+        if args.plan:
+            for chunk in agent.plan_and_build_stream(text):
+                event = chunk.get("event")
+                if event == "planning" and chunk.get("delta"):
+                    print(chunk["delta"], end="", flush=True)
+                elif event == "plan":
+                    steps = chunk.get("steps", [])
+                    print(f"\n\nPlan ({len(steps)} step{'s' if len(steps) != 1 else ''}):")
+                    for s in steps:
+                        print(f"  {s['id']}. {s['description']}")
+                    print()
+                elif event == "step_start":
+                    print(f"\n[Step {chunk['step']}] {chunk['description']}")
+                elif event == "step_progress" and chunk.get("delta"):
+                    print(chunk["delta"], end="", flush=True)
+                elif event == "tool_result":
+                    print(f"\n[tool {chunk['name']}] => {chunk['result']}")
+                elif event == "step_done":
+                    print()
+                elif event == "done":
+                    print("\nDone.")
+            print()
+        elif args.stream:
             for chunk in agent.ask_stream(text):
                 if "delta" in chunk:
                     print(chunk["delta"], end="", flush=True)
@@ -125,7 +148,29 @@ def main() -> None:
             break
         if not line:
             continue
-        if args.stream:
+        if args.plan:
+            for chunk in agent.plan_and_build_stream(line):
+                event = chunk.get("event")
+                if event == "planning" and chunk.get("delta"):
+                    print(chunk["delta"], end="", flush=True)
+                elif event == "plan":
+                    steps = chunk.get("steps", [])
+                    print(f"\n\nPlan ({len(steps)} step{'s' if len(steps) != 1 else ''}):")
+                    for s in steps:
+                        print(f"  {s['id']}. {s['description']}")
+                    print()
+                elif event == "step_start":
+                    print(f"\n[Step {chunk['step']}] {chunk['description']}")
+                elif event == "step_progress" and chunk.get("delta"):
+                    print(chunk["delta"], end="", flush=True)
+                elif event == "tool_result":
+                    print(f"\n[tool {chunk['name']}] => {chunk['result']}")
+                elif event == "step_done":
+                    print()
+                elif event == "done":
+                    print("\nDone.")
+            print()
+        elif args.stream:
             print("agent>", end=" ", flush=True)
             for chunk in agent.ask_stream(line):
                 if "delta" in chunk:

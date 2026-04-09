@@ -1,7 +1,8 @@
 from __future__ import annotations
 import json
+import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .memory import Memory
@@ -197,3 +198,171 @@ class Agent:
             tool_calls = final.get("tool_calls") or []
 
         self.memory.add("assistant", content)
+
+    def plan_and_build_stream(self, user_message: str):
+        """Two-phase streaming: generate a plan, then execute each step in real time.
+
+        Yields event dicts with an ``"event"`` key:
+
+        * ``{"event": "planning", "delta": "..."}`` – tokens emitted while the plan
+          is being generated.
+        * ``{"event": "plan", "goal": "...", "steps": [...]}`` – the parsed plan.
+        * ``{"event": "step_start", "step": <id>, "description": "..."}`` – before
+          each step begins.
+        * ``{"event": "step_progress", "step": <id>, "delta": "..."}`` – streamed
+          tokens for a step's assistant response.
+        * ``{"event": "tool_result", "step": <id>, "name": "...", "result": ...}`` –
+          tool call result within a step.
+        * ``{"event": "step_done", "step": <id>, "content": "..."}`` – after each
+          step finishes.
+        * ``{"event": "done"}`` – all steps completed.
+        """
+        # Ensure system prompt in main memory
+        if self.config.system_prompt:
+            existing = self.memory.as_list()
+            if not any(m.get("role") == "system" for m in existing):
+                self.memory.add("system", self.config.system_prompt)
+
+        tools_schema = [
+            {
+                "type": "function",
+                "function": {
+                    "name": spec["name"],
+                    "description": spec["description"],
+                    "parameters": {"type": "object", "additionalProperties": True},
+                },
+            }
+            for spec in self.tools.list_specs()
+        ]
+
+        # ------------------------------------------------------------------
+        # Phase 1: Generate a structured plan without touching the main memory
+        # ------------------------------------------------------------------
+        planning_system = (
+            "You are a planning assistant. "
+            "When given a task, respond ONLY with valid JSON in this exact format: "
+            '{"goal": "<task summary>", "steps": [{"id": 1, "description": "<step>"}, ...]}'
+            " Include 2–6 concise steps. No other text."
+        )
+        planning_messages = [
+            ModelMessage(role="system", content=planning_system),
+            ModelMessage(role="user", content=user_message),
+        ]
+
+        plan_parts: List[str] = []
+        final_plan_chunk: Dict[str, Any] = {}
+        for chunk in self.model.stream_complete(planning_messages, tools=[]):
+            if chunk.get("delta"):
+                plan_parts.append(chunk["delta"])
+                yield {"event": "planning", "delta": chunk["delta"]}
+            if chunk.get("done"):
+                final_plan_chunk = chunk
+                break
+
+        plan_text = final_plan_chunk.get("content") or "".join(plan_parts)
+        steps, goal = _parse_plan(plan_text, user_message)
+        yield {"event": "plan", "goal": goal, "steps": steps}
+
+        # ------------------------------------------------------------------
+        # Phase 2: Execute each step, streaming progress events
+        # ------------------------------------------------------------------
+        # Record the original user request once in the conversation
+        self.memory.add("user", user_message)
+
+        for step in steps:
+            step_id = step.get("id", 0)
+            description = step.get("description", "")
+            yield {"event": "step_start", "step": step_id, "description": description}
+
+            # Add the step instruction to the conversation
+            self.memory.add("user", f"Step {step_id}: {description}")
+
+            messages = [
+                ModelMessage(role=m["role"], content=m["content"], name=m.get("tool_name"))
+                for m in self.memory.as_list()
+            ]
+
+            content_parts: List[str] = []
+            final_chunk: Dict[str, Any] = {}
+            for chunk in self.model.stream_complete(messages, tools=tools_schema):
+                if chunk.get("delta"):
+                    content_parts.append(chunk["delta"])
+                    yield {"event": "step_progress", "step": step_id, "delta": chunk["delta"]}
+                if chunk.get("done"):
+                    final_chunk = chunk
+                    break
+
+            step_content = final_chunk.get("content") or "".join(content_parts)
+            tool_calls = final_chunk.get("tool_calls") or []
+
+            # Handle tool calls within this step
+            sub_step = 0
+            while tool_calls and sub_step < self.config.max_steps:
+                sub_step += 1
+                for call in tool_calls:
+                    name = call.get("name")
+                    try:
+                        args = call.get("arguments")
+                        if isinstance(args, str):
+                            try:
+                                args = json.loads(args)
+                            except Exception:
+                                args = {"input": args}
+                        elif args is None:
+                            args = {}
+                        if not isinstance(args, dict):
+                            args = {"input": args}
+                        result = self.tools.call(name, args)
+                    except Exception as e:  # pragma: no cover
+                        result = {"error": str(e)}
+                    self.memory.add(
+                        "tool",
+                        json.dumps({"name": name, "result": result}),
+                        tool_name=name,
+                    )
+                    yield {"event": "tool_result", "step": step_id, "name": name, "result": result}
+
+                messages = [
+                    ModelMessage(role=m["role"], content=m["content"], name=m.get("tool_name"))
+                    for m in self.memory.as_list()
+                ]
+                content_parts = []
+                final_chunk = {}
+                for chunk in self.model.stream_complete(messages, tools=tools_schema):
+                    if chunk.get("delta"):
+                        content_parts.append(chunk["delta"])
+                        yield {"event": "step_progress", "step": step_id, "delta": chunk["delta"]}
+                    if chunk.get("done"):
+                        final_chunk = chunk
+                        break
+                step_content = final_chunk.get("content") or "".join(content_parts)
+                tool_calls = final_chunk.get("tool_calls") or []
+
+            self.memory.add("assistant", step_content)
+            yield {"event": "step_done", "step": step_id, "content": step_content}
+
+        yield {"event": "done"}
+
+
+def _parse_plan(text: str, fallback_task: str) -> Tuple[List[Dict[str, Any]], str]:
+    """Extract a structured plan from model output.
+
+    Expects JSON of the form::
+
+        {"goal": "...", "steps": [{"id": 1, "description": "..."}, ...]}
+
+    Falls back to a single-step plan when parsing fails.
+    """
+    goal = fallback_task
+    steps: List[Dict[str, Any]] = []
+    try:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            data = json.loads(match.group())
+            goal = data.get("goal", fallback_task)
+            steps = data.get("steps", [])
+    except Exception:
+        pass
+    if not steps:
+        steps = [{"id": 1, "description": fallback_task}]
+    return steps, goal
