@@ -79,7 +79,7 @@ def list_all_slugs() -> list:
 
 # ── Claude-powered intelligent query ──────────────────────────────────────────
 
-CLAUDE_MODEL = "claude-sonnet-4-6"
+CLAUDE_MODEL = "claude-3-5-sonnet-latest"
 
 
 def query_knowledge_base(question: str, max_tools_context: int = 5) -> str:
