@@ -87,7 +87,13 @@ async def tool_detail(request: Request) -> JSONResponse:
 
 async def tool_prompt(request: Request) -> PlainTextResponse:
     slug = request.path_params["slug"]
-    return PlainTextResponse(get_system_prompt_text(slug))
+    tool = get_tool(slug)
+    if not tool:
+        return PlainTextResponse(f"Tool '{slug}' not found", status_code=404)
+    text = get_system_prompt_text(slug)
+    if text.startswith("No system prompt") or text.startswith("System prompt file not found"):
+        return PlainTextResponse(text, status_code=404)
+    return PlainTextResponse(text)
 
 
 async def search(request: Request) -> JSONResponse:
