@@ -1,8 +1,35 @@
+# Python
 __pycache__/
 *.py[cod]
 *.pyo
-.pytest_cache/
-.agent_sessions/
+*.pyd
+.Python
 *.egg-info/
 dist/
 build/
+.eggs/
+venv/
+.venv/
+env/
+
+# Agent sessions
+.agent_sessions/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test cache
+.pytest_cache/
+htmlcov/
+.coverage
