@@ -60,7 +60,7 @@ AGENT_CARD = {
         {"id": "get_tool",   "name": "get_tool",   "description": "Get metadata for a specific tool by slug"},
         {"id": "get_prompt", "name": "get_prompt", "description": "Get raw system prompt text for a tool"},
     ],
-    "metadata": {"model": "claude-sonnet-4-6", "tools_count": 37},
+    "metadata": {"model": "claude-3-5-sonnet-latest", "tools_count": len(get_index())},
 }
 
 
