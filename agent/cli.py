@@ -76,17 +76,23 @@ def _render_plan_event(chunk: dict) -> None:
     if event == "planning" and chunk.get("delta"):
         print(chunk["delta"], end="", flush=True)
     elif event == "plan":
-        steps = chunk.get("steps", [])
+        steps = chunk.get("steps") or []
         print(f"\n\nPlan ({len(steps)} step{'s' if len(steps) != 1 else ''}):")
         for s in steps:
-            print(f"  {s['id']}. {s['description']}")
+            if isinstance(s, dict):
+                step_id = s.get("id", "?")
+                description = s.get("description", "")
+            else:
+                step_id = "?"
+                description = str(s)
+            print(f"  {step_id}. {description}")
         print()
     elif event == "step_start":
-        print(f"\n[Step {chunk['step']}] {chunk['description']}")
+        print(f"\n[Step {chunk.get('step', '?')}] {chunk.get('description', '')}")
     elif event == "step_progress" and chunk.get("delta"):
         print(chunk["delta"], end="", flush=True)
     elif event == "tool_result":
-        print(f"\n[tool {chunk['name']}] => {chunk['result']}")
+        print(f"\n[tool {chunk.get('name', '?')}] => {chunk.get('result', '')}")
     elif event == "step_done":
         print()
     elif event == "done":
