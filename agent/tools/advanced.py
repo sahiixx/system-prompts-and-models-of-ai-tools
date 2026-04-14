@@ -147,7 +147,7 @@ class AdvancedTools:
             scored.append({"index": idx, "score": round(score, 4), "text": doc.text, "metadata": doc.metadata})
 
         scored.sort(key=lambda x: x["score"], reverse=True)
-        return {"results": scored[: max(1, top_k)]}
+        return {"results": scored[:top_k] if top_k > 0 else []}
 
     # ------------------------------------------------------------------
     # Code sandbox
