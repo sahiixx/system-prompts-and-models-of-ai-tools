@@ -11,6 +11,9 @@ from .models.echo import EchoModel
 from .models.openai import OpenAIModel
 from .models.ollama import OllamaModel
 from .models.anthropic import AnthropicModel
+from .models.gemini import GeminiModel
+from .models.mistral import MistralModel
+from .models.groq import GroqModel
 from .tools.builtin import BuiltinTools
 from .tools.compat import CompatTools
 
@@ -45,6 +48,12 @@ def build_agent(provider: str = "echo", model_name: Optional[str] = None, sessio
         model = OllamaModel(model=model_name or "llama3.1")
     elif provider == "anthropic":
         model = AnthropicModel(model=model_name or "claude-3-5-sonnet-latest")
+    elif provider == "gemini":
+        model = GeminiModel(model=model_name or "gemini-1.5-pro")
+    elif provider == "mistral":
+        model = MistralModel(model=model_name or "mistral-large-latest")
+    elif provider == "groq":
+        model = GroqModel(model=model_name or "llama-3.1-70b-versatile")
     else:
         model = EchoModel()
 
@@ -102,7 +111,7 @@ def _render_plan_event(chunk: dict) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Interactive Execute Agent")
     parser.add_argument("prompt", nargs="*", help="One-shot message to the agent. If omitted, enters REPL mode.")
-    parser.add_argument("--provider", default="echo", choices=["echo", "openai", "ollama", "anthropic"], help="Model provider")
+    parser.add_argument("--provider", default="echo", choices=["echo", "openai", "ollama", "anthropic", "gemini", "mistral", "groq"], help="Model provider")
     parser.add_argument("--model", default=None, help="Model name for provider")
     parser.add_argument("--list-tools", action="store_true", help="List available tools and exit")
     parser.add_argument("--stream", action="store_true", help="Stream output (if provider supports)")

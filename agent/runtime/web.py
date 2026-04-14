@@ -45,6 +45,10 @@ async def index() -> HTMLResponse:
           <option value=\"echo\">echo</option>
           <option value=\"openai\">openai</option>
           <option value=\"ollama\">ollama</option>
+          <option value=\"anthropic\">anthropic</option>
+          <option value=\"gemini\">gemini</option>
+          <option value=\"mistral\">mistral</option>
+          <option value=\"groq\">groq</option>
         </select>
       </label>
       <label>Model: <input id=\"model\" placeholder=\"auto\" /></label>
