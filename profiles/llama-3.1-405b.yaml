@@ -1,0 +1,35 @@
+name: "Llama 3.1 405B"
+provider: "Meta"
+type: "foundation_model"
+release_date: "2024-07-23"
+latest_version: "Llama-3.1-405B-Instruct"
+context_window: 131072
+max_output_tokens: 4096
+capabilities:
+  text_generation: true
+  vision: false
+  audio: false
+  video: false
+  function_calling: true
+  code_generation: true
+  reasoning: true
+  web_browsing: false
+  image_generation: false
+  multilingual: true
+tool_use:
+  supported: true
+  parallel_tool_calls: false
+  max_tools: 32
+  structured_output: true
+pricing:
+  input_per_1m_tokens: 0.00
+  output_per_1m_tokens: 0.00
+  currency: "USD"
+open_source: true
+knowledge_cutoff: "2024-12"
+api_available: true
+benchmarks:
+  mmlu: 87.3
+  humaneval: 89.0
+  math: 73.8
+  arena_elo: 1257

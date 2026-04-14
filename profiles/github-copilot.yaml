@@ -1,0 +1,33 @@
+name: "GitHub Copilot"
+provider: "GitHub / Microsoft"
+type: "ai_coding_tool"
+release_date: "2021-06-29"
+latest_version: "1.0"
+capabilities:
+  code_generation: true
+  code_completion: true
+  chat_interface: true
+  agent_mode: true
+  multi_file_editing: true
+  test_generation: true
+  refactoring: true
+  debugging: true
+  git_integration: true
+  terminal_integration: true
+models_used:
+  - "GPT-4o"
+  - "Claude Sonnet 4"
+  - "Gemini 2.5 Pro"
+pricing:
+  free_tier: true
+  pro_monthly: 10.00
+  business_monthly: 19.00
+  enterprise_monthly: 39.00
+  currency: "USD"
+platforms:
+  - "VS Code"
+  - "JetBrains"
+  - "Neovim"
+  - "Visual Studio"
+  - "Xcode"
+open_source: false

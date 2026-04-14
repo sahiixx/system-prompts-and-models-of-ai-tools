@@ -1,0 +1,35 @@
+name: "Claude Sonnet 4"
+provider: "Anthropic"
+type: "foundation_model"
+release_date: "2025-05-22"
+latest_version: "claude-sonnet-4-20250514"
+context_window: 200000
+max_output_tokens: 16000
+capabilities:
+  text_generation: true
+  vision: true
+  audio: false
+  video: false
+  function_calling: true
+  code_generation: true
+  reasoning: true
+  web_browsing: false
+  image_generation: false
+  multilingual: true
+tool_use:
+  supported: true
+  parallel_tool_calls: true
+  max_tools: 128
+  structured_output: true
+pricing:
+  input_per_1m_tokens: 3.00
+  output_per_1m_tokens: 15.00
+  currency: "USD"
+open_source: false
+knowledge_cutoff: "2025-04"
+api_available: true
+benchmarks:
+  mmlu: 89.5
+  humaneval: 92.0
+  math: 78.2
+  arena_elo: 1300

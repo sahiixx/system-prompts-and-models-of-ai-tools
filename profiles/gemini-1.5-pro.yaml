@@ -1,0 +1,35 @@
+name: "Gemini 1.5 Pro"
+provider: "Google DeepMind"
+type: "foundation_model"
+release_date: "2024-02-15"
+latest_version: "gemini-1.5-pro-002"
+context_window: 2097152
+max_output_tokens: 8192
+capabilities:
+  text_generation: true
+  vision: true
+  audio: true
+  video: true
+  function_calling: true
+  code_generation: true
+  reasoning: true
+  web_browsing: true
+  image_generation: false
+  multilingual: true
+tool_use:
+  supported: true
+  parallel_tool_calls: true
+  max_tools: 64
+  structured_output: true
+pricing:
+  input_per_1m_tokens: 1.25
+  output_per_1m_tokens: 5.00
+  currency: "USD"
+open_source: false
+knowledge_cutoff: "2024-11"
+api_available: true
+benchmarks:
+  mmlu: 86.5
+  humaneval: 84.1
+  math: 74.3
+  arena_elo: 1271

@@ -1,0 +1,30 @@
+name: "Cursor"
+provider: "Cursor Inc"
+type: "ai_coding_tool"
+release_date: "2023-03-01"
+latest_version: "0.44"
+capabilities:
+  code_generation: true
+  code_completion: true
+  chat_interface: true
+  agent_mode: true
+  multi_file_editing: true
+  test_generation: true
+  refactoring: true
+  debugging: true
+  git_integration: true
+  terminal_integration: true
+models_used:
+  - "GPT-4o"
+  - "Claude Sonnet 4"
+  - "Cursor-small"
+pricing:
+  free_tier: true
+  pro_monthly: 20.00
+  business_monthly: 40.00
+  currency: "USD"
+platforms:
+  - "Windows"
+  - "macOS"
+  - "Linux"
+open_source: false

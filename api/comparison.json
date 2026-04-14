@@ -1,0 +1,328 @@
+{
+  "generated_by": "scripts/generate_comparison.py",
+  "foundation_models": [
+    {
+      "name": "Claude Sonnet 4",
+      "provider": "Anthropic",
+      "type": "foundation_model",
+      "release_date": "2025-05-22",
+      "latest_version": "claude-sonnet-4-20250514",
+      "context_window": 200000,
+      "max_output_tokens": 16000,
+      "capabilities": {
+        "text_generation": true,
+        "vision": true,
+        "audio": false,
+        "video": false,
+        "function_calling": true,
+        "code_generation": true,
+        "reasoning": true,
+        "web_browsing": false,
+        "image_generation": false,
+        "multilingual": true
+      },
+      "tool_use": {
+        "supported": true,
+        "parallel_tool_calls": true,
+        "max_tools": 128,
+        "structured_output": true
+      },
+      "pricing": {
+        "input_per_1m_tokens": 3.0,
+        "output_per_1m_tokens": 15.0,
+        "currency": "USD"
+      },
+      "open_source": false,
+      "knowledge_cutoff": "2025-04",
+      "api_available": true,
+      "benchmarks": {
+        "mmlu": 89.5,
+        "humaneval": 92.0,
+        "math": 78.2,
+        "arena_elo": 1300
+      }
+    },
+    {
+      "name": "GPT-4o",
+      "provider": "OpenAI",
+      "type": "foundation_model",
+      "release_date": "2024-05-13",
+      "latest_version": "2024-08-06",
+      "context_window": 128000,
+      "max_output_tokens": 16384,
+      "capabilities": {
+        "text_generation": true,
+        "vision": true,
+        "audio": true,
+        "video": false,
+        "function_calling": true,
+        "code_generation": true,
+        "reasoning": true,
+        "web_browsing": false,
+        "image_generation": false,
+        "multilingual": true
+      },
+      "tool_use": {
+        "supported": true,
+        "parallel_tool_calls": true,
+        "max_tools": 128,
+        "structured_output": true
+      },
+      "pricing": {
+        "input_per_1m_tokens": 2.5,
+        "output_per_1m_tokens": 10.0,
+        "currency": "USD"
+      },
+      "open_source": false,
+      "knowledge_cutoff": "2024-04",
+      "api_available": true,
+      "benchmarks": {
+        "mmlu": 88.7,
+        "humaneval": 90.2,
+        "math": 76.6,
+        "arena_elo": 1287
+      }
+    },
+    {
+      "name": "Gemini 1.5 Pro",
+      "provider": "Google DeepMind",
+      "type": "foundation_model",
+      "release_date": "2024-02-15",
+      "latest_version": "gemini-1.5-pro-002",
+      "context_window": 2097152,
+      "max_output_tokens": 8192,
+      "capabilities": {
+        "text_generation": true,
+        "vision": true,
+        "audio": true,
+        "video": true,
+        "function_calling": true,
+        "code_generation": true,
+        "reasoning": true,
+        "web_browsing": true,
+        "image_generation": false,
+        "multilingual": true
+      },
+      "tool_use": {
+        "supported": true,
+        "parallel_tool_calls": true,
+        "max_tools": 64,
+        "structured_output": true
+      },
+      "pricing": {
+        "input_per_1m_tokens": 1.25,
+        "output_per_1m_tokens": 5.0,
+        "currency": "USD"
+      },
+      "open_source": false,
+      "knowledge_cutoff": "2024-11",
+      "api_available": true,
+      "benchmarks": {
+        "mmlu": 86.5,
+        "humaneval": 84.1,
+        "math": 74.3,
+        "arena_elo": 1271
+      }
+    },
+    {
+      "name": "Grok-3",
+      "provider": "xAI",
+      "type": "foundation_model",
+      "release_date": "2025-02-17",
+      "latest_version": "grok-3",
+      "context_window": 131072,
+      "max_output_tokens": 16384,
+      "capabilities": {
+        "text_generation": true,
+        "vision": true,
+        "audio": false,
+        "video": false,
+        "function_calling": true,
+        "code_generation": true,
+        "reasoning": true,
+        "web_browsing": true,
+        "image_generation": false,
+        "multilingual": true
+      },
+      "tool_use": {
+        "supported": true,
+        "parallel_tool_calls": false,
+        "max_tools": 64,
+        "structured_output": true
+      },
+      "pricing": {
+        "input_per_1m_tokens": 3.0,
+        "output_per_1m_tokens": 15.0,
+        "currency": "USD"
+      },
+      "open_source": false,
+      "knowledge_cutoff": "2025-02",
+      "api_available": true,
+      "benchmarks": {
+        "mmlu": 90.1,
+        "humaneval": 89.3,
+        "math": 80.5,
+        "arena_elo": 1310
+      }
+    },
+    {
+      "name": "Llama 3.1 405B",
+      "provider": "Meta",
+      "type": "foundation_model",
+      "release_date": "2024-07-23",
+      "latest_version": "Llama-3.1-405B-Instruct",
+      "context_window": 131072,
+      "max_output_tokens": 4096,
+      "capabilities": {
+        "text_generation": true,
+        "vision": false,
+        "audio": false,
+        "video": false,
+        "function_calling": true,
+        "code_generation": true,
+        "reasoning": true,
+        "web_browsing": false,
+        "image_generation": false,
+        "multilingual": true
+      },
+      "tool_use": {
+        "supported": true,
+        "parallel_tool_calls": false,
+        "max_tools": 32,
+        "structured_output": true
+      },
+      "pricing": {
+        "input_per_1m_tokens": 0.0,
+        "output_per_1m_tokens": 0.0,
+        "currency": "USD"
+      },
+      "open_source": true,
+      "knowledge_cutoff": "2024-12",
+      "api_available": true,
+      "benchmarks": {
+        "mmlu": 87.3,
+        "humaneval": 89.0,
+        "math": 73.8,
+        "arena_elo": 1257
+      }
+    },
+    {
+      "name": "Mistral Large",
+      "provider": "Mistral AI",
+      "type": "foundation_model",
+      "release_date": "2024-02-26",
+      "latest_version": "mistral-large-2411",
+      "context_window": 128000,
+      "max_output_tokens": 8192,
+      "capabilities": {
+        "text_generation": true,
+        "vision": true,
+        "audio": false,
+        "video": false,
+        "function_calling": true,
+        "code_generation": true,
+        "reasoning": true,
+        "web_browsing": false,
+        "image_generation": false,
+        "multilingual": true
+      },
+      "tool_use": {
+        "supported": true,
+        "parallel_tool_calls": true,
+        "max_tools": 64,
+        "structured_output": true
+      },
+      "pricing": {
+        "input_per_1m_tokens": 2.0,
+        "output_per_1m_tokens": 6.0,
+        "currency": "USD"
+      },
+      "open_source": false,
+      "knowledge_cutoff": "2024-11",
+      "api_available": true,
+      "benchmarks": {
+        "mmlu": 84.0,
+        "humaneval": 82.5,
+        "math": 70.2,
+        "arena_elo": 1230
+      }
+    }
+  ],
+  "coding_tools": [
+    {
+      "name": "Cursor",
+      "provider": "Cursor Inc",
+      "type": "ai_coding_tool",
+      "release_date": "2023-03-01",
+      "latest_version": "0.44",
+      "capabilities": {
+        "code_generation": true,
+        "code_completion": true,
+        "chat_interface": true,
+        "agent_mode": true,
+        "multi_file_editing": true,
+        "test_generation": true,
+        "refactoring": true,
+        "debugging": true,
+        "git_integration": true,
+        "terminal_integration": true
+      },
+      "models_used": [
+        "GPT-4o",
+        "Claude Sonnet 4",
+        "Cursor-small"
+      ],
+      "pricing": {
+        "free_tier": true,
+        "pro_monthly": 20.0,
+        "business_monthly": 40.0,
+        "currency": "USD"
+      },
+      "platforms": [
+        "Windows",
+        "macOS",
+        "Linux"
+      ],
+      "open_source": false
+    },
+    {
+      "name": "GitHub Copilot",
+      "provider": "GitHub / Microsoft",
+      "type": "ai_coding_tool",
+      "release_date": "2021-06-29",
+      "latest_version": "1.0",
+      "capabilities": {
+        "code_generation": true,
+        "code_completion": true,
+        "chat_interface": true,
+        "agent_mode": true,
+        "multi_file_editing": true,
+        "test_generation": true,
+        "refactoring": true,
+        "debugging": true,
+        "git_integration": true,
+        "terminal_integration": true
+      },
+      "models_used": [
+        "GPT-4o",
+        "Claude Sonnet 4",
+        "Gemini 2.5 Pro"
+      ],
+      "pricing": {
+        "free_tier": true,
+        "pro_monthly": 10.0,
+        "business_monthly": 19.0,
+        "enterprise_monthly": 39.0,
+        "currency": "USD"
+      },
+      "platforms": [
+        "VS Code",
+        "JetBrains",
+        "Neovim",
+        "Visual Studio",
+        "Xcode"
+      ],
+      "open_source": false
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+name: "Grok-3"
+provider: "xAI"
+type: "foundation_model"
+release_date: "2025-02-17"
+latest_version: "grok-3"
+context_window: 131072
+max_output_tokens: 16384
+capabilities:
+  text_generation: true
+  vision: true
+  audio: false
+  video: false
+  function_calling: true
+  code_generation: true
+  reasoning: true
+  web_browsing: true
+  image_generation: false
+  multilingual: true
+tool_use:
+  supported: true
+  parallel_tool_calls: false
+  max_tools: 64
+  structured_output: true
+pricing:
+  input_per_1m_tokens: 3.00
+  output_per_1m_tokens: 15.00
+  currency: "USD"
+open_source: false
+knowledge_cutoff: "2025-02"
+api_available: true
+benchmarks:
+  mmlu: 90.1
+  humaneval: 89.3
+  math: 80.5
+  arena_elo: 1310
