@@ -16,6 +16,8 @@ from .models.mistral import MistralModel
 from .models.groq import GroqModel
 from .tools.builtin import BuiltinTools
 from .tools.compat import CompatTools
+from .tools.advanced import AdvancedTools
+from .tools.realtime import RealtimeTools
 
 
 def _safe_session_path(path_str: Optional[str]) -> Optional[str]:
@@ -61,6 +63,8 @@ def build_agent(provider: str = "echo", model_name: Optional[str] = None, sessio
     registry = ToolRegistry()
     BuiltinTools(registry).register_all()
     CompatTools(registry).register_all()
+    AdvancedTools(registry).register_all()
+    RealtimeTools(registry).register_all()
 
     # Memory and config
     # Session persistence (sanitized path)
@@ -127,6 +131,8 @@ def main() -> None:
         registry = ToolRegistry()
         BuiltinTools(registry).register_all()
         CompatTools(registry).register_all()
+        AdvancedTools(registry).register_all()
+        RealtimeTools(registry).register_all()
         for spec in registry.list_specs():
             print(f"- {spec['name']}: {spec['description']}")
         return
