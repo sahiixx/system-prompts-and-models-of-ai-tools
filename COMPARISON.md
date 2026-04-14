@@ -12,7 +12,7 @@
 | **Windsurf** | IDE | Proprietary + Multi-model | Native | Wave 11 architecture, Plan-and-execute | Free + $15-30/mo | ✅ Active |
 | **Amp** | IDE | Claude Sonnet 4.6, GPT-5 | Native | Oracle (o3 reasoning), Task agents, Subagents | TBD | ✅ Active |
 | **Gemini Code Assist** | Extension + CLI | Gemini 2.5 Pro, Gemini 3 | VSCode, JetBrains, Android Studio | Agent mode, 1M context, Finish Changes, Custom commands | Free + $19/user/mo | ✅ Active |
-| **Kiro (AWS)** | IDE + CLI | Proprietary (AWS) | Native | AWS integration, Agent mode, Auto-fix cloud issues | TBD | ✅ Active |
+| **Kiro (AWS)** | IDE + CLI | Proprietary (AWS) | Native | AWS integration, Agent mode, Auto-fix cloud issues | Free preview | ✅ Active |
 | **Replit** | Platform | Proprietary | Web | Deployment, Hosting, Collaborative | Free + $7-15/mo | ✅ Active |
 | **v0 (Vercel)** | Platform | Proprietary | Web | Design-to-code, UI generation | Free + Paid | ✅ Active |
 | **Devin AI** | Autonomous | Proprietary | Web/Cloud | Autonomous software engineer, Multi-agent orchestration | $500+/mo | ✅ Active |
@@ -271,7 +271,7 @@ Domain-specific or feature-focused
 - **Very Slow (1-5min)**: Autonomous agents, deep analysis
 
 ### 💾 Context Window Sizes (2026)
-- **Massive (2M tokens)**: Gemini 3
+- **Massive (~2M tokens, estimated)**: Gemini 3
 - **Very Large (1M tokens)**: Claude Opus 4.6, Gemini 2.5 Pro, GPT-4.1
 - **Large (256K tokens)**: GPT-5, Claude Sonnet 4.6 (standard mode)
 - **Medium (128K tokens)**: GPT-5-mini, older Claude models

@@ -14,7 +14,7 @@ Whether you're building your own AI tool, studying prompt engineering, or compar
 
 ---
 
-## 🗂️ Tools Covered (31 Tools)
+## 🗂️ Tools Covered (37 Tools)
 
 ### 🏢 Commercial IDE-Based
 | Tool | Directory | Content |
@@ -28,7 +28,7 @@ Whether you're building your own AI tool, studying prompt engineering, or compar
 ### 🔌 IDE Extensions
 | Tool | Directory | Content |
 |------|-----------|---------|
-| [GitHub Copilot](GitHub%20Copilot/) | `GitHub Copilot/` | Agent mode, Chat, Completion prompts |
+| [GitHub Copilot](GitHub%20Copilot/) | `GitHub Copilot/` | See [VSCode Agent](VSCode%20Agent/) for prompts; README covers features & pricing |
 | [Augment Code](Augment%20Code/) | `Augment Code/` | Claude 4 Sonnet & GPT-5 agent prompts + Tools |
 | [VSCode Agent](VSCode%20Agent/) | `VSCode Agent/` | Multi-model prompts (Claude, Gemini, GPT) |
 | [CodeBuddy](CodeBuddy%20Prompts/) | `CodeBuddy Prompts/` | Chat + Craft mode prompts |
@@ -124,7 +124,7 @@ Whether you're building your own AI tool, studying prompt engineering, or compar
 | **GPT-5-mini** | OpenAI | 128K tokens | Fast, cost-effective |
 | **GPT-4.1** | OpenAI | 1M tokens | Long context specialist |
 | **Gemini 2.5 Pro** | Google | 1M tokens | Largest free context window |
-| **Gemini 3** | Google | 2M tokens | Next-gen reasoning |
+| **Gemini 3** | Google | ~2M tokens *(estimated)* | Next-gen reasoning |
 
 ---
 

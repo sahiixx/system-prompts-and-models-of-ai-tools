@@ -22,7 +22,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.1.0] - 2026-04-14
+## [2.1.1] - 2026-04-14
+
+### Fixed
+- **README.md**: corrected tool count from 31 to 37
+- **README.md**: fixed GitHub Copilot directory description (prompts live in `VSCode Agent/`; the directory has feature/pricing docs)
+- **README.md + COMPARISON.md**: marked Gemini 3 2M-token context window as estimated/unconfirmed
+- **COMPARISON.md**: updated Kiro pricing from "TBD" to "Free preview"
+
+### Removed
+- Deleted 44 leftover AI-agent completion/deployment report files (ALL_FEATURES_COMPLETE.md, COMPLETE_DELIVERY.md, DEPLOYMENT_COMPLETE.md, FINAL_COMPLETE.md, ULTIMATE_COMPLETION.md, etc.) that were added by previous automation sessions and had no relevance to the system-prompts collection
+- Removed full-stack web application directories (`backend/`, `frontend/`, `backend-v2/`, `unified-ai-platform/`, `platform/`, `site/`) that were erroneously added by previous AI agents
+- Removed Python execute-agent package directories (`agent/`, `yaml/`) which belonged to an unrelated AI coding assistant project
+- Removed web-app config files: `biome.json`, `pyproject.toml`, `pytest.ini`, `ruff.toml`, `azure-pipelines.yml`
+- Removed `setup.sh` (web-app full-stack setup script)
+- Removed temp/log files: `tmp_compat.txt`, `frontend.log`, `markdownlint-cli2-results.json`, `PROJECT_COMPLETION_REPORT.txt`
+
+---
+
+
 
 ### Fixed
 - **README.md completely rewritten** — was incorrectly describing an "Execute Agent" Python project instead of the actual system prompts collection
