@@ -1,6 +1,7 @@
 # 🚀 Missing AI Coding Tools
 
 *Notable AI coding tools not yet documented in this repository*
+*Last Updated: April 2026*
 
 ---
 
@@ -455,19 +456,20 @@ This document tracks production AI coding tools that should be added to the repo
 
 ## 📊 Market Coverage Analysis
 
-### Current Repository Coverage:
+### Current Repository Coverage (April 2026):
 - ✅ Cursor (covered)
-- ✅ GitHub Copilot (covered)
+- ✅ GitHub Copilot (covered — directory + VSCode Agent prompts)
 - ✅ Claude Code (covered)
 - ✅ Windsurf (covered)
 - ✅ Bolt (covered)
 - ✅ v0 (covered)
 - ✅ Replit (covered)
 - ✅ Devin (covered)
+- ✅ Kiro / AWS (covered)
+- ✅ Gemini Code Assist (directory added — prompts needed)
 
 ### Major Gaps:
-- ❌ AWS ecosystem (CodeWhisperer/Q)
-- ❌ Google ecosystem (Gemini Code Assist)
+- ❌ AWS CodeWhisperer / Q Developer (prompts)
 - ❌ JetBrains ecosystem (JetBrains AI)
 - ❌ Open source leaders (Continue.dev, Codeium free)
 - ❌ Privacy-focused (Tabnine private)
@@ -530,7 +532,7 @@ This list should be reviewed:
 
 ---
 
-*Last Updated: October 2, 2025*
+*Last Updated: April 2026*
 *Tools on this list: 22*
 *Critical priority: 10*
 *Medium priority: 7*

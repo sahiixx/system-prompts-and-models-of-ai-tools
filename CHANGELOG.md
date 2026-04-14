@@ -22,6 +22,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2026-04-14
+
+### Fixed
+- **README.md completely rewritten** — was incorrectly describing an "Execute Agent" Python project instead of the actual system prompts collection
+- Updated all "Last Updated" dates from October 2025 to April 2026
+
+### Added
+- **GitHub Copilot** directory with comprehensive README documenting agent mode, auto-approve, models (GPT-5, Claude 4, Gemini 2.5), and pricing
+- **Gemini Code Assist** directory with README documenting Google's AI assistant features, 1M token context, and generous free tier
+- COMPARISON.md updated with 2026 model data (Claude Opus/Sonnet 4.6, GPT-5, Gemini 3)
+- New feature rows in comparison: Agent Mode, Auto-Approve, Checkpoints/Rollback, Persistent Memory, Computer Use, Remote Access
+- Added Kiro (AWS) and Gemini Code Assist to tool categories and comparison tables
+- Updated pricing table with 2026 pricing for all tools including Copilot Pro+ ($39/mo) and Devin ($500+/mo)
+- Updated context window sizes for 2026 (1M-2M tokens now common)
+- Updated Future Outlook with 10 key 2026 trends
+
+### Changed
+- Model Support Matrix updated from GPT-4/Claude 3.5 era to GPT-5/Claude 4.6/Gemini 3 era
+- Updated all tool strengths/weaknesses with 2026 capabilities
+- MISSING_TOOLS.md coverage analysis updated (Gemini Code Assist, GitHub Copilot now covered)
+
+---
+
 ## [2.0.0] - 2025-01-XX (Planned)
 
 ### Added
