@@ -1,0 +1,78 @@
+{
+  "name": "Grok",
+  "slug": "grok",
+  "type": "Foundation Model",
+  "status": "active",
+  "description": "xAI Grok-3 foundation model system prompt",
+  "version": {
+    "current": "grok-3",
+    "lastUpdated": "2025-01-15",
+    "history": [
+      {
+        "version": "grok-3",
+        "date": "2025-01-15",
+        "changes": "Initial system prompt extraction with structured metadata"
+      }
+    ]
+  },
+  "pricing": {
+    "model": "pay-per-token",
+    "tiers": [
+      {
+        "name": "API",
+        "input_per_1m_tokens": 3.00,
+        "output_per_1m_tokens": 15.00
+      }
+    ]
+  },
+  "models": {
+    "primary": "Grok-3",
+    "supported": ["grok-3", "grok-3-mini"],
+    "customizable": false
+  },
+  "features": {
+    "codeGeneration": true,
+    "codeCompletion": true,
+    "chatInterface": true,
+    "agentMode": true,
+    "parallelExecution": false,
+    "memorySystem": false,
+    "todoTracking": false,
+    "gitIntegration": false,
+    "multiFileEditing": false,
+    "testGeneration": true,
+    "refactoring": true,
+    "debugging": true,
+    "vision": true,
+    "webBrowsing": true,
+    "functionCalling": true
+  },
+  "platforms": {
+    "vscode": false,
+    "jetbrains": false,
+    "web": true,
+    "cli": true,
+    "standalone": true
+  },
+  "documentation": {
+    "folder": "Grok",
+    "files": {
+      "systemPrompt": "system-prompt.md",
+      "tools": null,
+      "readme": null
+    },
+    "hasMultipleVersions": false,
+    "versions": ["grok-3"]
+  },
+  "links": {
+    "website": "https://x.ai",
+    "docs": "https://docs.x.ai",
+    "github": null,
+    "pricing": "https://x.ai/api"
+  },
+  "tags": [
+    "Foundation Model",
+    "xAI",
+    "Grok"
+  ]
+}

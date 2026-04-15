@@ -1,0 +1,57 @@
+{
+  "version": {
+    "current": "llama-3.1-405b-instruct",
+    "lastUpdated": "2025-01-15",
+    "history": [
+      {
+        "version": "llama-3.1-405b-instruct",
+        "date": "2025-01-15",
+        "changes": "Initial system prompt extraction with structured metadata"
+      }
+    ]
+  },
+  "generated": "2025-01-15T00:00:00.000000",
+  "name": "Llama",
+  "slug": "llama",
+  "type": "Foundation Model",
+  "status": "active",
+  "description": "Meta Llama 3.1 405B open-source foundation model - system prompt collection",
+  "pricing": {
+    "model": "open-source",
+    "tiers": [
+      {
+        "name": "Self-hosted",
+        "input_per_1m_tokens": 0,
+        "output_per_1m_tokens": 0
+      }
+    ]
+  },
+  "models": {
+    "primary": "Llama 3.1 405B",
+    "supported": ["llama-3.1-405b-instruct", "llama-3.1-70b-instruct", "llama-3.1-8b-instruct"],
+    "customizable": true
+  },
+  "features": {
+    "codeGeneration": true,
+    "codeCompletion": true,
+    "chatInterface": true,
+    "agentMode": true,
+    "functionCalling": true,
+    "multilingual": true,
+    "reasoning": true
+  },
+  "documentation": {
+    "folder": "Llama",
+    "files": {
+      "systemPrompt": "system-prompt.md",
+      "tools": null,
+      "readme": null
+    }
+  },
+  "links": {
+    "website": "https://llama.meta.com",
+    "docs": "https://llama.meta.com/docs",
+    "github": "https://github.com/meta-llama/llama"
+  },
+  "tags": ["Foundation Model", "Open Source", "Meta", "Llama"]
+}

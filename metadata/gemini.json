@@ -1,0 +1,80 @@
+{
+  "name": "Gemini",
+  "slug": "gemini",
+  "type": "Foundation Model",
+  "status": "active",
+  "description": "Google Gemini 1.5 Pro multimodal foundation model system prompt",
+  "version": {
+    "current": "1.5-pro-002",
+    "lastUpdated": "2025-01-15",
+    "history": [
+      {
+        "version": "1.5-pro-002",
+        "date": "2025-01-15",
+        "changes": "Initial system prompt extraction with structured metadata"
+      }
+    ]
+  },
+  "pricing": {
+    "model": "pay-per-token",
+    "tiers": [
+      {
+        "name": "API",
+        "input_per_1m_tokens": 1.25,
+        "output_per_1m_tokens": 5.00
+      }
+    ]
+  },
+  "models": {
+    "primary": "Gemini 1.5 Pro",
+    "supported": ["gemini-1.5-pro", "gemini-1.5-pro-002", "gemini-1.5-flash"],
+    "customizable": false
+  },
+  "features": {
+    "codeGeneration": true,
+    "codeCompletion": true,
+    "chatInterface": true,
+    "agentMode": true,
+    "parallelExecution": true,
+    "memorySystem": false,
+    "todoTracking": false,
+    "gitIntegration": false,
+    "multiFileEditing": false,
+    "testGeneration": true,
+    "refactoring": true,
+    "debugging": true,
+    "vision": true,
+    "audio": true,
+    "video": true,
+    "functionCalling": true
+  },
+  "platforms": {
+    "vscode": false,
+    "jetbrains": false,
+    "web": true,
+    "cli": true,
+    "standalone": true
+  },
+  "documentation": {
+    "folder": "Gemini",
+    "files": {
+      "systemPrompt": "system-prompt.md",
+      "tools": null,
+      "readme": null
+    },
+    "hasMultipleVersions": false,
+    "versions": ["1.5-pro-002"]
+  },
+  "links": {
+    "website": "https://deepmind.google/technologies/gemini/",
+    "docs": "https://ai.google.dev/docs",
+    "github": null,
+    "pricing": "https://ai.google.dev/pricing"
+  },
+  "tags": [
+    "Foundation Model",
+    "Multimodal",
+    "Google",
+    "Gemini"
+  ]
+}

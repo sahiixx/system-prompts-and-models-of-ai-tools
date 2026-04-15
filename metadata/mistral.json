@@ -1,0 +1,78 @@
+{
+  "name": "Mistral",
+  "slug": "mistral",
+  "type": "Foundation Model",
+  "status": "active",
+  "description": "Mistral AI Large foundation model system prompt",
+  "version": {
+    "current": "mistral-large-2411",
+    "lastUpdated": "2025-01-15",
+    "history": [
+      {
+        "version": "mistral-large-2411",
+        "date": "2025-01-15",
+        "changes": "Initial system prompt extraction with structured metadata"
+      }
+    ]
+  },
+  "pricing": {
+    "model": "pay-per-token",
+    "tiers": [
+      {
+        "name": "API",
+        "input_per_1m_tokens": 2.00,
+        "output_per_1m_tokens": 6.00
+      }
+    ]
+  },
+  "models": {
+    "primary": "Mistral Large",
+    "supported": ["mistral-large-latest", "mistral-large-2411", "mistral-medium"],
+    "customizable": false
+  },
+  "features": {
+    "codeGeneration": true,
+    "codeCompletion": true,
+    "chatInterface": true,
+    "agentMode": true,
+    "parallelExecution": true,
+    "memorySystem": false,
+    "todoTracking": false,
+    "gitIntegration": false,
+    "multiFileEditing": false,
+    "testGeneration": true,
+    "refactoring": true,
+    "debugging": true,
+    "vision": true,
+    "functionCalling": true,
+    "multilingual": true
+  },
+  "platforms": {
+    "vscode": false,
+    "jetbrains": false,
+    "web": true,
+    "cli": true,
+    "standalone": true
+  },
+  "documentation": {
+    "folder": "Mistral",
+    "files": {
+      "systemPrompt": "system-prompt.md",
+      "tools": null,
+      "readme": null
+    },
+    "hasMultipleVersions": false,
+    "versions": ["mistral-large-2411"]
+  },
+  "links": {
+    "website": "https://mistral.ai",
+    "docs": "https://docs.mistral.ai",
+    "github": null,
+    "pricing": "https://mistral.ai/pricing"
+  },
+  "tags": [
+    "Foundation Model",
+    "Mistral AI",
+    "Multilingual"
+  ]
+}

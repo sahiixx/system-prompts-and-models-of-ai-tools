@@ -1,0 +1,56 @@
+{
+  "version": {
+    "current": "grok-3",
+    "lastUpdated": "2025-01-15",
+    "history": [
+      {
+        "version": "grok-3",
+        "date": "2025-01-15",
+        "changes": "Initial system prompt extraction with structured metadata"
+      }
+    ]
+  },
+  "generated": "2025-01-15T00:00:00.000000",
+  "name": "Grok",
+  "slug": "grok",
+  "type": "Foundation Model",
+  "status": "active",
+  "description": "xAI Grok-3 foundation model - system prompt collection",
+  "pricing": {
+    "model": "pay-per-token",
+    "tiers": [
+      {
+        "name": "API",
+        "input_per_1m_tokens": 3.00,
+        "output_per_1m_tokens": 15.00
+      }
+    ]
+  },
+  "models": {
+    "primary": "Grok-3",
+    "supported": ["grok-3", "grok-3-mini"],
+    "customizable": false
+  },
+  "features": {
+    "codeGeneration": true,
+    "chatInterface": true,
+    "agentMode": true,
+    "functionCalling": true,
+    "vision": true,
+    "webBrowsing": true,
+    "reasoning": true
+  },
+  "documentation": {
+    "folder": "Grok",
+    "files": {
+      "systemPrompt": "system-prompt.md",
+      "tools": null,
+      "readme": null
+    }
+  },
+  "links": {
+    "website": "https://x.ai",
+    "docs": "https://docs.x.ai"
+  },
+  "tags": ["Foundation Model", "xAI", "Grok"]
+}

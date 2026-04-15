@@ -1,0 +1,59 @@
+{
+  "version": {
+    "current": "2024-08-06",
+    "lastUpdated": "2025-01-15",
+    "history": [
+      {
+        "version": "2024-08-06",
+        "date": "2025-01-15",
+        "changes": "Initial system prompt extraction with structured metadata"
+      }
+    ]
+  },
+  "generated": "2025-01-15T00:00:00.000000",
+  "name": "GPT-4o",
+  "slug": "gpt-4o",
+  "type": "Foundation Model",
+  "status": "active",
+  "description": "OpenAI GPT-4o multimodal foundation model - system prompt collection",
+  "pricing": {
+    "model": "pay-per-token",
+    "tiers": [
+      {
+        "name": "API",
+        "input_per_1m_tokens": 2.50,
+        "output_per_1m_tokens": 10.00
+      }
+    ]
+  },
+  "models": {
+    "primary": "GPT-4o",
+    "supported": ["gpt-4o", "gpt-4o-mini", "gpt-4o-2024-08-06"],
+    "customizable": false
+  },
+  "features": {
+    "codeGeneration": true,
+    "codeCompletion": true,
+    "chatInterface": true,
+    "agentMode": true,
+    "parallelExecution": true,
+    "memorySystem": false,
+    "functionCalling": true,
+    "vision": true,
+    "audio": true,
+    "reasoning": true
+  },
+  "documentation": {
+    "folder": "GPT-4o",
+    "files": {
+      "systemPrompt": "system-prompt.md",
+      "tools": null,
+      "readme": null
+    }
+  },
+  "links": {
+    "website": "https://openai.com",
+    "docs": "https://platform.openai.com/docs"
+  },
+  "tags": ["Foundation Model", "Multimodal", "OpenAI"]
+}
