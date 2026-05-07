@@ -59,7 +59,7 @@ class TestModelProvider(unittest.TestCase):
         """Test that stream_complete falls back to complete"""
         
         class TestProvider(ModelProvider):
-            def complete(self, _messages, _tools=None):
+            def complete(self, _messages, tools=None):
                 return {"role": "assistant", "content": "Response", "tool_calls": []}
         
         provider = TestProvider(name="test")
@@ -77,7 +77,7 @@ class TestModelProvider(unittest.TestCase):
         """Test that stream_complete handles empty content"""
         
         class TestProvider(ModelProvider):
-            def complete(self, _messages, _tools=None):
+            def complete(self, _messages, tools=None):
                 return {"role": "assistant", "content": "", "tool_calls": []}
         
         provider = TestProvider(name="test")
@@ -113,7 +113,7 @@ class TestModelProvider(unittest.TestCase):
         """Test that stream_complete includes tool_calls in done chunk"""
         
         class TestProvider(ModelProvider):
-            def complete(self, _messages, _tools=None):
+            def complete(self, _messages, tools=None):
                 return {
                     "role": "assistant",
                     "content": "Using tool",

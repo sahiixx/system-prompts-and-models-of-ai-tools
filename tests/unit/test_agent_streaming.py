@@ -25,10 +25,10 @@ class MockStreamingModel(ModelProvider):
         self.stream_chunks = stream_chunks or []
         self.call_count = 0
     
-    def complete(self, _messages, _tools=None):
+    def complete(self, _messages, tools=None):
         return {"role": "assistant", "content": "Non-streaming response", "tool_calls": []}
     
-    def stream_complete(self, _messages, _tools=None):
+    def stream_complete(self, _messages, tools=None):
         """Yield stream chunks"""
         for chunk in self.stream_chunks:
             yield chunk

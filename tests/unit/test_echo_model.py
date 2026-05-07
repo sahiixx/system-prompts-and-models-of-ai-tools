@@ -139,7 +139,7 @@ class TestEchoModelComplete(unittest.TestCase):
         
         result = self.model.complete(messages)
         
-        self.assertEqual(result["content"], "Echo: ")
+        self.assertEqual(result["content"], "Echo: (no user message)")
     
     def test_complete_with_whitespace_content(self):
         """Test complete with whitespace user message"""

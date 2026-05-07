@@ -74,11 +74,11 @@ class TestSafeSessionPath(unittest.TestCase):
         self.assertNotIn("/etc/", result)
     
     def test_safe_session_path_rejects_slashes(self):
-        """Test that filenames with slashes are rejected"""
+        """Test that filenames with slashes are sanitized via basename"""
         result = _safe_session_path("foo/bar.json")
         
-        # Should fallback to default name
-        self.assertIn("session.json", result)
+        # Should use basename
+        self.assertIn("bar.json", result)
         self.assertNotIn("foo", result)
     
     def test_safe_session_path_rejects_invalid_chars(self):

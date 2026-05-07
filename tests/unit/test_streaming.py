@@ -27,10 +27,10 @@ class StreamingMockModel(ModelProvider):
             {"done": True, "content": "Hello world", "tool_calls": []}
         ]
     
-    def complete(self, _messages, _tools=None):
+    def complete(self, _messages, tools=None):
         return {"content": "Hello world", "tool_calls": []}
     
-    def stream_complete(self, _messages, _tools=None):
+    def stream_complete(self, _messages, tools=None):
         for chunk in self.stream_chunks:
             yield chunk
 
@@ -93,7 +93,7 @@ class TestStreaming(unittest.TestCase):
             def __init__(self):
                 super().__init__(name="simple")
             
-            def complete(self, _messages, _tools=None):
+            def complete(self, _messages, tools=None):
                 return {"content": "Response", "tool_calls": []}
         
         model = SimpleModel()

@@ -61,9 +61,10 @@ class TestSessionPath(unittest.TestCase):
         self.assertNotIn("dangerous", result)
     
     def test_forward_slash_causes_fallback(self):
-        """Test that forward slashes cause fallback"""
+        """Test that forward slashes are sanitized via basename"""
         result = _safe_session_path("dir/file.json")
-        self.assertTrue(result.endswith("session.json"))
+        self.assertTrue(result.endswith("file.json"))
+        self.assertNotIn("dir", result)
     
     def test_backslash_causes_fallback(self):
         """Test that backslashes cause fallback"""

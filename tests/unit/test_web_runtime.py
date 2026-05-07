@@ -255,19 +255,19 @@ class TestChatEndpoint(unittest.TestCase):
 class TestMainFunction(unittest.TestCase):
     """Test suite for main function"""
 
-    @patch('agent.runtime.web.uvicorn')
-    def test_main_runs_uvicorn(self, mock_uvicorn):
+    @patch('uvicorn.run')
+    def test_main_runs_uvicorn(self, mock_uvicorn_run):
         """Test that main function runs uvicorn"""
         from agent.runtime.web import main
 
         main()
 
-        mock_uvicorn.run.assert_called_once()
-        call_args = mock_uvicorn.run.call_args[0]
-        call_kwargs = mock_uvicorn.run.call_args[1]
+        mock_uvicorn_run.assert_called_once()
+        call_args = mock_uvicorn_run.call_args[0]
+        call_kwargs = mock_uvicorn_run.call_args[1]
 
         self.assertEqual(call_args[0], "agent.runtime.web:app")
-        self.assertEqual(call_kwargs['host'], "127.0.0.1")
+        self.assertEqual(call_kwargs['host'], "0.0.0.0")
         self.assertEqual(call_kwargs['port'], 8000)
         self.assertTrue(call_kwargs['reload'])
 

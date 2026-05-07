@@ -43,7 +43,7 @@ class TestOpenAIModelStreaming(unittest.TestCase):
             mock_stream = MagicMock()
             mock_stream.__enter__ = MagicMock(return_value=mock_stream)
             mock_stream.__exit__ = MagicMock(return_value=None)
-            mock_stream.__iter__ = lambda: iter([mock_event1, mock_event2, mock_event3])
+            mock_stream.__iter__ = lambda self=None: iter([mock_event1, mock_event2, mock_event3])
             
             mock_client.chat.completions.stream.return_value = mock_stream
             
@@ -81,7 +81,7 @@ class TestOpenAIModelStreaming(unittest.TestCase):
             mock_stream = MagicMock()
             mock_stream.__enter__ = MagicMock(return_value=mock_stream)
             mock_stream.__exit__ = MagicMock(return_value=None)
-            mock_stream.__iter__ = lambda: iter([mock_event])
+            mock_stream.__iter__ = lambda self=None: iter([mock_event])
             
             mock_client.chat.completions.stream.return_value = mock_stream
             
@@ -131,7 +131,7 @@ class TestOpenAIModelStreaming(unittest.TestCase):
             mock_stream = MagicMock()
             mock_stream.__enter__ = MagicMock(return_value=mock_stream)
             mock_stream.__exit__ = MagicMock(return_value=None)
-            mock_stream.__iter__ = lambda: iter([mock_event])
+            mock_stream.__iter__ = lambda self=None: iter([mock_event])
             
             mock_client.chat.completions.stream.return_value = mock_stream
             

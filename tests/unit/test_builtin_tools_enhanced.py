@@ -392,8 +392,8 @@ class TestFsWriteTool(unittest.TestCase):
         
         self.assertTrue(result["ok"])
         
-        with open(test_file, 'r') as f:
-            self.assertEqual(f.read(), content)
+        with open(test_file, 'rb') as f:
+            self.assertEqual(f.read().decode('utf-8'), content)
 
 
 class TestBuiltinToolsRegistration(unittest.TestCase):

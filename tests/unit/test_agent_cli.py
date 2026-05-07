@@ -124,7 +124,7 @@ class TestMainCLI(unittest.TestCase):
         mock_build.return_value = mock_agent
 
         main()
-        mock_build.assert_called_once_with(provider='openai', model_name=None)
+        mock_build.assert_called_once_with(provider='openai', model_name=None, session_path=None, system_prompt=None)
 
     @patch('agent.cli.build_agent')
     @patch('sys.argv', ['execute-agent', '--provider', 'ollama', '--model', 'llama2', 'test'])
@@ -135,7 +135,7 @@ class TestMainCLI(unittest.TestCase):
         mock_build.return_value = mock_agent
 
         main()
-        mock_build.assert_called_once_with(provider='ollama', model_name='llama2')
+        mock_build.assert_called_once_with(provider='ollama', model_name='llama2', session_path=None, system_prompt=None)
 
 
 class TestSafeSessionPath(unittest.TestCase):

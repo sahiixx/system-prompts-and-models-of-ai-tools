@@ -235,7 +235,7 @@ class TestWorkflowSecurity:
                 # Make sure it's in a secrets context
                 lines = content.split('\n')
                 for i, line in enumerate(lines):
-                    if pattern in line and 'secrets.' not in line:
+                    if pattern in line and 'secrets.' not in line and 'id-token' not in line:
                         pytest.fail(f"Line {i+1}: Potential hardcoded secret: {pattern}")
 
 

@@ -547,7 +547,7 @@ class TestPagesWorkflow:
         node_step = next((s for s in steps if 'node' in s.get('name', '').lower()), None)
         assert node_step is not None, "Should have Node.js setup step"
         if 'with' in node_step and 'node-version' in node_step['with']:
-            version = node_step['with']['node-version']
+            version = str(node_step['with']['node-version'])
             assert version in ['20', '22', 'lts/*', 'latest'], f"Node version {version} should be reasonable"
     
     def test_pages_workflow_step_ordering(self, pages_workflow):

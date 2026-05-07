@@ -24,7 +24,7 @@ class MetadataGenerator:
         
         tool_dirs = []
         for item in self.repo_path.iterdir():
-            if item.is_dir() and item.name not in exclude_dirs:
+            if item.is_dir() and item.name not in exclude_dirs and not item.name.startswith('.'):
                 tool_dirs.append(item.name)
         
         return sorted(tool_dirs)
@@ -42,9 +42,11 @@ class MetadataGenerator:
         
         if 'cli' in name_lower or 'terminal' in name_lower:
             return "CLI Tool"
+        elif 'devin' in name_lower or 'poke' in name_lower:
+            return "Autonomous Agent"
         elif 'web' in name_lower or 'app' in name_lower or 'dev' in name_lower:
             return "Web Platform"
-        elif 'agent' in name_lower or 'devin' in name_lower or 'poke' in name_lower:
+        elif 'agent' in name_lower:
             return "Autonomous Agent"
         else:
             return "IDE Plugin"
@@ -94,7 +96,8 @@ class MetadataGenerator:
         metrics = {
             'promptTokens': len(content.split()) * 1.3,  # Rough estimate
             'securityRules': security_count,
-            'concisenessScore': self.calculate_conciseness_score(content)
+            'concisenessScore': self.calculate_conciseness_score(content),
+            'lengthLines': len(content.splitlines())
         }
         
         return {
@@ -325,8 +328,8 @@ class MetadataGenerator:
         # Check required fields
         required = ['name', 'slug', 'type', 'status', 'description']
         for field in required:
-            if field not in data:
-                errors.append(f"Missing required field: {field}")
+            if field not in data or not data[field]:
+                errors.append(f"Missing or empty required field: {field}")
         
         # Check types
         if 'type' in data and data['type'] not in ['IDE Plugin', 'CLI Tool', 'Web Platform', 'Autonomous Agent']:

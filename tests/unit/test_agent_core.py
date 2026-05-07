@@ -242,7 +242,7 @@ class TestAgentStreamingInterface(unittest.TestCase):
             def __init__(self):
                 super().__init__(name="streaming")
             
-            def stream_complete(self, _messages, _tools=None):
+            def stream_complete(self, _messages, tools=None):
                 yield {"delta": "Hello"}
                 yield {"delta": " world"}
                 yield {"done": True, "content": "Hello world", "tool_calls": []}
@@ -275,7 +275,7 @@ class TestAgentStreamingInterface(unittest.TestCase):
                 super().__init__(name="streaming")
                 self.call_num = 0
             
-            def stream_complete(self, _messages, _tools=None):
+            def stream_complete(self, _messages, tools=None):
                 self.call_num += 1
                 if self.call_num == 1:
                     yield {"done": True, "content": "", "tool_calls": [{"name": "test_tool", "arguments": {}}]}
@@ -298,7 +298,7 @@ class TestAgentStreamingInterface(unittest.TestCase):
             def __init__(self):
                 super().__init__(name="streaming")
             
-            def stream_complete(self, _messages, _tools=None):
+            def stream_complete(self, _messages, tools=None):
                 yield {"done": True, "content": "Response", "tool_calls": []}
 
         config = AgentConfig(system_prompt="Test system")
@@ -317,7 +317,7 @@ class TestAgentStreamingInterface(unittest.TestCase):
             def __init__(self):
                 super().__init__(name="streaming")
             
-            def stream_complete(self, _messages, _tools=None):
+            def stream_complete(self, _messages, tools=None):
                 yield {"done": True, "content": "", "tool_calls": [{"name": "test_tool", "arguments": {}}]}
 
         def mock_tool(_args):

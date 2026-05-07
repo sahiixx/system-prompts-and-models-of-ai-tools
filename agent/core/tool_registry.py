@@ -32,7 +32,7 @@ class ToolRegistry:
         params = spec.parameters or {}
         # Very lightweight validation: ensure provided keys exist if params provided as simple shape
         for key in args.keys():
-            if params and key not in params and not isinstance(params, dict):
+            if params and key not in params and isinstance(params, dict):
                 return f"unexpected parameter '{key}' for tool {name}"
         return None
 
